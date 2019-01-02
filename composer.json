@@ -1,0 +1,22 @@
+{
+    "name" : "uniondrug/phar",
+    "description" : "builder PHAR package and start with swoole",
+    "license" : "MIT",
+    "type" : "library",
+    "authors" : [
+        {
+            "name" : "Uniondrug Dev Team",
+            "email" : "dev@uniondrug.cn"
+        }
+    ],
+    "require" : {
+        "guzzlehttp/guzzle": "^6.3",
+        "uniondrug/framework" : "^2.10",
+        "uniondrug/http-client" : "^2.0"
+    },
+    "autoload" : {
+        "psr-4" : {
+            "Uniondrug\\Phar\\" : "src/"
+        }
+    }
+}
