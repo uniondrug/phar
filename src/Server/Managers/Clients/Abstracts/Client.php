@@ -8,6 +8,10 @@ namespace Uniondrug\Phar\Server\Managers\Clients\Abstracts;
 use Uniondrug\Phar\Server\Managers\Clients\IClient;
 use Uniondrug\Phar\Server\Bootstrap;
 
+/**
+ * Client基础类
+ * @package Uniondrug\Phar\Server\Managers\Clients\Abstracts
+ */
 abstract class Client implements IClient
 {
     /**
@@ -18,5 +22,14 @@ abstract class Client implements IClient
     public function __construct(Bootstrap $boot)
     {
         $this->boot = $boot;
+        $this->loadConfig();
+    }
+
+    /**
+     * 从历史记录读取配置
+     */
+    public function loadConfig()
+    {
+        $this->boot->getConfig()->fromHistory()->mergeArgs();
     }
 }

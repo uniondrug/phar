@@ -8,7 +8,7 @@ namespace Uniondrug\Phar\Server\Events;
 use Uniondrug\Phar\Server\XHttp;
 
 /**
- * 响应HTTP请求
+ * Master进程启动时触发
  * @package Uniondrug\Phar\Server\Events
  */
 trait OnStart
@@ -17,10 +17,10 @@ trait OnStart
      * Server启动在主进程的主线程回调此函数
      * @link https://wiki.swoole.com/wiki/page/p-event/onStart.html
      * @param XHttp $server
-     * @return void
      */
     final public function onStart($server)
     {
+        $server->setProcessName('master');
         $server->doStart($server);
     }
 }

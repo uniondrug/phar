@@ -9,7 +9,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Uniondrug\Framework\Container;
 
 /**
- * Builder PHAR
+ * BuildTask PHAR
  * @package Uniondrug\Phar
  */
 class Builder
@@ -58,7 +58,7 @@ class Builder
     private $countFiles = 0;
 
     /**
-     * Builder constructor.
+     * BuildTask constructor.
      * @param OutputInterface $output
      */
     public function __construct(Container $container, OutputInterface $output)
@@ -111,7 +111,7 @@ define("PHAR_WORKING_DIR", getcwd());
 define("PHAR_WORKING_NAME", "{$this->pharName}");
 define("PHAR_WORKING_FILE", __FILE__);
 Phar::mapPhar('{$this->pharName}');
-require 'phar://{$this->pharName}/{$path}';
+include('phar://{$this->pharName}/{$path}');
 __HALT_COMPILER();
 STUB;
         $phar->setStub($stub);

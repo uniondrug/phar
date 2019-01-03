@@ -9,13 +9,13 @@ use Uniondrug\Phar\Server\XHttp;
 
 /**
  * 响应PIPE消息
+ * 在调用方法, 务必判断所在进程
  * @package Uniondrug\Phar\Server\Events
  */
 trait OnPipeMessage
 {
     /**
-     * 响应PIPE消息
-     * 收到管道消息转发异步任务
+     * @link https://wiki.swoole.com/wiki/page/366.html
      * @param XHttp  $server
      * @param int    $srcWorkerId
      * @param string $message
@@ -25,12 +25,11 @@ trait OnPipeMessage
         try {
             $taskId = $server->task($message, -1);
             if ($taskId !== false) {
-                $server->boot->getLogger()->debug("[task=%d]PIPE转发TASK", $taskId);
                 return;
             }
-            throw new \Exception("return false from task() method");
+            throw new \Exception("调用task()时返回了false");
         } catch(\Throwable $e) {
-            $server->boot->getLogger()->error("PIPE转发TASK失败 - %s", $e->getMessage());
+            $server->boot->getLogger()->error("PIPE转发TASK失败 - %s - %s", $e->getMessage(), $message);
         }
     }
 }

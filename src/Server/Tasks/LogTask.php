@@ -17,7 +17,7 @@ class LogTask extends XTask
      */
     public function beforeRun()
     {
-        if (count($this->getData()) === 0) {
+        if (count($this->data) === 0) {
             return false;
         }
         return parent::beforeRun();
@@ -29,6 +29,11 @@ class LogTask extends XTask
      */
     public function run()
     {
+        echo "Kafka begin ---- \n";
+        foreach ($this->data as $key => $data) {
+            echo implode("\t", $data)."\n";
+        }
+        echo "Kafka end ---- \n";
         // todo: 向Kafka发送业务日志
         return false;
     }

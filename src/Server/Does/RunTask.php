@@ -25,33 +25,33 @@ trait RunTask
      */
     public function runTask(string $class, array $data = [])
     {
+        /**
+         * @var XHttp $server
+         */
+        $server = $this;
+        $logger = $server->getLogger();
         try {
-            /**
-             * 1. 入参检查
-             * @var XHttp $server
-             */
-            $server = $this;
+            // 1. 入参检查
             if (!is_a($class, ITask::class, true)) {
-                $server->boot->getLogger()->error("class {%s} not implements {%s}", $class, ITask::class);
+                $logger->fatal("Task{%s}未实现{%s}接口", $class, ITask::class);
                 return false;
             }
-            // 2. 任务内容转JSON
+            // 2. 内容转换
             $message = json_encode([
                 'class' => $class,
                 'params' => $data
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            // 3. Task in Worker
+            // 3. Worker进程
             if ($server->worker_pid > 0) {
                 if (!$server->taskworker) {
-                    $server->boot->getLogger()->debug("call task() method by runTask() method");
                     return $this->task($message, -1) !== false;
                 }
             }
-            // 4. Task not Worker
-            $server->boot->getLogger()->debug("call sendMessage() method by runTask() method");
+            // 4. 非Worker进程
             return $this->sendMessage($message, 0);
         } catch(\Throwable $e) {
-            $server->boot->getLogger()->error("run task failure - %s", $e->getMessage());
+            // 5. 发送Task错误
+            $logger->fatal("调用runTask()失败 - %s", $e->getMessage());
             return false;
         }
     }

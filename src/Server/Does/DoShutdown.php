@@ -8,16 +8,15 @@ namespace Uniondrug\Phar\Server\Does;
 use Uniondrug\Phar\Server\XHttp;
 
 /**
- * 由onStart()转发
+ * 由onShutdown()转发
  * @package Uniondrug\Phar\Server\Does
  */
-trait DoStart
+trait DoShutdown
 {
     /**
-     * 服务启动前触发
      * @param XHttp $server
      */
-    public function doStart($server)
+    public function doShutdown($server)
     {
     }
 }

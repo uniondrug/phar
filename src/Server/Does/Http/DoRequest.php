@@ -7,6 +7,7 @@ namespace Uniondrug\Phar\Server\Does\Http;
 
 use Uniondrug\Phar\Server\Handlers\HttpHandler;
 use Uniondrug\Phar\Server\Logger;
+use Uniondrug\Phar\Server\Tasks\LogTask;
 
 /**
  * 处理HTTP请求
@@ -26,9 +27,6 @@ trait DoRequest
             throw new \Exception("ignored by assets request", 400);
         }
         // 2. 运行容器
-        $logger = $this->runContainer($handler);
-        if ($logger instanceof Logger) {
-            $this->runTask($this->getConfig()->logTask, $logger->endLogData());
-        }
+        $this->runContainer($handler);
     }
 }

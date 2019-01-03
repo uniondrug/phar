@@ -7,15 +7,28 @@ namespace Uniondrug\Phar\Server;
 
 use swoole_http_server;
 use Uniondrug\Phar\Server\Does\BeforeStart;
+use Uniondrug\Phar\Server\Does\DoFinish;
+use Uniondrug\Phar\Server\Does\DoManagerStart;
+use Uniondrug\Phar\Server\Does\DoManagerStop;
+use Uniondrug\Phar\Server\Does\DoShutdown;
 use Uniondrug\Phar\Server\Does\DoStart;
 use Uniondrug\Phar\Server\Does\DoTask;
+use Uniondrug\Phar\Server\Does\DoWorkerError;
+use Uniondrug\Phar\Server\Does\DoWorkerStart;
+use Uniondrug\Phar\Server\Does\DoWorkerStop;
 use Uniondrug\Phar\Server\Does\Http\DoRequest;
 use Uniondrug\Phar\Server\Does\RunTask;
 use Uniondrug\Phar\Server\Events\Http\OnRequest;
 use Uniondrug\Phar\Server\Events\OnFinish;
+use Uniondrug\Phar\Server\Events\OnManagerStart;
+use Uniondrug\Phar\Server\Events\OnManagerStop;
 use Uniondrug\Phar\Server\Events\OnPipeMessage;
+use Uniondrug\Phar\Server\Events\OnShutdown;
 use Uniondrug\Phar\Server\Events\OnStart;
 use Uniondrug\Phar\Server\Events\OnTask;
+use Uniondrug\Phar\Server\Events\OnWorkerError;
+use Uniondrug\Phar\Server\Events\OnWorkerStart;
+use Uniondrug\Phar\Server\Events\OnWorkerStop;
 use Uniondrug\Phar\Server\Frameworks\Phalcon;
 
 /**
@@ -30,17 +43,24 @@ class XHttp extends swoole_http_server
      */
     public $boot;
     /**
-     * does: callbacks
+     * callbacks
+     * 1. before
+     * 2. server
+     * 3. task
+     * 3. http
      */
-    use BeforeStart, DoStart, DoTask;
+    use BeforeStart;
+    use DoStart, DoManagerStart, DoManagerStop, DoWorkerError, DoWorkerStart, DoWorkerStop, DoShutdown;
+    use DoTask, DoFinish;
     use DoRequest;
     /**
-     * events: server
+     * events:
+     * 1. server
+     * 2. task
+     * 3. http
      */
-    use RunTask, OnFinish, OnTask, OnPipeMessage, OnStart;
-    /**
-     * events: http
-     */
+    use OnStart, OnManagerStart, OnManagerStop, OnWorkerError, OnWorkerStart, OnWorkerStop, OnShutdown;
+    use OnTask, OnFinish, OnPipeMessage, RunTask;
     use OnRequest;
     /**
      * frameworks: Phalcon
@@ -57,18 +77,15 @@ class XHttp extends swoole_http_server
         $log = $boot->getLogger();
         $this->boot = $boot;
         // 1. construct
-        $log->setPrefix("[%s:%d]", $cfg->host, $cfg->port);
-        $log->info("创建{%s}服务/Server", $cfg->name);
+        $log->info("创建{%s}服务监听{%s:%d}/Server", $cfg->name, $cfg->host, $cfg->port);
         parent::__construct($cfg->host, $cfg->port, $cfg->serverMode, $cfg->serverSockType);
         // 2. settings
         $this->set($cfg->settings);
         // 3. events
-        $log->info("绑定事件监听");
         $events = $cfg->events;
         foreach ($events as $event) {
             $call = 'on'.ucfirst($event);
             if (method_exists($this, $call)) {
-                $log->debug("绑定{%s}事件到{%s}回调方法", $event, $call);
                 $this->on($event, [
                     $this,
                     'on'.ucfirst($event)
@@ -80,18 +97,19 @@ class XHttp extends swoole_http_server
         // 4. tables
         if ($cfg->enableTables) {
             $tables = $cfg->tables;
-            $log->info("设置内存表{%d}个", count($tables));
             foreach ($tables as $table => $size) {
             }
         }
         // 5. processes
         if ($cfg->enableProcesses) {
             $processes = $cfg->processes;
-            $log->info("加入Process进程{%d}个", count($processes));
+            foreach ($processes as $process) {
+            }
         }
     }
 
     /**
+     * 读取Args实例
      * @return Args
      */
     public function getArgs()
@@ -100,6 +118,7 @@ class XHttp extends swoole_http_server
     }
 
     /**
+     * 读取Config实例
      * @return Config
      */
     public function getConfig()
@@ -108,6 +127,7 @@ class XHttp extends swoole_http_server
     }
 
     /**
+     * 读取Logger实例
      * @return Logger
      */
     public function getLogger()
@@ -152,7 +172,8 @@ class XHttp extends swoole_http_server
     }
 
     /**
-     * 是否为Worker进程
+     * 是否为Tasker进程
+     * @return bool
      */
     public function isTasker()
     {
@@ -182,5 +203,29 @@ class XHttp extends swoole_http_server
             return parent::start();
         }
         return false;
+    }
+
+    /**
+     * 设置进程名称
+     * @param string $name
+     * @param array  ...$args
+     * @return string
+     */
+    final public function setProcessName(string $name, ... $args)
+    {
+        try {
+            $name = substr($this->boot->getArgs()->getEnvironment(), 0, 1).'.'.$this->boot->getConfig()->name.' '.$name;
+            foreach ($args as $arg) {
+                $arg = trim($arg);
+                if ($arg !== '') {
+                    $name .= ' '.$arg;
+                }
+            }
+            if (PHP_OS !== "Darwin") {
+                swoole_set_process_name($name);
+            }
+        } catch(\Throwable $e) {
+        }
+        return $name;
     }
 }

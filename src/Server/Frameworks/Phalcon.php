@@ -14,6 +14,7 @@ use Uniondrug\Phar\Server\Args;
 use Uniondrug\Phar\Server\Bootstrap;
 use Uniondrug\Phar\Server\Handlers\HttpHandler;
 use Uniondrug\Phar\Server\Logger;
+use Uniondrug\Phar\Server\XHttp;
 use Uniondrug\Service\Server as ServiceServer;
 
 /**
@@ -79,28 +80,24 @@ trait Phalcon
     /**
      * 运行Phalcon容器
      * @param HttpHandler $handler
-     * @return Logger 返回业务Logger数据
      */
     public function runContainer(HttpHandler $handler)
     {
         /**
-         * @var Bootstrap $boot
+         * 1. begin
+         * @var Bootstrap $b
          */
-        $t1 = microtime(true);
-        $boot = $this->boot;
+        $b = $this->boot;
+        $t = microtime(true);
         /**
-         * 1. init container
+         * 2. init container
          * @var ServiceServer $service
          */
         $this->phalconLoader();
-        // 2. remove shared instance
-        if ($this->container->hasSharedInstance('logger')) {
-            $this->container->removeSharedInstance('logger');
-        }
-        // 3. register new logger handler
-        $logger = new Logger($boot->getArgs());
-        $logger->setPrefix("[%s:%d][ram=%sM][req=%s]", $boot->getConfig()->host, $boot->getConfig()->port, $handler->getMemoryUsed(), $handler->getRequestId());
-        $this->container->setShared('logger', $logger);
+        // 3. init logger
+        $prefix = $b->getLogger()->getPrefix();
+        $logger = $this->container->getShared('logger');
+        $logger->setPrefix("%s[%s]", $prefix, $handler->getRequestId());
         /**
          * 4. assign phalcon request
          * @var Request         $request
@@ -108,7 +105,7 @@ trait Phalcon
          */
         $request = $this->container->getShared('request');
         $handler->assignPhalcon($request);
-        $logger->debug("开始请求 - HTTP %s %s", $request->getMethod(), $request->getURI());
+        $logger->debug("开始{HTTP %s %s}请求,申请{%.01f}M内存", $request->getMethod(), $request->getURI(), $handler->getMemoryUsed());
         // 5. run progress
         try {
             $result = $this->application->handle($handler->getUri());
@@ -116,17 +113,14 @@ trait Phalcon
                 $result = $service->withSuccess();
             }
         } catch(\Throwable $e) {
-            $logger->error("请求出错 - (%d) %s at line %d of %s", $e->getCode(), $e->getMessage(), $e->getLine(), $e->getFile());
+            $logger->error("请求{%d}出错 - %s - 位于{%d}第{%s}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
             $service = $this->container->getShared('serviceServer');
             $result = $service->withError($e->getMessage(), $e->getCode());
         }
         $handler->setStatusCode($result->getStatusCode());
         $handler->setContent($result->getContent());
-        // n. 返回业务日志
-        //    上层DoRequest将返回的数据以异步方式
-        //    提交给异步Logger引擎
-        $logger->debug("[duration=%f]请求完成", sprintf("%.06f", microtime(true) - $t1));
-        return $logger;
+        // n. 请求完成
+        $logger->debug("用时{%f}秒完成请求", sprintf("%.06f", microtime(true) - $t));
     }
 
     /**
@@ -137,16 +131,24 @@ trait Phalcon
     {
         /**
          * 1. 创建实例
-         * @var Bootstrap $boot
-         * @var Args      $args
+         * @var XHttp $server
+         * @var Args  $args
          */
+        $server = $this;
         if ($this->application === null || $this->container === null) {
-            $boot = $this->boot;
-            $args = $boot->getArgs();
+            $args = $server->getArgs();
+            // 1.1 create object
             $this->container = new Container($args->getBasePath());
-            $this->container->setShared('server', $this);
             $this->application = new Application($this->container);
             $this->application->boot();
+            // 1.2 set shared server
+            $this->container->setShared('server', $server);
+            // 1.3 remove/reset shared logger
+            $this->container->setShared('logger', function() use ($server, $args){
+                $logger = new Logger($args);
+                $logger->setServer($server);
+                return $logger;
+            });
         }
         // 2. 刷新连接
         $limitTime = time() - $this->connectionFrequences;
@@ -180,7 +182,7 @@ trait Phalcon
                 // 3. 执行失败
                 if (preg_match("/gone\s+away/i", $e->getMessage()) > 0) {
                     $this->container->removeSharedInstance($name);
-                    $this->getLogger()->error("remove {%s} connction - %s", $name, $e->getMessage());
+                    $this->getLogger()->warning("移除断开的{%s}连接 - %s", $name, $e->getMessage());
                 }
             }
         }
@@ -207,7 +209,7 @@ trait Phalcon
                 // 3. 执行失败
                 if (preg_match("/went\s+away/i", $e->getMessage()) > 0) {
                     $this->container->removeSharedInstance($name);
-                    $this->getLogger()->error("remove {%s} connction - %s", $name, $e->getMessage());
+                    $this->getLogger()->warning("移除断开的{%s}连接 - %s", $name, $e->getMessage());
                 }
             }
         }

@@ -11,6 +11,7 @@ namespace Uniondrug\Phar\Server;
  */
 class Args
 {
+    const ENVIRONMENT_DEFAULT = 'development';
     /**
      * 项目根目录
      * @var string
@@ -91,6 +92,15 @@ class Args
     }
 
     /**
+     * 读取应用工作目录
+     * @return string
+     */
+    public function getBasePath()
+    {
+        return $this->basePath;
+    }
+
+    /**
      * 读取脚本
      * @return string
      */
@@ -100,12 +110,15 @@ class Args
     }
 
     /**
-     * 读取应用工作目录
+     * 环境名称
      * @return string
      */
-    public function getBasePath()
+    public function getEnvironment()
     {
-        return $this->basePath;
+        $e = $this->getOption('e');
+        $e === null && $this->getOption('env');
+        $e === null && $e = self::ENVIRONMENT_DEFAULT;
+        return $e;
     }
 
     /**

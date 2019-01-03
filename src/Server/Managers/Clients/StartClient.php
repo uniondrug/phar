@@ -13,6 +13,11 @@ use Uniondrug\Phar\Server\XHttp;
  */
 class StartClient extends Abstracts\Client
 {
+    public function loadConfig()
+    {
+        $this->boot->getConfig()->fromFiles()->mergeArgs();
+    }
+
     /**
      * 启动HTTP服务
      */
@@ -21,6 +26,9 @@ class StartClient extends Abstracts\Client
         /**
          * @var XHttp $server
          */
+        $daemon = $this->boot->getArgs()->hasOption('d');
+        $daemon || $daemon = $this->boot->getArgs()->hasOption('daemon');
+        $this->boot->getConfig()->setDaemon($daemon);
         $class = $this->boot->getConfig()->class;
         $server = new $class($this->boot);
         $server->start();
