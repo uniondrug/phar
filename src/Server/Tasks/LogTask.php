@@ -34,6 +34,7 @@ class LogTask extends XTask
             echo implode("\t", $data)."\n";
         }
         echo "Kafka end ---- \n";
+//        throw new \Exception("test");
         // todo: 向Kafka发送业务日志
         return false;
     }

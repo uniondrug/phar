@@ -42,7 +42,7 @@ trait OnRequest
             //    请求执行过程中, 出现uncatch异常时
             //    以无效请求处理
             $handler->setContent('{"errno":400,"error":"Bad Request","data":{},"dateType":"OBJECT"}');
-            $server->getLogger()->error("请求失败 - (%d) %s - %s(%d)", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+            $server->getLogger()->error("请求获得{%d}失败 - %s - 位于{%s}的第{%d}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
         }
         // 4. 返回结果
         $response->status($handler->getStatusCode());

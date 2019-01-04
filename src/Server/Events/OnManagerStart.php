@@ -20,7 +20,9 @@ trait OnManagerStart
     final public function onManagerStart($server)
     {
         $server->getConfig()->save();
-        $server->setProcessName('manager');
+        $name = $server->setProcessName('manager');
+        $server->getLogger()->setServer($server)->setPrefix("[%s:%d][%s][x=n:%d]", $server->getConfig()->deployIp, $server->getConfig()->port, $server->getConfig()->name, $server->getMasterPid());
+        $server->getLogger()->info("启动{%s}进程", $name);
         $server->doManagerStart($server);
     }
 }

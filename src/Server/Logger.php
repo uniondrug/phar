@@ -53,6 +53,7 @@ class Logger
         self::LEVEL_INFO => 'INFO',
         self::LEVEL_WARNING => 'WARNING',
         self::LEVEL_ERROR => 'ERROR',
+        self::LEVEL_FATAL => 'FATAL'
     ];
 
     /**
@@ -189,14 +190,6 @@ class Logger
 
     /**
      * 业务日志
-     * 业务日志便于跟踪, 对关键的字段/入参等以键/值对形式记录
-     * 如[key=value], 同时包含成功, 失败等结果, 一条完整的日
-     * 志一般包括以下内容。
-     * 1. When  /何时发生 - 操作时间
-     * 2. Where /在哪发生 - 机器IP/应用名称/进程ID等
-     * 3. Who   /是谁干的 - 如会员ID、手机号等
-     * 4. What  /做了什么 - 如添加账号、修改订单、删除会员等
-     * 5. Why   /为什么做 - 暂不要求
      * @param string $message
      * @param array  ...$args
      * @return bool
@@ -306,6 +299,30 @@ class Logger
 
     /**
      * 写入Logger
+     * 一、 Log格式定义
+     *      col.1 - 第1组|时间 - 如[2019-01-04 09:10:12]
+     *      col.2 - 第2组|状态 - 可选[INFO|ERROR|WARNING|FATAL|DEBUG]
+     *      col.3 - 第3组|机器 - 机器IP与端口, 如[192.168.10.110:8080]
+     *      col.4 - 第4组|模块 - 模块名, 如 [user.module]
+     *      col.x - 第x组|键值 - 第5-n组为业务键值对/关键元素/字段, 如下
+     *                          a): 预定义/Key为单字符
+     *                              [a=INSERT|DELETE|UPDATE|SELECT] 动作/action(增/删/改/查)
+     *                              [d=0.001358]                    总计用时/duration(秒)
+     *                              [m=GET]                         请求方式/RESTFUL
+     *                              [r=requestid]                   请求ID/request-id
+     *                              [u=/index]                      请求地址/URL
+     *                              [x=2710]                        进程ID信息
+     *                              [y=ExampleTask]                 任务名
+     *                              [z=2710]                        任务ID
+     *                          b): 自定义/Key为数据表的字段名,长度大于1个字符
+     *                              [memberId=1001]                 会员ID为1001
+     *                              [mobile=13912345678]            手机号为13912345678
+     *      ended - 文本描述, 在文本中可通过'{}'方式标记关键词, 如: 发起{HTTP}请求,申请了{2.2}M内存
+     * 二、 Log转发
+     *      Log最终转发给Kafka, PHP将以异步方式解析成JSON格式, 发送到Kafka日志中心, 由日志中心存储
+     *      到RDB/MySQL
+     * 三、 示例结构
+     *      [2019-01-04 11:17:31][INFO][192.168.10.122:8080][user.module][r=req5c2ed04b657b9][u=/exit][d=0.001358][a=INSERT][mobile=13912345678] 添加账号
      * @param int    $level
      * @param string $message
      * @param array  ...$args
@@ -322,9 +339,9 @@ class Logger
          *    1: level
          *    2: text
          */
-        $data = [0 => date('Y-m-d/H:i:s')];
+        $data = [0 => date('Y-m-d H:i:s')];
         $data[1] = isset(self::$levels[$level]) ? self::$levels[$level] : 'CUSTOM';
-        $data[2] = ($this->logPrefix === null ? '' : $this->logPrefix.' ').call_user_func_array('sprintf', $args);
+        $data[2] = ($this->logPrefix === null ? '' : $this->logPrefix).call_user_func_array('sprintf', $args);
         // todo: for kafka
         $this->logSaver($data);
         return;
@@ -354,6 +371,6 @@ class Logger
      */
     private function logSaver(& $data)
     {
-        file_put_contents('php://stdout', "[{$data[0]}][{$data[1]}] {$data[2]}\n");
+        file_put_contents('php://stdout', "[{$data[0]}][{$data[1]}]{$data[2]}\n");
     }
 }

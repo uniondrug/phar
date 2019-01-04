@@ -97,7 +97,6 @@ trait Phalcon
         // 3. init logger
         $prefix = $b->getLogger()->getPrefix();
         $logger = $this->container->getShared('logger');
-        $logger->setPrefix("%s[%s]", $prefix, $handler->getRequestId());
         /**
          * 4. assign phalcon request
          * @var Request         $request
@@ -105,7 +104,8 @@ trait Phalcon
          */
         $request = $this->container->getShared('request');
         $handler->assignPhalcon($request);
-        $logger->debug("开始{HTTP %s %s}请求,申请{%.01f}M内存", $request->getMethod(), $request->getURI(), $handler->getMemoryUsed());
+        $logger->setPrefix("%s[r=%s][m=%s][u=%s]", $prefix, $handler->getRequestId(), $request->getMethod(), $request->getURI());
+        $logger->debug("开始{HTTP}请求,申请{%.01f}M内存", $handler->getMemoryUsed());
         // 5. run progress
         try {
             $result = $this->application->handle($handler->getUri());
@@ -113,14 +113,14 @@ trait Phalcon
                 $result = $service->withSuccess();
             }
         } catch(\Throwable $e) {
-            $logger->error("请求{%d}出错 - %s - 位于{%d}第{%s}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+            $logger->error("请求获得{%d}号错误 - %s - 位于{%s}第{%d}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
             $service = $this->container->getShared('serviceServer');
             $result = $service->withError($e->getMessage(), $e->getCode());
         }
         $handler->setStatusCode($result->getStatusCode());
         $handler->setContent($result->getContent());
         // n. 请求完成
-        $logger->debug("用时{%f}秒完成请求", sprintf("%.06f", microtime(true) - $t));
+        $logger->debug("[d=%f]完成请求", sprintf("%.06f", microtime(true) - $t));
     }
 
     /**

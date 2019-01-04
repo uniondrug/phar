@@ -6,8 +6,6 @@
 namespace Uniondrug\Phar\Server\Does\Http;
 
 use Uniondrug\Phar\Server\Handlers\HttpHandler;
-use Uniondrug\Phar\Server\Logger;
-use Uniondrug\Phar\Server\Tasks\LogTask;
 
 /**
  * 处理HTTP请求
@@ -24,7 +22,7 @@ trait DoRequest
     {
         // 1. 静态资源
         if ($handler->isAssetsRequest()) {
-            throw new \Exception("ignored by assets request", 400);
+            throw new \Exception("忽略静态{".$handler->getUri()."}资源", 304);
         }
         // 2. 运行容器
         $this->runContainer($handler);
