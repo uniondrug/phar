@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Server;
 
+use Phalcon\Di;
 use Uniondrug\Phar\Server\Tasks\LogTask;
 
 /**
@@ -24,6 +25,10 @@ class Logger
      * @var int
      */
     private $level = self::LEVEL_DEBUG;
+    /**
+     * @var Args
+     */
+    private $args;
     /**
      * @var XHttp
      */
@@ -55,6 +60,11 @@ class Logger
         self::LEVEL_ERROR => 'ERROR',
         self::LEVEL_FATAL => 'FATAL'
     ];
+
+    public function __construct(Args $args)
+    {
+        $this->args = $args;
+    }
 
     /**
      * 读取Log前缀
@@ -306,7 +316,7 @@ class Logger
      *      col.4 - 第4组|模块 - 模块名, 如 [user.module]
      *      col.x - 第x组|键值 - 第5-n组为业务键值对/关键元素/字段, 如下
      *                          a): 预定义/Key为单字符
-     *                              [a=INSERT|DELETE|UPDATE|SELECT] 动作/action(增/删/改/查)
+     *                              [a=C|R|U|D] 动作/增、删、改、查
      *                              [d=0.001358]                    总计用时/duration(秒)
      *                              [m=GET]                         请求方式/RESTFUL
      *                              [r=requestid]                   请求ID/request-id
@@ -371,6 +381,25 @@ class Logger
      */
     private function logSaver(& $data)
     {
-        file_put_contents('php://stdout', "[{$data[0]}][{$data[1]}]{$data[2]}\n");
+        $text = "[{$data[0]}][{$data[1]}]{$data[2]}\n";
+        file_put_contents('php://stdout', $text);
+        /**
+         * 写入文件
+         * Phalcon的Logger已被重写
+         */
+        $path = $this->args->getBasePath().'/log';
+        if (!is_dir($path)) {
+            mkdir($path, 0777);
+        }
+        $path .= '/'.date('Y-m');
+        if (!is_dir($path)) {
+            mkdir($path, 0777);
+        }
+        $file = $path.'/'.date('Y-m-d').'.log';
+        $mode = file_exists($file) ? 'a+' : 'wb+';
+        if (false !== ($fp = @fopen($file, $mode))) {
+            fwrite($fp, $text);
+            fclose($fp);
+        }
     }
 }

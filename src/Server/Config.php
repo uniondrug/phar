@@ -178,7 +178,7 @@ class Config
             $this->_settings = $srv['options'];
         }
         $this->_settings['pid_file'] = $this->args->getBasePath().'/tmp/server.pid';
-        $this->_settings['log_file'] = $this->args->getBasePath().'/log/server.pid';
+        $this->_settings['log_file'] = $this->args->getBasePath().'/log/server.log';
         // 6.3 Tables
         if (isset($srv['enableTables']) && is_bool($srv['enableTables'])) {
             $this->_enableTables = $srv['enableTables'];
