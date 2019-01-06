@@ -3,6 +3,7 @@
  * @author wsfuyibing <websearch@163.com>
  * @date   2018-12-29
  */
+error_reporting(E_ALL);
 date_default_timezone_set("Asia/ShangHai");
 // 1. load autoload
 $vendorFile = null;

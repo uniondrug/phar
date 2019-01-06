@@ -8,7 +8,7 @@ namespace Uniondrug\Phar\Server;
 use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
 
 /**
- * Server服务配置
+ * Server/服务配置
  * @property string $environment          环境名
  * @property string $name                 项目名
  * @property string $version              项目版本
@@ -52,8 +52,8 @@ class Config
     private $_serverSockType = \SWOOLE_SOCK_TCP;
     private $_settings = [
         'log_level' => 0,
-        'worker_num' => 2,
-        'task_worker_num' => 8,
+        'worker_num' => 4,
+        'task_worker_num' => 4,
         'max_request' => 5000,
         'task_max_request' => 5000
     ];
@@ -97,6 +97,7 @@ class Config
     {
         $this->args = $args;
         $this->_environment = $this->args->getEnvironment();
+        $this->_serverMode = SWOOLE_BASE;
     }
 
     final public function __get($name)
@@ -233,7 +234,7 @@ class Config
             if (is_array($data)) {
                 foreach ($data as $key => $value) {
                     $name = "_{$key}";
-                    if (isset($this->{$name})){
+                    if (isset($this->{$name})) {
                         $this->{$name} = $value;
                     }
                 }
@@ -262,6 +263,21 @@ class Config
     public function generateFile()
     {
         return $this->args->getBasePath().'/tmp/server.cfg';
+    }
+
+    /**
+     * 读取日志级别
+     * @return int
+     */
+    public function getLogLevel()
+    {
+        $loglevel = Logger::LEVEL_DEBUG;
+        switch ($this->_environment) {
+            case 'production' :
+                $loglevel = Logger::LEVEL_INFO;
+                break;
+        }
+        return $loglevel;
     }
 
     /**

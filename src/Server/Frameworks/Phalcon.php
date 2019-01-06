@@ -132,14 +132,16 @@ trait Phalcon
          */
         $server = $this;
         if ($this->application === null || $this->container === null) {
+            $cfg = $server->getConfig();
             $args = $server->getArgs();
             // 1.1 create object
             $this->container = new Container($args->getBasePath());
             // 1.2 set shared server
             $this->container->setShared('server', $server);
             // 1.3 remove/reset shared logger
-            $this->container->setShared('logger', function() use ($server, $args){
+            $this->container->setShared('logger', function() use ($server, $cfg, $args){
                 $logger = new Logger($args);
+                $logger->setLogLevel($cfg->getLogLevel());
                 $logger->setServer($server);
                 return $logger;
             });

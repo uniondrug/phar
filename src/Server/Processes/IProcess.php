@@ -15,6 +15,8 @@ interface IProcess
      */
     public function getServer();
 
+    // todo: testing
+
     /**
      * 任务过程
      * @return mixed

@@ -75,6 +75,7 @@ class XHttp extends swoole_http_server
     {
         $cfg = $boot->getConfig();
         $log = $boot->getLogger();
+        $log->setLogLevel($cfg->getLogLevel());
         $this->boot = $boot;
         // 1. construct
         $log->info("创建{%s}服务监听{%s:%d}/Server", $cfg->name, $cfg->host, $cfg->port);

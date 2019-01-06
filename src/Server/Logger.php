@@ -5,7 +5,6 @@
  */
 namespace Uniondrug\Phar\Server;
 
-use Phalcon\Di;
 use Uniondrug\Phar\Server\Tasks\LogTask;
 
 /**
@@ -20,6 +19,12 @@ class Logger
     const LEVEL_WARNING = 3;
     const LEVEL_ERROR = 2;
     const LEVEL_FATAL = 1;
+    //0 => SWOOLE_LOG_DEBUG
+    //1 => SWOOLE_LOG_TRACE
+    //2 => SWOOLE_LOG_INFO
+    //3 => SWOOLE_LOG_NOTICE
+    //4 => SWOOLE_LOG_WARNING
+    //5 => SWOOLE_LOG_ERROR
     /**
      * 当前级别
      * @var int
@@ -105,7 +110,6 @@ class Logger
      */
     public function setLogLevel(int $level)
     {
-        // todo: not called any way.
         $this->level = $level;
         return $this;
     }

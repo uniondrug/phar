@@ -17,6 +17,8 @@ interface ITable
      */
     public function toArray();
 
+    // todo: testing
+
     /**
      * 转JSON字符串
      * @return string

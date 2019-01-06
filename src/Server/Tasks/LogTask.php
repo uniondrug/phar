@@ -29,13 +29,7 @@ class LogTask extends XTask
      */
     public function run()
     {
-        echo "Kafka begin ---- \n";
-        foreach ($this->data as $key => $data) {
-            echo implode("\t", $data)."\n";
-        }
-        echo "Kafka end ---- \n";
-//        throw new \Exception("test");
-        // todo: 向Kafka发送业务日志
+        // todo: to kafka
         return false;
     }
 }
