@@ -79,7 +79,7 @@ class Bootstrap
         }
         // 2. implements validator
         if (!is_a($class, IClient::class, true)) {
-            throw new ClientExeption("unknown %s command: %s", $command, $class);
+            throw new ClientExeption("unknown {$command} command: {$class}");
         }
         /**
          * 3. runner

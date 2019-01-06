@@ -23,6 +23,7 @@ class StartClient extends Abstracts\Client
      */
     public function run()
     {
+        // todo: set log level with Phar package
         /**
          * @var XHttp $server
          */

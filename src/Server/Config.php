@@ -6,10 +6,10 @@
 namespace Uniondrug\Phar\Server;
 
 use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
-use Uniondrug\Phar\Server\Tasks\LogTask;
 
 /**
  * Server服务配置
+ * @property string $environment          环境名
  * @property string $name                 项目名
  * @property string $version              项目版本
  * @property string $host                 IP地址
@@ -27,7 +27,6 @@ use Uniondrug\Phar\Server\Tasks\LogTask;
  * @property bool   $processesStdRedirect redirect stdin/out
  * @property bool   $processesCreatePipe  create pipe
  * @property string $deployIp             项目所在机器的IP地址
- * @property string $logTask              异步任务处理
  * @package Uniondrug\Phar\Bootstrap
  */
 class Config
@@ -43,8 +42,8 @@ class Config
      * @var Args
      */
     private $args;
-    private $_deployIp;
     private $_class = XHttp::class;
+    private $_environment;
     private $_name = 'sketch';
     private $_version = '1.2.3';
     private $_host = self::DEFAULT_HOST;
@@ -89,16 +88,15 @@ class Config
     private $_processes = [];
     private $_processesStdRedirect = self::DEFAULT_PROCESSES_STD_REDIRECT;
     private $_processesCreatePipe = self::DEFAULT_PROCESSES_PIPE;
-    private $_logTask = LogTask::class;
 
+    /**
+     * Config constructor.
+     * @param Args $args
+     */
     public function __construct(Args $args)
     {
         $this->args = $args;
-        $this->_deployIp = $this->ipFromAddr("eth0");
-        $this->_deployIp || $this->_deployIp = $this->ipFromConfig("eth0");
-        $this->_deployIp || $this->_deployIp = $this->ipFromAddr("en0");
-        $this->_deployIp || $this->_deployIp = $this->ipFromConfig("en0");
-        $this->_deployIp || $this->_deployIp = "";
+        $this->_environment = $this->args->getEnvironment();
     }
 
     final public function __get($name)
@@ -127,7 +125,7 @@ class Config
             $conf = include($file);
         } else {
             // 1. 扫描配置文件目录
-            $env = $this->args->getEnvironment();
+            $env = $this->_environment;
             $path = __DIR__.'/../../../../../config';
             if (is_dir($path)) {
                 $scan = dir($path);
@@ -235,7 +233,9 @@ class Config
             if (is_array($data)) {
                 foreach ($data as $key => $value) {
                     $name = "_{$key}";
-                    $this->{$name} = $value;
+                    if (isset($this->{$name})){
+                        $this->{$name} = $value;
+                    }
                 }
             }
         }
@@ -264,6 +264,23 @@ class Config
         return $this->args->getBasePath().'/tmp/server.cfg';
     }
 
+    /**
+     * 读取管理端监听地址
+     * @return string|null
+     */
+    public function getManagerHost()
+    {
+        if (preg_match("/^0\.0\.0\.0$/", $this->_host) > 0 || preg_match("/^127\.0\.0\.1$/", $this->_host) > 0) {
+            return null;
+        }
+        return "127.0.0.1";
+    }
+
+    /**
+     * 读取Server名称
+     * 用于在Header中输出
+     * @return string
+     */
     public function getServerSoft()
     {
         return $this->name.'/'.$this->version;

@@ -20,5 +20,6 @@ trait OnManagerStop
     final public function onManagerStop($server)
     {
         $this->doManagerStop($server);
+        $server->getLogger()->fatal("Manager进程退出");
     }
 }

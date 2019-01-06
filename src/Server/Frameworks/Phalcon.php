@@ -95,7 +95,6 @@ trait Phalcon
          */
         $this->phalconLoader();
         // 3. init logger
-        $prefix = $b->getLogger()->getPrefix();
         $logger = $this->container->getShared('logger');
         /**
          * 4. assign phalcon request
@@ -104,8 +103,7 @@ trait Phalcon
          */
         $request = $this->container->getShared('request');
         $handler->assignPhalcon($request);
-        $logger->setPrefix("%s[r=%s][m=%s][u=%s]", $prefix, $handler->getRequestId(), $request->getMethod(), $request->getURI());
-        $logger->debug("开始{HTTP}请求,申请{%.01f}M内存", $handler->getMemoryUsed());
+        $logger->setPrefix($b->getLogger()->getPrefix().$handler->getRequestHash());
         // 5. run progress
         try {
             $result = $this->application->handle($handler->getUri());
@@ -119,8 +117,6 @@ trait Phalcon
         }
         $handler->setStatusCode($result->getStatusCode());
         $handler->setContent($result->getContent());
-        // n. 请求完成
-        $logger->debug("[d=%f]完成请求", sprintf("%.06f", microtime(true) - $t));
     }
 
     /**
@@ -139,8 +135,6 @@ trait Phalcon
             $args = $server->getArgs();
             // 1.1 create object
             $this->container = new Container($args->getBasePath());
-            $this->application = new Application($this->container);
-            $this->application->boot();
             // 1.2 set shared server
             $this->container->setShared('server', $server);
             // 1.3 remove/reset shared logger
@@ -149,6 +143,9 @@ trait Phalcon
                 $logger->setServer($server);
                 return $logger;
             });
+            // 1.4 application boot
+            $this->application = new Application($this->container);
+            $this->application->boot();
         }
         // 2. 刷新连接
         $limitTime = time() - $this->connectionFrequences;

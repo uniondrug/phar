@@ -28,7 +28,7 @@ trait OnRequest
          * @var XHttp $server
          */
         $server = $this;
-        $handler = new HttpHandler($request, $response);
+        $handler = new HttpHandler($server, $request, $response);
         $handler->addResponseContentType();
         $handler->addResponseHeader(HttpHandler::REQID_KEY, $handler->getRequestId());
         $handler->addResponseHeader('Server', $server->getConfig()->getServerSoft());
@@ -36,7 +36,16 @@ trait OnRequest
             // 2. 请求过程
             //    当请求过程返回FALSE时, 以无效请求
             //    处理
-            $server->doRequest($handler);
+            if ($handler->isHealthRequest()) {
+                // 2.1 检查检查
+                $server->doHealthRequest($server, $handler);
+            } else if ($handler->isManagerRequest()) {
+                // 2.2 以127.0.0.1访问管理
+                $server->doManagerRequest($server, $handler);
+            } else {
+                // 2.3 普通请求
+                $server->doRequest($server, $handler);
+            }
         } catch(\Throwable $e) {
             // 3. uncatch/运行异常
             //    请求执行过程中, 出现uncatch异常时
@@ -56,5 +65,7 @@ trait OnRequest
         }
         // 5. 打印内容
         $response->end($handler->getContent());
+        // 6. 释放资源
+        unset($handler, $request, $response);
     }
 }

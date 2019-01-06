@@ -13,6 +13,5 @@ class HelpClient extends Abstracts\Client
 {
     public function run()
     {
-        $this->boot->getLogger()->info("Help: %s", __METHOD__);
     }
 }

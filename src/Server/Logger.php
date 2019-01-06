@@ -105,6 +105,7 @@ class Logger
      */
     public function setLogLevel(int $level)
     {
+        // todo: not called any way.
         $this->level = $level;
         return $this;
     }
@@ -311,22 +312,22 @@ class Logger
      * 写入Logger
      * 一、 Log格式定义
      *      col.1 - 第1组|时间 - 如[2019-01-04 09:10:12]
-     *      col.2 - 第2组|状态 - 可选[INFO|ERROR|WARNING|FATAL|DEBUG]
+     *      col.2 - 第2组|状态 - 支持[INFO|ERROR|WARNING|FATAL|DEBUG]
      *      col.3 - 第3组|机器 - 机器IP与端口, 如[192.168.10.110:8080]
      *      col.4 - 第4组|模块 - 模块名, 如 [user.module]
      *      col.x - 第x组|键值 - 第5-n组为业务键值对/关键元素/字段, 如下
      *                          a): 预定义/Key为单字符
-     *                              [a=C|R|U|D] 动作/增、删、改、查
+     *                              [a=C|R|U|D] 动作/增、删、改、查   (*)
      *                              [d=0.001358]                    总计用时/duration(秒)
-     *                              [m=GET]                         请求方式/RESTFUL
+     *                              [m=GET|POST|DELETE...]          请求方式/RESTFUL
      *                              [r=requestid]                   请求ID/request-id
      *                              [u=/index]                      请求地址/URL
      *                              [x=2710]                        进程ID信息
      *                              [y=ExampleTask]                 任务名
      *                              [z=2710]                        任务ID
      *                          b): 自定义/Key为数据表的字段名,长度大于1个字符
-     *                              [memberId=1001]                 会员ID为1001
-     *                              [mobile=13912345678]            手机号为13912345678
+     *                              [memberId=1001]                 (*)会员ID为1001
+     *                              [mobile=13912345678]            (*)手机号为13912345678
      *      ended - 文本描述, 在文本中可通过'{}'方式标记关键词, 如: 发起{HTTP}请求,申请了{2.2}M内存
      * 二、 Log转发
      *      Log最终转发给Kafka, PHP将以异步方式解析成JSON格式, 发送到Kafka日志中心, 由日志中心存储
@@ -352,7 +353,7 @@ class Logger
         $data = [0 => date('Y-m-d H:i:s')];
         $data[1] = isset(self::$levels[$level]) ? self::$levels[$level] : 'CUSTOM';
         $data[2] = ($this->logPrefix === null ? '' : $this->logPrefix).call_user_func_array('sprintf', $args);
-        // todo: for kafka
+        // todo: remove folllow for kafka
         $this->logSaver($data);
         return;
         $this->logData[] = $data;

@@ -22,7 +22,7 @@ trait OnWorkerStart
     {
         $proc = $server->isTasker() ? 'tasker' : 'worker';
         $name = $server->setProcessName($proc, $workerId);
-        $server->getLogger()->setServer($server)->setPrefix("[%s:%d][%s][x=%s:%d:%d]", $server->getConfig()->deployIp, $server->getConfig()->port, $server->getConfig()->name, ($server->isTasker() ? 't' : 'w'), $server->getWorkerPid(), $workerId);
+        $server->getLogger()->setServer($server)->setPrefix("[%s:%d][%s][x=%s:%d:%d]", $server->getConfig()->host, $server->getConfig()->port, $server->getConfig()->name, ($server->isTasker() ? 't' : 'w'), $server->getWorkerPid(), $workerId);
         $server->getLogger()->info("启动{%s}进程", $name);
         $server->doWorkerStart($server, $workerId);
     }

@@ -91,7 +91,7 @@ class XHttp extends swoole_http_server
                     'on'.ucfirst($event)
                 ]);
             } else {
-                $log->warning("方法{%s}未定, {$event}事件被忽略", $call, $event);
+                $log->warning("方法{%s}未定, {%s}事件被忽略", $call, $event);
             }
         }
         // 4. tables
@@ -105,6 +105,11 @@ class XHttp extends swoole_http_server
             $processes = $cfg->processes;
             foreach ($processes as $process) {
             }
+        }
+        // 6. manager
+        $managerHost = $cfg->getManagerHost();
+        if ($managerHost !== null) {
+            $this->addListener($managerHost, $cfg->port, $cfg->serverSockType);
         }
     }
 
@@ -214,7 +219,7 @@ class XHttp extends swoole_http_server
     final public function setProcessName(string $name, ... $args)
     {
         try {
-            $name = substr($this->boot->getArgs()->getEnvironment(), 0, 1).'.'.$this->boot->getConfig()->name.' '.$name;
+            $name = substr($this->boot->getConfig()->environment, 0, 1).'.'.$this->boot->getConfig()->name.' '.$name;
             foreach ($args as $arg) {
                 $arg = trim($arg);
                 if ($arg !== '') {

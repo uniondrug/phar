@@ -20,5 +20,6 @@ trait OnShutdown
     final public function onShutdown($server)
     {
         $this->doShutdown($server);
+        $server->getLogger()->fatal("Master进程退出");
     }
 }
