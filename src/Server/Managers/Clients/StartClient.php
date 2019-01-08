@@ -56,19 +56,11 @@ class StartClient extends Abstracts\Client
      */
     public function run() : void
     {
-        // 1. tmp dir
-        $tmp = $this->boot->getArgs()->getBasePath().'/tmp';
-        if (!is_dir($tmp)) {
-            @mkdir($tmp, 0777);
-        }
-        // 2. log dir
-        $log = $this->boot->getArgs()->getBasePath().'/log';
-        if (!is_dir($log)) {
-            @mkdir($log, 0777);
-        }
         /**
          * @var XHttp $server
          */
+        $this->boot->getArgs()->makeTmpDir();
+        $this->boot->getArgs()->makeLogDir();
         $daemon = $this->boot->getArgs()->hasOption('d');
         $daemon || $daemon = $this->boot->getArgs()->hasOption('daemon');
         $this->boot->getConfig()->setDaemon($daemon);

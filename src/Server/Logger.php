@@ -369,7 +369,9 @@ class Logger
          * 写入文件
          * Phalcon的Logger已被重写
          */
-        $path = $this->args->getBasePath().'/log/'.date('Y-m');
+        $dir = $this->args->getLogDir();
+        $this->args->makeLogDir();
+        $path = $dir.'/'.date('Y-m');
         if (!is_dir($path)) {
             mkdir($path, 0777);
         }

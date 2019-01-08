@@ -125,7 +125,7 @@ class Config
     public function fromFiles()
     {
         $conf = [];
-        $file = $this->args->getBasePath().'/tmp/config.php';
+        $file = $this->args->getTmpDir().'/config.php';
         if (file_exists($file)) {
             $conf = include($file);
         } else {
@@ -180,8 +180,8 @@ class Config
         if (isset($srv['options']) && is_array($srv['options'])) {
             $this->_settings = $srv['options'];
         }
-        $this->_settings['pid_file'] = $this->args->getBasePath().'/tmp/server.pid';
-        $this->_settings['log_file'] = $this->args->getBasePath().'/log/server.log';
+        $this->_settings['pid_file'] = $this->args->getTmpDir().'/server.pid';
+        $this->_settings['log_file'] = $this->args->getLogDir().'/server.log';
         // 6.3 Tables
         if (isset($srv['tables']) && is_array($srv['tables'])) {
             $this->_tables = $srv['tables'];
@@ -255,7 +255,7 @@ class Config
 
     public function generateFile()
     {
-        return $this->args->getBasePath().'/tmp/server.cfg';
+        return $this->args->getTmpDir().'/server.cfg';
     }
 
     /**

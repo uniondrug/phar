@@ -121,6 +121,11 @@ class Args
         return $e;
     }
 
+    public function getLogDir()
+    {
+        return $this->basePath.'/log';
+    }
+
     /**
      * 读取指定选项
      * @return string|null
@@ -148,6 +153,11 @@ class Args
         return $this->script;
     }
 
+    public function getTmpDir()
+    {
+        return $this->basePath.'/tmp';
+    }
+
     /**
      * 指定选项是否传递
      * @param string $key
@@ -156,5 +166,31 @@ class Args
     public function hasOption(string $key)
     {
         return isset($this->options[$key]);
+    }
+
+    /**
+     * 创建Log存储目录
+     * @return bool
+     */
+    public function makeLogDir()
+    {
+        $dir = $this->getLogDir();
+        if (!is_dir($dir)) {
+            return mkdir($dir, 0777);
+        }
+        return true;
+    }
+
+    /**
+     * 创建Tmp文件存储目录
+     * @return bool
+     */
+    public function makeTmpDir()
+    {
+        $dir = $this->getTmpDir();
+        if (!is_dir($dir)) {
+            return mkdir($dir, 0777);
+        }
+        return true;
     }
 }

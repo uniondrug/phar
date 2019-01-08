@@ -10,7 +10,7 @@
         }
     ],
     "require" : {
-        "guzzlehttp/guzzle": "^6.3",
+        "guzzlehttp/guzzle" : "^6.3",
         "uniondrug/framework" : "^2.10",
         "uniondrug/http-client" : "^2.0"
     },
@@ -18,5 +18,11 @@
         "psr-4" : {
             "Uniondrug\\Phar\\" : "src/"
         }
+    },
+    "scripts" : {
+        "post-update-cmd" : "Uniondrug\\Phar\\Builder\\Composer::initialize",
+        "post-package-install" : [
+            "Uniondrug\\Phar\\Builder\\Composer::initialize"
+        ]
     }
 }

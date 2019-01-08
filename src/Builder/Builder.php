@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Builder;
 
+use GuzzleHttp\Client as HttpClient;
 use Symfony\Component\Console\Output\OutputInterface;
 use Uniondrug\Framework\Container;
 
@@ -56,6 +57,7 @@ class Builder
         "/\.php$/i"
     ];
     private $countFiles = 0;
+    private $consulApi = null;
 
     /**
      * BuildTask constructor.
@@ -77,16 +79,30 @@ class Builder
         $this->pharName = sprintf("%s-%s.phar", $this->name, $this->tag);
         $this->pharFile = $this->basePath.'/'.$this->pharName;
         // 2. begin build
-        $this->output->writeln("开始构建: 【{$this->name}/{$this->tag}】项目PHP Archive包【{$this->pharName}】文件");
+        $appName = $this->container->getConfig()->path('app.appName');
+        $appVersion = $this->container->getConfig()->path('app.appVersion');
+
+        $this->output->writeln("开始构建: 【{$appName}/{$appVersion}】项目PHP Archive包【{$this->pharName}】文件");
         $phar = new \Phar($this->pharFile, 0, $this->pharName);
         // 3. signature
         $this->output->writeln("设置签名: 【SHA1】格式");
         $phar->setSignatureAlgorithm(\Phar::SHA1);
-        // 4. 扫描文件
+        // 4. 导入consul配置
+        if ($this->consulApi !== null) {
+            if (!$this->runConsul($phar)) {
+                return;
+            }
+        }
+        // 5. 扫描文件
+        $this->output->writeln("开始打包: 【".count($this->folders)."】个目录");
+        $lastOffset = 0;
         foreach ($this->folders as $folder) {
             $this->runScanner($phar, $folder);
+            $countOffset = $this->countFiles - $lastOffset;
+            $lastOffset = $this->countFiles;
+            $this->output->writeln("          【{$folder}】发现{$countOffset}个文件");
         }
-        // 5. 启动脚本
+        // 6. 启动脚本
         $this->runBootstrap($phar);
         // 6. 完成构建
         if (file_exists($this->pharFile)) {
@@ -118,14 +134,80 @@ STUB;
     }
 
     /**
+     * 覆盖Config
+     */
+    private function runConsul(\Phar $phar)
+    {
+        $this->output->writeln("读取配置: 从Consul的KV配置中读取");
+        $main = $this->runConsulApi($this->container->getConfig()->path('app.appName'));
+        $data = json_decode($main, true);
+        if (is_array($data)) {
+            $data = $this->runConsulParse($data);
+            $data = array_replace_recursive($this->container->getConfig()->toArray(), $data);
+            $phar->addFromString('config.php', "<?php\nreturn unserialize('".serialize($data)."');");
+            return true;
+        }
+        $this->output->writeln("读取失败: 连接Consul失败");
+        return false;
+    }
+
+    /**
+     * @return false|array
+     */
+    private function runConsulApi(string $key)
+    {
+        $url = $this->consulApi.'/'.$key;
+        $this->output->writeln("          {$url}");
+        try {
+            $client = new HttpClient();
+            $content = $client->get($url)->getBody()->getContents();
+            $data = \GuzzleHttp\json_decode($content, true);
+            if (count($data) > 0) {
+                return base64_decode($data[0]['Value']);
+            }
+            throw new \Exception("empty value");
+        } catch(\Throwable $e) {
+            $this->output->writeln("          Error={$e->getMessage()}");
+        }
+        return false;
+    }
+
+    /**
+     * 从Consul KV值中递归
+     * 过滤: kv://name
+     * @param array $data
+     * @return array
+     */
+    private function runConsulParse(array $data)
+    {
+        foreach ($data as & $value) {
+            if (is_array($value)) {
+                $value = $this->runConsulParse($value);
+                continue;
+            }
+            if (!is_string($value)) {
+                continue;
+            }
+            if (preg_match("/^kv:[\/]+(\S+)/i", $value, $m) > 0) {
+                $buffer = $this->runConsulApi($m[1]);
+                if ($buffer !== false) {
+                    $value = $buffer;
+                }
+            }
+        }
+        return $data;
+    }
+
+    /**
      * 采集文件内容
      * @param \Phar $phar
      * @param       $path
      */
     private function runCollector(\Phar $phar, $path)
     {
-        $n = sprintf("【%3s】", ++$this->countFiles);
-        $this->output->writeln("          {$n}: {$path}");
+        $this->countFiles++;
+        //$n = sprintf("【%3s】", ++$this->countFiles);
+        //$this->output->writeln("          {$n}: {$path}");
         $phar->addFile($path);
     }
 
@@ -172,6 +254,20 @@ STUB;
     public function setCompress(bool $compress)
     {
         $this->compress = $compress;
+        return $this;
+    }
+
+    /**
+     * 设置Consul地址
+     * @param string $host
+     * @return $this
+     */
+    public function setConsul(string $host)
+    {
+        if ($host) {
+            preg_match("/^(http|https):\/\/\S+/i", $host) > 0 || $host = "http://{$host}";
+            $this->consulApi = $host.'/v1/kv';
+        }
         return $this;
     }
 

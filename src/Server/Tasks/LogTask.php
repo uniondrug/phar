@@ -38,7 +38,8 @@ class LogTask extends XTask
      */
     private function withFile()
     {
-        $path = $this->getServer()->getArgs()->getBasePath().'/log/'.date('Y-m');
+        $dir = $this->getServer()->getArgs()->getLogDir();
+        $path = $dir.'/'.date('Y-m');
         if (!is_dir($path)) {
             @mkdir($path, 0777);
         }
