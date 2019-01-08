@@ -10,6 +10,9 @@ use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
 /**
  * Server/服务配置
  * @property string $environment          环境名
+ * @property bool   $logToKafka           Log写入Kafka
+ * @property int    $logBatchLimit        Log保存数量
+ * @property int    $logBatchSeconds      Log保存时长
  * @property string $name                 项目名
  * @property string $version              项目版本
  * @property string $host                 IP地址
@@ -19,11 +22,8 @@ use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
  * @property array  $settings             Swoole参数
  * @property array  $events               事件列表
  * @property array  $crons                定时任务列表
- * @property bool   $enableCrons          启用定时任务
  * @property array  $tables               内存表列表
- * @property bool   $enableTables         启用内存表
  * @property array  $processes            Process进程列表
- * @property bool   $enableProcesses      启用Process进程
  * @property bool   $processesStdRedirect redirect stdin/out
  * @property bool   $processesCreatePipe  create pipe
  * @property string $deployIp             项目所在机器的IP地址
@@ -31,21 +31,29 @@ use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
  */
 class Config
 {
-    const DEFAULT_CRONS_ENABLE = false;
-    const DEFAULT_PROCESSES_ENABLE = true;
     const DEFAULT_PROCESSES_PIPE = true;
     const DEFAULT_PROCESSES_STD_REDIRECT = false;
-    const DEFAULT_TABLES_ENABLE = true;
     const DEFAULT_HOST = "0.0.0.0";
     const DEFAULT_PORT = 8080;
     /**
      * @var Args
      */
     private $args;
+    /**
+     * 每300条Log保存一次
+     * @var int
+     */
+    private $_logBatchLimit = 300;
+    /**
+     * 每隔180秒保存一次Log
+     * @var int
+     */
+    private $_logBatchSeconds = 5;
+    private $_logToKafka = false;
     private $_class = XHttp::class;
     private $_environment;
     private $_name = 'sketch';
-    private $_version = '1.2.3';
+    private $_version = '0.0.0';
     private $_host = self::DEFAULT_HOST;
     private $_port = self::DEFAULT_PORT;
     private $_serverMode = \SWOOLE_PROCESS;
@@ -54,8 +62,8 @@ class Config
         'log_level' => 0,
         'worker_num' => 4,
         'task_worker_num' => 4,
-        'max_request' => 5000,
-        'task_max_request' => 5000
+        'max_request' => 0,
+        'task_max_request' => 0
     ];
     private $_events = [
         // 1. server
@@ -72,19 +80,16 @@ class Config
         'request',
     ];
     /**
-     * @var bool
+     * @var array
      */
-    private $_enableCrons = self::DEFAULT_CRONS_ENABLE;
     private $_crons = [];
     /**
-     * @var bool
+     * @var array
      */
-    private $_enableTables = self::DEFAULT_TABLES_ENABLE;
     private $_tables = [];
     /**
-     * @var bool
+     * @var array
      */
-    private $_enableProcesses = self::DEFAULT_PROCESSES_ENABLE;
     private $_processes = [];
     private $_processesStdRedirect = self::DEFAULT_PROCESSES_STD_REDIRECT;
     private $_processesCreatePipe = self::DEFAULT_PROCESSES_PIPE;
@@ -97,7 +102,6 @@ class Config
     {
         $this->args = $args;
         $this->_environment = $this->args->getEnvironment();
-        $this->_serverMode = SWOOLE_BASE;
     }
 
     final public function __get($name)
@@ -179,33 +183,22 @@ class Config
         $this->_settings['pid_file'] = $this->args->getBasePath().'/tmp/server.pid';
         $this->_settings['log_file'] = $this->args->getBasePath().'/log/server.log';
         // 6.3 Tables
-        if (isset($srv['enableTables']) && is_bool($srv['enableTables'])) {
-            $this->_enableTables = $srv['enableTables'];
-        }
-        if ($this->_enableTables && isset($srv['tables']) && is_array($srv['tables'])) {
+        if (isset($srv['tables']) && is_array($srv['tables'])) {
             $this->_tables = $srv['tables'];
         }
         // 6.4 Process支持
-        if (isset($srv['enableProcesses']) && is_bool($srv['enableProcesses'])) {
-            $this->_enableProcesses = $srv['enableProcesses'];
+        if (isset($srv['processes']) && is_array($srv['processes'])) {
+            $this->_processes = $srv['processes'];
         }
-        if ($this->_enableProcesses) {
-            if (isset($srv['processes']) && is_array($srv['processes'])) {
-                $this->_processes = $srv['processes'];
-            }
-            if (isset($srv['processesCreatePipe']) && is_bool($srv['processesCreatePipe'])) {
-                $this->_processesCreatePipe = self::DEFAULT_PROCESSES_PIPE;
-            }
-            if (isset($srv['processesStdRedirect']) && is_bool($srv['processesStdRedirect'])) {
-                $this->_processesStdRedirect = self::DEFAULT_PROCESSES_STD_REDIRECT;
-            }
+        if (isset($srv['processesCreatePipe']) && is_bool($srv['processesCreatePipe'])) {
+            $this->_processesCreatePipe = self::DEFAULT_PROCESSES_PIPE;
+        }
+        if (isset($srv['processesStdRedirect']) && is_bool($srv['processesStdRedirect'])) {
+            $this->_processesStdRedirect = self::DEFAULT_PROCESSES_STD_REDIRECT;
         }
         // 6.5 定时任务
         //     类似Crontab
-        if (isset($srv['enableCrons']) && is_bool($srv['enableCrons'])) {
-            $this->_enableCrons = $srv['enableCrons'];
-        }
-        if ($this->_enableCrons && isset($srv['crons']) && is_array($srv['crons'])) {
+        if (isset($srv['crons']) && is_array($srv['crons'])) {
             $this->_crons = $srv['crons'];
         }
         // 6.6 覆盖默认事件

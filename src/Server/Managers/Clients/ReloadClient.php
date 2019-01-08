@@ -6,15 +6,19 @@
 namespace Uniondrug\Phar\Server\Managers\Clients;
 
 /**
- * 列出Server状态
+ * 重新加载
  * @package Uniondrug\Phar\Bootstrap\Managers\Clients
  */
-class StatusClient extends Abstracts\Client
+class ReloadClient extends Abstracts\Client
 {
     /**
-     * 运行Server状态
+     * 名称
+     * @var string
      */
-    public function run()
+    protected static $title = '重载服务';
+
+    public function run() : void
     {
+        $this->callAgent("PUT", "/reloadxd");
     }
 }

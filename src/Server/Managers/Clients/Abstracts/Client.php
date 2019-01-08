@@ -12,7 +12,7 @@ use Uniondrug\Phar\Server\Managers\Clients\IClient;
 use Uniondrug\Phar\Server\Bootstrap;
 
 /**
- * Client基础类
+ * Client基类
  * @package Uniondrug\Phar\Server\Managers\Clients\Abstracts
  */
 abstract class Client implements IClient
@@ -21,23 +21,49 @@ abstract class Client implements IClient
      * @var Bootstrap
      */
     public $boot;
+    protected static $options = [];
+    protected static $title = '';
 
+    /**
+     * @param Bootstrap $boot
+     */
     public function __construct(Bootstrap $boot)
     {
         $this->boot = $boot;
         $this->loadConfig();
+        // 1. 设置ENV参数量
+        $environment = $this->boot->getConfig()->environment;
+        putenv("APP_ENV={$environment}");
+        // 2. 开始RUN
         $this->beforeRun();
     }
 
     /**
      * 前置执行
      */
-    public function beforeRun()
+    public function beforeRun() : void
     {
-        $this->printLine("环境: %s", $this->boot->getConfig()->environment);
-        $this->printLine("应用: %s/%s", $this->boot->getConfig()->name, $this->boot->getConfig()->version);
-        $this->printLine("鉴听: %s/%s", $this->boot->getConfig()->host, $this->boot->getConfig()->port);
-        $this->printLine("路径: %s", $this->boot->getArgs()->getBasePath());
+        /**
+         * 版本信息
+         */
+        $phpver = PHP_VERSION;
+        $swover = SWOOLE_VERSION;
+        $phaver = \Phalcon\Version::get();
+        $fraver = \Uniondrug\Framework\Container::VERSION;
+        $this->printLine("当前项目: {green=%s/%s} in {green=%s}", $this->boot->getConfig()->name, $this->boot->getConfig()->version, $this->boot->getConfig()->environment);
+        $this->printLine("项目目录: {green=%s}", $this->boot->getArgs()->getBasePath());
+        $this->printLine("运行环境: {green=php/%s}, {green=swoole/%s}, {green=phalcon/%s}, {green=framework/%s}", $phpver, $swover, $phaver, $fraver);
+        $this->printLine("服务地址: {green=%s}:{green=%s}", $this->boot->getConfig()->host, $this->boot->getConfig()->port);
+    }
+
+    public static function getOptions() : array
+    {
+        return static::$options;
+    }
+
+    public static function getTitle() : string
+    {
+        return (string) static::$title;
     }
 
     /**
@@ -46,6 +72,10 @@ abstract class Client implements IClient
     public function loadConfig()
     {
         $this->boot->getConfig()->fromHistory();
+    }
+
+    public function runHelp() : void
+    {
     }
 
     /**
@@ -74,7 +104,7 @@ abstract class Client implements IClient
         try {
             $http = new HttpClient();
             $result = $http->request($method, $url, $opt);
-            $this->printLine("完成: 指令已发送完成");
+            $this->printLine("完成指定: {blue=指令已发送完成}");
             $content = $result->getBody()->getContents();
             $data = json_decode($content, true);
             if (is_array($data)) {
@@ -83,11 +113,11 @@ abstract class Client implements IClient
             return true;
         } catch(\Throwable $e) {
             if ($e instanceof HttpConnectException) {
-                $this->printLine("错误: 服务未启动或已退出");
+                $this->printLine("指令错误: {red=服务未启动或已退出}");
             } else if ($e instanceof HttpClientException) {
-                $this->printLine("错误: 请求获得{%d}返回", $e->getCode());
+                $this->printLine("指令错误: {red=请求获得{%d}返回}", $e->getCode());
             } else {
-                $this->printLine("错误: %s", get_class($e), $e->getMessage());
+                $this->printLine("指令错误: {red=%s}", get_class($e), $e->getMessage());
             }
         }
         return false;
@@ -108,9 +138,35 @@ abstract class Client implements IClient
         $this->println($message);
     }
 
+    /**
+     * 颜色打印
+     * @param string $message
+     */
     protected function println(string $message)
     {
-        file_put_contents('php://stdout', "{$message}\n");
+        $message = preg_replace_callback("/\{([a-zA-Z0-9]+)=([^\}]+)\}/", function($a){
+            $a[1] = strtolower($a[1]);
+            switch ($a[1]) {
+                case 'red' :
+                    return sprintf("\033[%d;%dm%s\033[0m", 31, 49, $a[2]);
+                case 'blue' :
+                    return sprintf("\033[%d;%dm%s\033[0m", 34, 49, $a[2]);
+                case 'yellow' :
+                    return sprintf("\033[%d;%dm%s\033[0m", 33, 49, $a[2]);
+                case 'green' :
+                    return sprintf("\033[%d;%dm%s\033[0m", 32, 49, $a[2]);
+                case 'red2' :
+                    return sprintf("\033[%d;%dm %s \033[0m", 33, 41, $a[2]);
+                case 'blue2' :
+                    return sprintf("\033[%d;%dm %s \033[0m", 37, 44, $a[2]);
+                case 'yellow2' :
+                    return sprintf("\033[%d;%dm %s \033[0m", 30, 43, $a[2]);
+                case 'green2' :
+                    return sprintf("\033[%d;%dm %s \033[0m", 30, 42, $a[2]);
+            }
+            return $a[2];
+        }, $message);
+        echo "{$message}\n";
     }
 
     /**

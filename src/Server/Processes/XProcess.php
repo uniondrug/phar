@@ -27,7 +27,7 @@ abstract class XProcess extends Process implements IProcess
         parent::__construct([
             $this,
             'runProcess'
-        ], $server->getConfig()->processesCreatePipe, $server->getConfig()->processesCreatePipe);
+        ], $server->getConfig()->processesStdRedirect, $server->getConfig()->processesCreatePipe);
     }
 
     /**
@@ -49,8 +49,30 @@ abstract class XProcess extends Process implements IProcess
         return $this->server;
     }
 
+    /**
+     * 后置操作
+     */
+    public function afterRun()
+    {
+    }
+
+    /**
+     * 前置操作
+     */
+    public function beforeRun()
+    {
+    }
+
+    /**
+     * 执行过程
+     */
     final public function runProcess()
     {
+        $name = $this->getServer()->setProcessName('process', get_class($this));
+        $this->getServer()->getLogger()->setServer($this->getServer())->setPrefix("[%s:%d][%s][x=p:%d]", $this->getServer()->getConfig()->host, $this->getServer()->getConfig()->port, $this->getServer()->getConfig()->name, $this->pid);
+        $this->getServer()->getLogger()->info("启动{%s}进程", $name);
+        $this->beforeRun();
+        $this->run();
     }
 }
 

@@ -141,8 +141,8 @@ trait Phalcon
             // 1.3 remove/reset shared logger
             $this->container->setShared('logger', function() use ($server, $cfg, $args){
                 $logger = new Logger($args);
-                $logger->setLogLevel($cfg->getLogLevel());
                 $logger->setServer($server);
+                $logger->setLogLevel($cfg->getLogLevel());
                 return $logger;
             });
             // 1.4 application boot

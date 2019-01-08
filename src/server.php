@@ -3,7 +3,6 @@
  * @author wsfuyibing <websearch@163.com>
  * @date   2018-12-29
  */
-error_reporting(E_ALL);
 date_default_timezone_set("Asia/ShangHai");
 // 1. load autoload
 $vendorFile = null;
@@ -72,5 +71,10 @@ set_exception_handler(function(\Throwable $e) use ($logger){
 });
 // 2.3 bootstrap
 $config = new \Uniondrug\Phar\Server\Config($args);
+if ($config->environment === "production") {
+    error_reporting(E_ERROR | E_WARNING | E_PARSE);
+} else {
+    error_reporting(E_ALL);
+}
 $booter = new \Uniondrug\Phar\Server\Bootstrap($args, $config, $logger);
 $booter->run();

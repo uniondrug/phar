@@ -11,16 +11,16 @@ namespace Uniondrug\Phar\Server\Managers\Clients;
  */
 class StopClient extends Abstracts\Client
 {
-    public function beforeRun()
-    {
-        parent::beforeRun();
-        $this->printLine("操作: 发送停止指令");
-    }
+    /**
+     * 名称
+     * @var string
+     */
+    protected static $title = '退出服务';
 
     /**
      * 启动HTTP服务
      */
-    public function run()
+    public function run() : void
     {
         $this->callAgent("PUT", "/stop");
     }

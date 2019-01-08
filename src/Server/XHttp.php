@@ -30,6 +30,11 @@ use Uniondrug\Phar\Server\Events\OnWorkerError;
 use Uniondrug\Phar\Server\Events\OnWorkerStart;
 use Uniondrug\Phar\Server\Events\OnWorkerStop;
 use Uniondrug\Phar\Server\Frameworks\Phalcon;
+use Uniondrug\Phar\Server\Processes\IProcess;
+use Uniondrug\Phar\Server\Processes\LogProcess;
+use Uniondrug\Phar\Server\Tables\ITable;
+use Uniondrug\Phar\Server\Tables\LogTable;
+use Uniondrug\Phar\Server\Tables\StatsTable;
 
 /**
  * HttpServer
@@ -42,6 +47,7 @@ class XHttp extends swoole_http_server
      * @var Bootstrap
      */
     public $boot;
+    private $_tableLoads = [];
     /**
      * callbacks
      * 1. before
@@ -78,12 +84,19 @@ class XHttp extends swoole_http_server
         $log->setLogLevel($cfg->getLogLevel());
         $this->boot = $boot;
         // 1. construct
-        $log->info("创建{%s}服务监听{%s:%d}/Server", $cfg->name, $cfg->host, $cfg->port);
+        $log->setPrefix("[%s:%d][%s]", $cfg->host, $cfg->port, $cfg->name);
+        $log->info("创建{%s}实例", get_class($this));
         parent::__construct($cfg->host, $cfg->port, $cfg->serverMode, $cfg->serverSockType);
         // 2. settings
-        $this->set($cfg->settings);
+        $settings = $cfg->settings;
+        $log->info("配置{%d}项参数", count($settings));
+        $this->set($settings);
+        foreach ($settings as $key => $value) {
+            $log->debug("参数{%s}赋值为{%s}值", $key, $value);
+        }
         // 3. events
         $events = $cfg->events;
+        $log->info("绑定{%d}个事件", count($events));
         foreach ($events as $event) {
             $call = 'on'.ucfirst($event);
             if (method_exists($this, $call)) {
@@ -91,26 +104,59 @@ class XHttp extends swoole_http_server
                     $this,
                     'on'.ucfirst($event)
                 ]);
+                $log->debug("方法{%s}绑定到{%s}事件回调", $call, $event);
             } else {
                 $log->warning("方法{%s}未定, {%s}事件被忽略", $call, $event);
             }
         }
         // 4. tables
-        if ($cfg->enableTables) {
-            $tables = $cfg->tables;
-            foreach ($tables as $table => $size) {
+        $tables = $cfg->tables;
+        // 4.1 预定义表
+        if (!isset($tables[StatsTable::class])) {
+            $tables[StatsTable::class] = 256;
+        }
+        if (!isset($tables[LogTable::class])) {
+            $tables[LogTable::class] = $cfg->logBatchLimit;
+        }
+        $log->info("注册{%d}个内存表", count($tables));
+        foreach ($tables as $table => $size) {
+            // 4.2. 无效表
+            if (!is_a($table, ITable::class, true)) {
+                $log->warning("Table{%s}未实现{%s}接口", $table, ITable::class);
+                continue;
             }
+            /**
+             * 4.3 创建表
+             * @var ITable $tbl
+             */
+            $tbl = new $table($this, $size);
+            $name = $tbl->getName();
+            $this->_tableLoads[$name] = $tbl;
+            $log->debug("内存表{%s}注册到{%s}", $name, $table);
         }
         // 5. processes
-        if ($cfg->enableProcesses) {
-            $processes = $cfg->processes;
-            foreach ($processes as $process) {
+        $processes = $cfg->processes;
+        if (!in_array(LogProcess::class, $processes)) {
+            $processes[] = LogProcess::class;
+        }
+        // 5.3: 加入启动
+        $log->info("加入{%d}个自启动进程", count($processes));
+        foreach ($processes as $process) {
+            // 5.3.1 invalid
+            if (!is_a($process, IProcess::class, true)) {
+                $log->warning("Process{%s}未实现{%s}接口", $process, IProcess::class);
+                continue;
             }
+            // 5.3.2 join
+            $proc = new $process($this);
+            $this->addProcess($proc);
+            $log->debug("Process{%s}加入启动", $process);
         }
         // 6. manager
         $managerHost = $cfg->getManagerHost();
         if ($managerHost !== null) {
             $this->addListener($managerHost, $cfg->port, $cfg->serverSockType);
+            $log->info("Agent绑定{%s:%d}Manager代理", $managerHost, $cfg->port);
         }
     }
 
@@ -139,6 +185,41 @@ class XHttp extends swoole_http_server
     public function getLogger()
     {
         return $this->boot->getLogger();
+    }
+
+    /**
+     * @param string $name
+     * @return ITable|false
+     */
+    public function getTable(string $name)
+    {
+        if (isset($this->_tableLoads[$name])) {
+            return $this->_tableLoads[$name];
+        }
+        return false;
+    }
+
+    public function getTables()
+    {
+        return $this->_tableLoads;
+    }
+
+    /**
+     * 读取Log表
+     * @return false|LogTable
+     */
+    public function getLogTable()
+    {
+        return $this->getTable(LogTable::TABLE_NAME);
+    }
+
+    /**
+     * 读取统计表
+     * @return false|StatsTable
+     */
+    public function getStatsTable()
+    {
+        return $this->getTable(StatsTable::TABLE_NAME);
     }
 
     /**

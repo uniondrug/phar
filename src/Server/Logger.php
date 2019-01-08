@@ -19,12 +19,6 @@ class Logger
     const LEVEL_WARNING = 3;
     const LEVEL_ERROR = 2;
     const LEVEL_FATAL = 1;
-    //0 => SWOOLE_LOG_DEBUG
-    //1 => SWOOLE_LOG_TRACE
-    //2 => SWOOLE_LOG_INFO
-    //3 => SWOOLE_LOG_NOTICE
-    //4 => SWOOLE_LOG_WARNING
-    //5 => SWOOLE_LOG_ERROR
     /**
      * 当前级别
      * @var int
@@ -45,10 +39,6 @@ class Logger
      * @var array
      */
     private $logData = [];
-    private $logCount = 0;              // Buf中记录了Log数量
-    private $logKafkaLimit = 300;       // 每300条, 异步提交日志到Kafka
-    private $logKafkaSeconds = 180;     // 每180秒, 异步提交日志到Kafka
-    private $logKafkaTime = 0;          // 最近一次提交时间
     /**
      * 日志前缀
      * @var null
@@ -348,55 +338,38 @@ class Logger
         // 1. 日志入参
         $args = is_array($args) ? $args : [];
         array_unshift($args, $message);
-        /**
-         * 2. 日志内容
-         *    0: time
-         *    1: level
-         *    2: text
-         */
-        $data = [0 => date('Y-m-d H:i:s')];
-        $data[1] = isset(self::$levels[$level]) ? self::$levels[$level] : 'CUSTOM';
-        $data[2] = ($this->logPrefix === null ? '' : $this->logPrefix).call_user_func_array('sprintf', $args);
-        // todo: remove folllow for kafka
-        $this->logSaver($data);
-        return;
-        $this->logData[] = $data;
-        $this->logCount++;
-        // 3. 异步批量提交
-        if ($this->server !== null) {
-            try {
-                if ($this->logCount >= $this->logKafkaLimit || (time() - $this->logKafkaTime) >= $this->logKafkaSeconds) {
-                    if ($this->server->runTask(LogTask::class, $this->logData)) {
-                        $this->logData = [];
-                        $this->logCount = 0;
-                        $this->logKafkaTime = time();
-                    }
+        $message = ($this->logPrefix === null ? '' : $this->logPrefix).call_user_func_array('sprintf', $args);
+        $level = isset(self::$levels[$level]) ? self::$levels[$level] : 'CUSTOM';
+        // 2. Server启动
+        if ($this->server) {
+            $table = $this->server->getLogTable();
+            if ($table !== false) {
+                $full = $table->add($level, $message);
+                if ($full) {
+                    $data = $table->flush();
+                    $this->server->runTask(LogTask::class, $data);
                 }
                 return;
-            } catch(\Throwable $e) {
             }
         }
-        // 4. 同步打印并写入文件
-        $this->logSaver($data);
+        // 3. Server未启动
+        $this->logSaver($level, $message);
     }
 
     /**
      * 日志落盘
-     * @param $data
+     * @param string $level
+     * @param string $message
      */
-    private function logSaver(& $data)
+    private function logSaver($level, & $message)
     {
-        $text = "[{$data[0]}][{$data[1]}]{$data[2]}\n";
+        $text = "[".date('Y-m-d H:i:s')."][{$level}]{$message}\n";
         file_put_contents('php://stdout', $text);
         /**
          * 写入文件
          * Phalcon的Logger已被重写
          */
-        $path = $this->args->getBasePath().'/log';
-        if (!is_dir($path)) {
-            mkdir($path, 0777);
-        }
-        $path .= '/'.date('Y-m');
+        $path = $this->args->getBasePath().'/log/'.date('Y-m');
         if (!is_dir($path)) {
             mkdir($path, 0777);
         }
