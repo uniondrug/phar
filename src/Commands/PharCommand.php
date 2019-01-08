@@ -26,7 +26,8 @@ abstract class PharCommand extends Command
     protected $signature = 'phar
         {--name= : 包名称}
         {--tag= : 包标签/版本号名称}
-        {--compress=false : 是否以GZIP压缩PHAR包}';
+        {--compress=false : 是否以GZIP压缩PHAR包}
+        {--consul= : Consul服务地址}';
     /**
      * 命令描述
      * @var string
@@ -50,11 +51,14 @@ abstract class PharCommand extends Command
         $tag || $tag = $container->getConfig()->path('app.appVersion');
         // 3. compress
         $compress = $this->input->hasOption('compress');
+        // 4. consul
+        $consul = (string) $this->input->getOption('consul');
         // n. builder
         $builder = new Builder($container, $this->output);
         $builder->setName($name);
         $builder->setTag($tag);
         $builder->setCompress($compress === true);
+        $builder->setConsul($consul);
         $builder->run();
     }
 }

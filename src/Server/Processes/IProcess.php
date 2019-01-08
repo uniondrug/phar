@@ -5,6 +5,21 @@
  */
 namespace Uniondrug\Phar\Server\Processes;
 
-class IProcess
+use Uniondrug\Phar\Server\XHttp;
+
+interface IProcess
 {
+    /**
+     * Server对象
+     * @return XHttp
+     */
+    public function getServer();
+
+    // todo: testing
+
+    /**
+     * 任务过程
+     * @return mixed
+     */
+    public function run();
 }

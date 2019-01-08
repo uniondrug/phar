@@ -9,13 +9,12 @@ use Uniondrug\Phar\Server\Tasks\ITask;
 use Uniondrug\Phar\Server\XHttp;
 
 /**
- * 响应Task开始事件
+ * 任务开始时触发
  * @package Uniondrug\Phar\Server\Events
  */
 trait OnTask
 {
     /**
-     * 响应Task开始事件
      * @link https://wiki.swoole.com/wiki/page/54.html
      * @param XHttp  $server
      * @param int    $taskId
@@ -25,36 +24,29 @@ trait OnTask
      */
     final public function onTask($server, int $taskId, int $srcWorkerId, $message)
     {
-        // 1. prepare
-        $t1 = microtime(true);
-        $logger = $server->boot->getLogger();
-        $logger->info("[task=%d]任务开始", $taskId);
+        $begin = microtime(true);
+        $memory = memory_get_usage(true) / 1024 / 1024;
+        $logger = $server->getLogger();
+        $logPrefix = sprintf("[r=%s][z=%d]", uniqid('task'), $taskId);
         try {
-            // 2. parse message
+            // 1. 任务解码
+            //    固定的JSON数据
             $data = json_decode($message, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \Exception(json_last_error_msg());
+                throw new \Exception("解码JSON数据失败");
             }
-            $data['class'] = isset($data['class']) ? $data['class'] : null;
-            $data['params'] = isset($data['params']) && is_array($data['params']) ? $data['params'] : [];
-            /**
-             * 3. create instance
-             * @var ITask $task
-             */
-            $task = new $data['class']($this, $data['params'], $taskId);
-            if ($task->beforeRun() !== true) {
-                throw new \Exception("run false from beforeRun()");
+            // 2. 任务类名
+            if (!is_a($data['class'], ITask::class, true)) {
+                throw new \Exception("{$data['class']}未实现".ITask::class."接口");
             }
-            // 4. run progress
-            $result = $task->run();
-            $task->afterRun($result);
-            $logger->debug("[task=%d][duration=%f]任务完成", $taskId, sprintf('%06f', microtime(true) - $t1));
-            if ($result === null) {
-                $result = true;
-            }
-            return $result;
+            // 3. 执行任务
+            $logPrefix .= "[y=".$data['class']."]";
+            $logger->debug("%s任务开始,申请内存{%.01f}M内存", $logPrefix, $memory);
+            $result = $this->doTask($server, $taskId, $logPrefix, $data['class'], $data['params']);
+            $logger->debug("%s[d=%.06f]任务完成", $logPrefix, microtime(true) - $begin);
+            return $result != false;
         } catch(\Throwable $e) {
-            $logger->error("[task=%d]任务失败 - %s", $taskId, $e->getMessage());
+            $logger->error("%s[d=%.06f]任务返回{%d}错误 - %s - 位于{%s}第{%d}行", $logPrefix, microtime(true) - $begin, $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
             return false;
         }
     }

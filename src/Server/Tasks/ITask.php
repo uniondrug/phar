@@ -25,12 +25,6 @@ interface ITask
     public function beforeRun();
 
     /**
-     * Task数据
-     * @return array
-     */
-    public function getData();
-
-    /**
      * Server对象
      * @return XHttp
      */

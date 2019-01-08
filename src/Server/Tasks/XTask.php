@@ -22,21 +22,28 @@ abstract class XTask implements ITask
      * Task入参
      * @var array
      */
-    private $data = [];
-    private $taskId;
-    private $uniqid;
+    protected $data = [];
+    protected $taskId;
+    protected $logPrefix;
 
     /**
      * XTask constructor.
      * @param        $server
      * @param array  $data
-     * @param string $uniqid
+     * @param string $logPrefix
      */
-    public function __construct($server, array $data, int $taskId, $uniqid = null)
+    final public function __construct($server, array $data, int $taskId, $logPrefix = '')
     {
         $this->data = $data;
         $this->server = $server;
-        $this->uniqid = $uniqid ? $uniqid : uniqid('task');
+        $this->taskId = $taskId;
+        $this->logPrefix = $logPrefix;
+    }
+
+    public function __destruct()
+    {
+        $this->data = null;
+        $this->server = null;
     }
 
     /**
@@ -47,15 +54,6 @@ abstract class XTask implements ITask
     public function __get($name)
     {
         return $this->server->getContainer()->getShared($name);
-    }
-
-    /**
-     * Task数据
-     * @return array
-     */
-    public function getData()
-    {
-        return $this->data;
     }
 
     /**

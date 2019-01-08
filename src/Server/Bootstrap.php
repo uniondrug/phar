@@ -16,20 +16,22 @@ use Uniondrug\Phar\Server\Managers\Clients\IClient;
 class Bootstrap
 {
     /**
+     * 命令行
      * @var Args
      */
     protected $args;
     /**
+     * Server配置
      * @var Config
      */
     protected $config;
     /**
+     * Logger实例
      * @var Logger
      */
     protected $logger;
 
     /**
-     * Bootstrap constructor.
      * @param Args   $args
      * @param Config $config
      * @param Logger $logger
@@ -75,17 +77,19 @@ class Bootstrap
         if ($command === null) {
             $class = HelpClient::class;
         } else {
-            $class = "\\Uniondrug\\Phar\\Server\\Managers\\Clients\\".ucfirst($command)."Client";
+            $class = "\\Uniondrug\\Phar\\Server\\Managers\\Clients\\".ucfirst(preg_replace_callback("/[\-]([\S])/", function($a){
+                    return strtoupper($a[1]);
+                }, $command))."Client";
         }
         // 2. implements validator
         if (!is_a($class, IClient::class, true)) {
-            throw new ClientExeption("unknown %s command: %s", $command, $class);
+            throw new ClientExeption("unknown {$command} command");
         }
         /**
          * 3. runner
          * @var IClient $client
          */
         $client = new $class($this);
-        $client->run();
+        $this->args->hasOption('help') ? $client->runHelp() : $client->run();
     }
 }

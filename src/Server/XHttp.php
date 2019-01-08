@@ -7,16 +7,34 @@ namespace Uniondrug\Phar\Server;
 
 use swoole_http_server;
 use Uniondrug\Phar\Server\Does\BeforeStart;
+use Uniondrug\Phar\Server\Does\DoFinish;
+use Uniondrug\Phar\Server\Does\DoManagerStart;
+use Uniondrug\Phar\Server\Does\DoManagerStop;
+use Uniondrug\Phar\Server\Does\DoShutdown;
 use Uniondrug\Phar\Server\Does\DoStart;
 use Uniondrug\Phar\Server\Does\DoTask;
+use Uniondrug\Phar\Server\Does\DoWorkerError;
+use Uniondrug\Phar\Server\Does\DoWorkerStart;
+use Uniondrug\Phar\Server\Does\DoWorkerStop;
 use Uniondrug\Phar\Server\Does\Http\DoRequest;
 use Uniondrug\Phar\Server\Does\RunTask;
 use Uniondrug\Phar\Server\Events\Http\OnRequest;
 use Uniondrug\Phar\Server\Events\OnFinish;
+use Uniondrug\Phar\Server\Events\OnManagerStart;
+use Uniondrug\Phar\Server\Events\OnManagerStop;
 use Uniondrug\Phar\Server\Events\OnPipeMessage;
+use Uniondrug\Phar\Server\Events\OnShutdown;
 use Uniondrug\Phar\Server\Events\OnStart;
 use Uniondrug\Phar\Server\Events\OnTask;
+use Uniondrug\Phar\Server\Events\OnWorkerError;
+use Uniondrug\Phar\Server\Events\OnWorkerStart;
+use Uniondrug\Phar\Server\Events\OnWorkerStop;
 use Uniondrug\Phar\Server\Frameworks\Phalcon;
+use Uniondrug\Phar\Server\Processes\IProcess;
+use Uniondrug\Phar\Server\Processes\LogProcess;
+use Uniondrug\Phar\Server\Tables\ITable;
+use Uniondrug\Phar\Server\Tables\LogTable;
+use Uniondrug\Phar\Server\Tables\StatsTable;
 
 /**
  * HttpServer
@@ -29,18 +47,26 @@ class XHttp extends swoole_http_server
      * @var Bootstrap
      */
     public $boot;
+    private $_tableLoads = [];
     /**
-     * does: callbacks
+     * callbacks
+     * 1. before
+     * 2. server
+     * 3. task
+     * 3. http
      */
-    use BeforeStart, DoStart, DoTask;
+    use BeforeStart;
+    use DoStart, DoManagerStart, DoManagerStop, DoWorkerError, DoWorkerStart, DoWorkerStop, DoShutdown;
+    use DoTask, DoFinish;
     use DoRequest;
     /**
-     * events: server
+     * events:
+     * 1. server
+     * 2. task
+     * 3. http
      */
-    use RunTask, OnFinish, OnTask, OnPipeMessage, OnStart;
-    /**
-     * events: http
-     */
+    use OnStart, OnManagerStart, OnManagerStop, OnWorkerError, OnWorkerStart, OnWorkerStop, OnShutdown;
+    use OnTask, OnFinish, OnPipeMessage, RunTask;
     use OnRequest;
     /**
      * frameworks: Phalcon
@@ -55,43 +81,87 @@ class XHttp extends swoole_http_server
     {
         $cfg = $boot->getConfig();
         $log = $boot->getLogger();
+        $log->setLogLevel($cfg->getLogLevel());
         $this->boot = $boot;
         // 1. construct
-        $log->setPrefix("[%s:%d]", $cfg->host, $cfg->port);
-        $log->info("创建{%s}服务/Server", $cfg->name);
+        $log->setPrefix("[%s:%d][%s]", $cfg->host, $cfg->port, $cfg->name);
+        $log->info("创建{%s}实例", get_class($this));
         parent::__construct($cfg->host, $cfg->port, $cfg->serverMode, $cfg->serverSockType);
         // 2. settings
-        $this->set($cfg->settings);
+        $settings = $cfg->settings;
+        $log->info("配置{%d}项参数", count($settings));
+        $this->set($settings);
+        foreach ($settings as $key => $value) {
+            $log->debug("参数{%s}赋值为{%s}值", $key, $value);
+        }
         // 3. events
-        $log->info("绑定事件监听");
         $events = $cfg->events;
+        $log->info("绑定{%d}个事件", count($events));
         foreach ($events as $event) {
             $call = 'on'.ucfirst($event);
             if (method_exists($this, $call)) {
-                $log->debug("绑定{%s}事件到{%s}回调方法", $event, $call);
                 $this->on($event, [
                     $this,
                     'on'.ucfirst($event)
                 ]);
+                $log->debug("方法{%s}绑定到{%s}事件回调", $call, $event);
             } else {
-                $log->warning("方法{%s}未定, {$event}事件被忽略", $call, $event);
+                $log->warning("方法{%s}未定, {%s}事件被忽略", $call, $event);
             }
         }
         // 4. tables
-        if ($cfg->enableTables) {
-            $tables = $cfg->tables;
-            $log->info("设置内存表{%d}个", count($tables));
-            foreach ($tables as $table => $size) {
+        $tables = $cfg->tables;
+        // 4.1 预定义表
+        if (!isset($tables[StatsTable::class])) {
+            $tables[StatsTable::class] = 256;
+        }
+        if (!isset($tables[LogTable::class])) {
+            $tables[LogTable::class] = $cfg->logBatchLimit;
+        }
+        $log->info("注册{%d}个内存表", count($tables));
+        foreach ($tables as $table => $size) {
+            // 4.2. 无效表
+            if (!is_a($table, ITable::class, true)) {
+                $log->warning("Table{%s}未实现{%s}接口", $table, ITable::class);
+                continue;
             }
+            /**
+             * 4.3 创建表
+             * @var ITable $tbl
+             */
+            $tbl = new $table($this, $size);
+            $name = $tbl->getName();
+            $this->_tableLoads[$name] = $tbl;
+            $log->debug("内存表{%s}注册到{%s}", $name, $table);
         }
         // 5. processes
-        if ($cfg->enableProcesses) {
-            $processes = $cfg->processes;
-            $log->info("加入Process进程{%d}个", count($processes));
+        $processes = $cfg->processes;
+        if (!in_array(LogProcess::class, $processes)) {
+            $processes[] = LogProcess::class;
+        }
+        // 5.3: 加入启动
+        $log->info("加入{%d}个自启动进程", count($processes));
+        foreach ($processes as $process) {
+            // 5.3.1 invalid
+            if (!is_a($process, IProcess::class, true)) {
+                $log->warning("Process{%s}未实现{%s}接口", $process, IProcess::class);
+                continue;
+            }
+            // 5.3.2 join
+            $proc = new $process($this);
+            $this->addProcess($proc);
+            $log->debug("Process{%s}加入启动", $process);
+        }
+        // 6. manager
+        $managerHost = $cfg->getManagerHost();
+        if ($managerHost !== null) {
+            $this->addListener($managerHost, $cfg->port, $cfg->serverSockType);
+            $log->info("Agent绑定{%s:%d}Manager代理", $managerHost, $cfg->port);
         }
     }
 
     /**
+     * 读取Args实例
      * @return Args
      */
     public function getArgs()
@@ -100,6 +170,7 @@ class XHttp extends swoole_http_server
     }
 
     /**
+     * 读取Config实例
      * @return Config
      */
     public function getConfig()
@@ -108,11 +179,47 @@ class XHttp extends swoole_http_server
     }
 
     /**
+     * 读取Logger实例
      * @return Logger
      */
     public function getLogger()
     {
         return $this->boot->getLogger();
+    }
+
+    /**
+     * @param string $name
+     * @return ITable|false
+     */
+    public function getTable(string $name)
+    {
+        if (isset($this->_tableLoads[$name])) {
+            return $this->_tableLoads[$name];
+        }
+        return false;
+    }
+
+    public function getTables()
+    {
+        return $this->_tableLoads;
+    }
+
+    /**
+     * 读取Log表
+     * @return false|LogTable
+     */
+    public function getLogTable()
+    {
+        return $this->getTable(LogTable::TABLE_NAME);
+    }
+
+    /**
+     * 读取统计表
+     * @return false|StatsTable
+     */
+    public function getStatsTable()
+    {
+        return $this->getTable(StatsTable::TABLE_NAME);
     }
 
     /**
@@ -152,7 +259,8 @@ class XHttp extends swoole_http_server
     }
 
     /**
-     * 是否为Worker进程
+     * 是否为Tasker进程
+     * @return bool
      */
     public function isTasker()
     {
@@ -182,5 +290,29 @@ class XHttp extends swoole_http_server
             return parent::start();
         }
         return false;
+    }
+
+    /**
+     * 设置进程名称
+     * @param string $name
+     * @param array  ...$args
+     * @return string
+     */
+    final public function setProcessName(string $name, ... $args)
+    {
+        try {
+            $name = substr($this->boot->getConfig()->environment, 0, 1).'.'.$this->boot->getConfig()->name.' '.$name;
+            foreach ($args as $arg) {
+                $arg = trim($arg);
+                if ($arg !== '') {
+                    $name .= ' '.$arg;
+                }
+            }
+            if (PHP_OS !== "Darwin") {
+                swoole_set_process_name($name);
+            }
+        } catch(\Throwable $e) {
+        }
+        return $name;
     }
 }

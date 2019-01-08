@@ -11,6 +11,7 @@ namespace Uniondrug\Phar\Server;
  */
 class Args
 {
+    const ENVIRONMENT_DEFAULT = 'development';
     /**
      * 项目根目录
      * @var string
@@ -91,6 +92,15 @@ class Args
     }
 
     /**
+     * 读取应用工作目录
+     * @return string
+     */
+    public function getBasePath()
+    {
+        return $this->basePath;
+    }
+
+    /**
      * 读取脚本
      * @return string
      */
@@ -100,12 +110,20 @@ class Args
     }
 
     /**
-     * 读取应用工作目录
+     * 环境名称
      * @return string
      */
-    public function getBasePath()
+    public function getEnvironment()
     {
-        return $this->basePath;
+        $e = $this->getOption('e');
+        $e === null && $this->getOption('env');
+        $e === null && $e = self::ENVIRONMENT_DEFAULT;
+        return $e;
+    }
+
+    public function getLogDir()
+    {
+        return $this->basePath.'/log';
     }
 
     /**
@@ -135,6 +153,11 @@ class Args
         return $this->script;
     }
 
+    public function getTmpDir()
+    {
+        return $this->basePath.'/tmp';
+    }
+
     /**
      * 指定选项是否传递
      * @param string $key
@@ -143,5 +166,31 @@ class Args
     public function hasOption(string $key)
     {
         return isset($this->options[$key]);
+    }
+
+    /**
+     * 创建Log存储目录
+     * @return bool
+     */
+    public function makeLogDir()
+    {
+        $dir = $this->getLogDir();
+        if (!is_dir($dir)) {
+            return mkdir($dir, 0777);
+        }
+        return true;
+    }
+
+    /**
+     * 创建Tmp文件存储目录
+     * @return bool
+     */
+    public function makeTmpDir()
+    {
+        $dir = $this->getTmpDir();
+        if (!is_dir($dir)) {
+            return mkdir($dir, 0777);
+        }
+        return true;
     }
 }
