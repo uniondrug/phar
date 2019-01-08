@@ -311,6 +311,14 @@ class Config
             $port = $this->args->getOption('port');
             $port && $this->setPort($port);
         }
+        // 3. env
+        if ($this->args->hasOption('e')) {
+            $e = $this->args->getOption('e');
+            $e && $this->setEnvironment($e);
+        } else if ($this->args->hasOption('env')){
+            $e = $this->args->getOption('env');
+            $e && $this->setEnvironment($e);
+        }
         // n. end
         return $this;
     }
@@ -334,6 +342,12 @@ class Config
     public function setDaemon(bool $daemon = true)
     {
         $this->_settings['daemonize'] = $daemon ? 1 : 0;
+        return $this;
+    }
+
+    public function setEnvironment(string $env)
+    {
+        $this->_environment = $env;
         return $this;
     }
 
