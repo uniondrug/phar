@@ -19,6 +19,6 @@ class ReloadClient extends Abstracts\Client
 
     public function run() : void
     {
-        $this->callAgent("PUT", "/reloadxd");
+        $this->callAgent("PUT", "/reload");
     }
 }

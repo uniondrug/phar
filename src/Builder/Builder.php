@@ -81,7 +81,6 @@ class Builder
         // 2. begin build
         $appName = $this->container->getConfig()->path('app.appName');
         $appVersion = $this->container->getConfig()->path('app.appVersion');
-
         $this->output->writeln("开始构建: 【{$appName}/{$appVersion}】项目PHP Archive包【{$this->pharName}】文件");
         $phar = new \Phar($this->pharFile, 0, $this->pharName);
         // 3. signature
@@ -190,7 +189,14 @@ STUB;
             }
             if (preg_match("/^kv:[\/]+(\S+)/i", $value, $m) > 0) {
                 $buffer = $this->runConsulApi($m[1]);
-                if ($buffer !== false) {
+                if ($buffer === false) {
+                    $value = $buffer;
+                    continue;
+                }
+                try {
+                    $bufferArray = \GuzzleHttp\json_decode($buffer, true);
+                    $value = $this->runConsulParse($bufferArray);
+                } catch(\Throwable $e) {
                     $value = $buffer;
                 }
             }
