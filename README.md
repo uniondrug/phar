@@ -1,6 +1,15 @@
-# PHP
+# PHAR
 
-> the package used for build PHAR (PHP Archive) package and run with swoole.
+> 本项目用于，将基于`uniondrug/sketch`创建的应用，构建成`PHAR`（`PHP Archive`）包，并以`swoole`模式启动。
+
+
+
+### 安装依赖
+
+```bash
+composer require uniondrug/phar
+```
+
 
 
 ### 构建PHAR
@@ -19,6 +28,8 @@ php console phar \
     --tag 1.2.3 \
     --consul sdk.uniondrug.net
 ```
+
+
 
 ### 启动PHAR
 
