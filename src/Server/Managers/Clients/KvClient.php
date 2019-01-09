@@ -14,6 +14,11 @@ use GuzzleHttp\Client as HttpClient;
 class KvClient extends Abstracts\Client
 {
     /**
+     * 描述
+     * @var string
+     */
+    protected static $description = '从Consul/KV中拉取配置信息并写入tmp/config.php';
+    /**
      * 名称
      * @var string
      */

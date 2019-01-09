@@ -14,6 +14,11 @@ use Uniondrug\Phar\Server\XHttp;
 class StartClient extends Abstracts\Client
 {
     /**
+     * 描述
+     * @var string
+     */
+    protected static $description = 'start http server';
+    /**
      * 名称
      * @var string
      */

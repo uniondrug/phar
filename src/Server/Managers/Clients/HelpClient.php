@@ -35,10 +35,12 @@ class HelpClient extends Abstracts\Client
                 $class = "\\Uniondrug\\Phar\\Server\\Managers\\Clients\\{$m[1]}Client";
                 if (is_a($class, IClient::class, true)) {
                     $title = $class::getTitle();
+                    $description = $class::getDescription();
+                    $description === '' || $description = "; {$description}";
                     $name = preg_replace("/^\-+/", "", preg_replace_callback("/([A-Z])/", function($a){
                         return "-".strtolower($a[1]);
                     }, $m[1]));
-                    $this->printLine("          {yellow=%s} %s", sprintf("%-28s", $name), $title);
+                    $this->printLine("          {yellow=%s} %s", sprintf("%-28s", $name), $title.$description);
                 }
             }
         }

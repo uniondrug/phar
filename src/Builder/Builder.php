@@ -86,13 +86,15 @@ class Builder
         // 3. signature
         $this->output->writeln("设置签名: 【SHA1】格式");
         $phar->setSignatureAlgorithm(\Phar::SHA1);
-        // 4. 导入consul配置
+        // 4. 构建信息
+        $this->runInfo($phar);
+        // 5. 导入consul配置
         if ($this->consulApi !== null) {
             if (!$this->runConsul($phar)) {
                 return;
             }
         }
-        // 5. 扫描文件
+        // 6. 扫描文件
         $this->output->writeln("开始打包: 【".count($this->folders)."】个目录");
         $lastOffset = 0;
         foreach ($this->folders as $folder) {
@@ -101,15 +103,52 @@ class Builder
             $lastOffset = $this->countFiles;
             $this->output->writeln("          【{$folder}】发现{$countOffset}个文件");
         }
-        // 6. 启动脚本
+        // 7. 启动脚本
         $this->runBootstrap($phar);
-        // 6. 完成构建
+        // 8. 完成构建
         if (file_exists($this->pharFile)) {
             $size = sprintf("%.02f", filesize($this->pharFile) / 1024 / 1024);
             $this->output->writeln("构建完成: 【{$this->countFiles}】个文件共占用【{$size}】MB空间");
         } else {
             $this->output->writeln("构建失败: 导出文件失败");
         }
+    }
+
+    /**
+     * 读取项目信息
+     */
+    private function runInfo(\Phar $phar)
+    {
+        $data = [];
+        $data['time'] = date('r');
+        $data['environment'] = $this->container->environment();
+        $data['repository'] = 'null';
+        $data['branch'] = 'null';
+        $data['commit'] = 'null';
+        $data['machine'] = 'null';
+        // GIT地址
+        $buffer = shell_exec("cd '".getcwd()."' && git remote -v");
+        if (preg_match("/origin\s+(\S+)/i", $buffer, $m) > 0) {
+            $data['repository'] = $m[1];
+        }
+        // GIT分支
+        $buffer = shell_exec("cd '".getcwd()."' && git branch -a | grep '\*'");
+        if (preg_match("/\*\s+([^\n]+)/i", $buffer, $m) > 0) {
+            $data['branch'] = $m[1];
+        }
+        // GIT Commit
+        $buffer = shell_exec("cd '".getcwd()."' && git log -1");
+        if (preg_match("/commit\s+([^\n]+)/i", $buffer, $m) > 0) {
+            $data['commit'] = $m[1];
+        }
+        // Machine
+        $buffer = shell_exec('echo ${HOSTNAME}');
+        $buffer = trim($buffer);
+        if ($buffer !== '') {
+            $data['machine'] = $buffer;
+        }
+        // 写入Phar
+        $phar->addFromString('info.json', json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
     /**
@@ -212,8 +251,6 @@ STUB;
     private function runCollector(\Phar $phar, $path)
     {
         $this->countFiles++;
-        //$n = sprintf("【%3s】", ++$this->countFiles);
-        //$this->output->writeln("          {$n}: {$path}");
         $phar->addFile($path);
     }
 

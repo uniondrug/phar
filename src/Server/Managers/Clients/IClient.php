@@ -12,6 +12,12 @@ namespace Uniondrug\Phar\Server\Managers\Clients;
 interface IClient
 {
     /**
+     * 读取命令描述
+     * @return string
+     */
+    public static function getDescription() : string;
+
+    /**
      * 读取选项
      * @return array
      */

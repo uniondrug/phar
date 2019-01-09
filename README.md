@@ -17,10 +17,10 @@ composer require uniondrug/phar
 1. command
     1. `phar`
 1. options
-    1. `--name` package name
-    1. `--tag` package tag
-    1. `--compress` compress as GZ
-    1. `--consul` Consul Server Address
+    1. `--name` 指定包名, 默认为域名前缀
+    1. `--tag` 版本号, 默认由项目设定
+    1. `--compress` 是否压缩成GZIP文件
+    1. `--consul` Consul地址
 
 ```bash
 php console phar \
