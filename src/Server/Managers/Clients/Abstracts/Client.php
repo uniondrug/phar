@@ -10,6 +10,7 @@ use GuzzleHttp\Exception\ClientException as HttpClientException;
 use GuzzleHttp\Exception\ConnectException as HttpConnectException;
 use Uniondrug\Phar\Server\Managers\Clients\IClient;
 use Uniondrug\Phar\Server\Bootstrap;
+use Uniondrug\Phar\Server\XVersion;
 
 /**
  * Client基类
@@ -53,7 +54,7 @@ abstract class Client implements IClient
         $fraver = \Uniondrug\Framework\Container::VERSION;
         $this->printLine("当前项目: {green=%s/%s} in {green=%s}", $this->boot->getConfig()->name, $this->boot->getConfig()->version, $this->boot->getConfig()->environment);
         $this->printLine("项目目录: {green=%s}", $this->boot->getArgs()->getBasePath());
-        $this->printLine("运行环境: {green=php/%s}, {green=swoole/%s}, {green=phalcon/%s}, {green=framework/%s}", $phpver, $swover, $phaver, $fraver);
+        $this->printLine("运行环境: {green=xphar/%s}, {green=php/%s}, {green=swoole/%s}, {green=phalcon/%s}, {green=framework/%s}", XVersion::get(), $phpver, $swover, $phaver, $fraver);
         $this->printLine("服务地址: {green=%s}:{green=%s}", $this->boot->getConfig()->host, $this->boot->getConfig()->port);
     }
 
