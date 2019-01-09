@@ -12,10 +12,15 @@ namespace Uniondrug\Phar\Server\Managers\Clients;
 class ReloadClient extends Abstracts\Client
 {
     /**
+     * 描述
+     * @var string
+     */
+    protected static $description = '退出Worker/Tasker进程, 并重启';
+    /**
      * 名称
      * @var string
      */
-    protected static $title = '重载服务';
+    protected static $title = '服务重载';
 
     public function run() : void
     {

@@ -12,6 +12,11 @@ namespace Uniondrug\Phar\Server\Managers\Clients;
 class StopClient extends Abstracts\Client
 {
     /**
+     * 描述
+     * @var string
+     */
+    protected static $description = 'stop http server';
+    /**
      * 名称
      * @var string
      */

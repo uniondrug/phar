@@ -23,6 +23,7 @@ abstract class Client implements IClient
     public $boot;
     protected static $options = [];
     protected static $title = '';
+    protected static $description = '';
 
     /**
      * @param Bootstrap $boot
@@ -54,6 +55,11 @@ abstract class Client implements IClient
         $this->printLine("项目目录: {green=%s}", $this->boot->getArgs()->getBasePath());
         $this->printLine("运行环境: {green=php/%s}, {green=swoole/%s}, {green=phalcon/%s}, {green=framework/%s}", $phpver, $swover, $phaver, $fraver);
         $this->printLine("服务地址: {green=%s}:{green=%s}", $this->boot->getConfig()->host, $this->boot->getConfig()->port);
+    }
+
+    public static function getDescription() : string
+    {
+        return (string) static::$description;
     }
 
     public static function getOptions() : array
