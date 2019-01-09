@@ -116,7 +116,7 @@ trait Phalcon
             $result = $service->withError($e->getMessage(), $e->getCode());
         }
         $handler->setStatusCode($result->getStatusCode());
-        $handler->setContent($result->getContent());
+        $handler->setContent((string) $result->getContent());
     }
 
     /**
