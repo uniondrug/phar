@@ -381,7 +381,7 @@ class Config
      * @param string $name
      * @return  false|string
      */
-    private function ipFromAddr(string $name)
+    public function ipFromAddr(string $name)
     {
         $cmd = "ip -o -4 addr list '{$name}' | head -n1 | awk '{print \$4}' | cut -d/ -f1";
         $addr = shell_exec($cmd);
@@ -396,7 +396,7 @@ class Config
      * @param string $name
      * @return false|string
      */
-    private function ipFromConfig(string $name)
+    public function ipFromConfig(string $name)
     {
         // 1. read all
         $cmd = 'ifconfig';
