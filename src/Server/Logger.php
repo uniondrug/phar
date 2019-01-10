@@ -13,12 +13,12 @@ use Uniondrug\Phar\Server\Tasks\LogTask;
  */
 class Logger
 {
-    const LEVEL_OFF = 9;
     const LEVEL_DEBUG = 5;
     const LEVEL_INFO = 4;
     const LEVEL_WARNING = 3;
     const LEVEL_ERROR = 2;
     const LEVEL_FATAL = 1;
+    const LEVEL_OFF = 0;
     /**
      * 当前级别
      * @var int
