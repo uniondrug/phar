@@ -90,6 +90,10 @@ class Bootstrap
          * @var IClient $client
          */
         $client = new $class($this);
-        $this->args->hasOption('help') ? $client->runHelp() : $client->run();
+        if ($this->args->hasOption('h') || $this->args->hasOption('help')) {
+            $client->runHelp();
+        } else {
+            $client->run();
+        }
     }
 }

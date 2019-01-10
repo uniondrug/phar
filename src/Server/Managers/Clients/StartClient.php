@@ -48,9 +48,27 @@ class StartClient extends Abstracts\Client
             'name' => 'port',
             'value' => 'int',
             'desc' => '指定端口号, 默认: 从配置文件{yellow=config/server.php}中读取'
+        ],
+        [
+            'name' => 'consul-register',
+            'value' => 'URL',
+            'desc' => '服务注册, 项目启动时请求Consul注册服务'
+        ],
+        [
+            'name' => 'consul-name',
+            'value' => 'str',
+            'desc' => '服务名称, 默认: 域名前缀'
+        ],
+        [
+            'name' => 'consul-address',
+            'value' => 'str',
+            'desc' => '服务地址, 默认: 项目域名加80端口'
         ]
     ];
 
+    /**
+     * 载入配置
+     */
     public function loadConfig()
     {
         $this->boot->getConfig()->fromFiles()->mergeArgs();
@@ -74,6 +92,9 @@ class StartClient extends Abstracts\Client
         $server->start();
     }
 
+    /**
+     * 打印帮助
+     */
     public function runHelp() : void
     {
         $script = $this->boot->getArgs()->getScript();

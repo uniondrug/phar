@@ -28,13 +28,9 @@ class LogTable extends XTable
      * @var array
      */
     protected $columns = [
-        'id' => [
-            parent::TYPE_STRING,
-            20
-        ],
         'time' => [
             parent::TYPE_STRING,
-            20
+            28
         ],
         'level' => [
             parent::TYPE_STRING,
@@ -77,7 +73,7 @@ class LogTable extends XTable
         $mutex = new Lock(SWOOLE_MUTEX);
         $mutex->lock();
         $this->set($key, [
-            'time' => date('Y-m-d H:i:s'),
+            'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
             'level' => $level,
             'message' => $msg
         ]);

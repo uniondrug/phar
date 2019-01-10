@@ -363,7 +363,7 @@ class Logger
      */
     private function logSaver($level, & $message)
     {
-        $text = "[".date('Y-m-d H:i:s')."][{$level}]{$message}\n";
+        $text = "[".(new \DateTime())->format('Y-m-d H:i:s.u')."][{$level}]{$message}\n";
         file_put_contents('php://stdout', $text);
         /**
          * 写入文件
