@@ -131,6 +131,71 @@ abstract class Client implements IClient
     }
 
     /**
+     * 从PID文件读取主进程ID
+     * @return bool|int
+     */
+    protected function callMasterPid()
+    {
+        $pidFile = $this->boot->getArgs()->getTmpDir().'/server.pid';
+        if (file_exists($pidFile)) {
+            $pid = file_get_contents($pidFile);
+            if (false !== $pid) {
+                $pid = trim($pid);
+                if (preg_match("/^\d+$/", $pid)) {
+                    return (int) $pid;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param string $name
+     * @return array
+     */
+    protected function callProcessByName(string $name)
+    {
+        // 1. prepare args
+        $num = 0;
+        $cmd = "ps x -o ppid,pid,args";
+        foreach (explode(" ", $name) as $arg) {
+            $arg = trim($arg);
+            if ($arg !== '') {
+                $num++;
+                $cmd .= " | grep '{$arg}'";
+            }
+        }
+        $cmd .= " | grep -v grep | grep -v '".$this->boot->getArgs()->getCommand()."'";
+        $data = [];
+        // 2. no args
+        if ($num === 0) {
+            return $data;
+        }
+        // 3. run shell
+        $str = shell_exec($cmd);
+        foreach (explode("\n", $str) as $line) {
+            // 4. line
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            // 5. column
+            $cols = explode(" ", preg_replace("/\s+/", " ", $line));
+            $lens = count($cols);
+            if ($lens < 3) {
+                continue;
+            }
+            // 6. parser
+            $data[] = [
+                'ppid' => $cols[0],
+                'pid' => $cols[1],
+                'args' => implode(" ", array_slice($cols, 2, $lens - 2))
+            ];
+        }
+        return $data;
+    }
+
+    /**
      * 打印行
      * @param string $format
      * @param array  ...$args
