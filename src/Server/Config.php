@@ -10,7 +10,8 @@ use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
 /**
  * Server/服务配置
  * @property string $environment          环境名
- * @property bool   $logToKafka           Log写入Kafka
+ * @property bool   $logKafkaOn           Kafka/是否启用Kafak日志
+ * @property bool   $logKafkaUrl          Kafka/Restful地址
  * @property int    $logBatchLimit        Log保存数量
  * @property int    $logBatchSeconds      Log保存时长
  * @property string $name                 项目名
@@ -43,13 +44,26 @@ class Config
      * 每300条Log保存一次
      * @var int
      */
-    private $_logBatchLimit = 300;
+    private $_logBatchLimit = 512;
     /**
      * 每隔180秒保存一次Log
      * @var int
      */
-    private $_logBatchSeconds = 5;
-    private $_logToKafka = false;
+    private $_logBatchSeconds = 15;
+    /**
+     * 是否启用Kafka日卖
+     * @var bool
+     */
+    private $_logKafkaOn = false;
+    /**
+     * Kafka接收地址
+     * @var string
+     */
+    private $_logKafkaUrl = "";
+    /**
+     * HTTP服务对象
+     * @var string
+     */
     private $_class = XHttp::class;
     private $_environment;
     private $_name = 'sketch';
@@ -315,7 +329,7 @@ class Config
         if ($this->args->hasOption('e')) {
             $e = $this->args->getOption('e');
             $e && $this->setEnvironment($e);
-        } else if ($this->args->hasOption('env')){
+        } else if ($this->args->hasOption('env')) {
             $e = $this->args->getOption('env');
             $e && $this->setEnvironment($e);
         }
