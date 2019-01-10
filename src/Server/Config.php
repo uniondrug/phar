@@ -10,8 +10,9 @@ use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
 /**
  * Server/服务配置
  * @property string $environment          环境名
+ * @property int    $logLevel             Log级别
  * @property bool   $logKafkaOn           Kafka/是否启用Kafak日志
- * @property bool   $logKafkaUrl          Kafka/Restful地址
+ * @property string $logKafkaUrl          Kafka/Restful地址
  * @property int    $logBatchLimit        Log保存数量
  * @property int    $logBatchSeconds      Log保存时长
  * @property string $name                 项目名
@@ -60,6 +61,7 @@ class Config
      * @var string
      */
     private $_logKafkaUrl = "";
+    private $_logLevel = Logger::LEVEL_DEBUG;
     /**
      * HTTP服务对象
      * @var string
@@ -273,21 +275,6 @@ class Config
     }
 
     /**
-     * 读取日志级别
-     * @return int
-     */
-    public function getLogLevel()
-    {
-        $loglevel = Logger::LEVEL_DEBUG;
-        switch ($this->_environment) {
-            case 'production' :
-                $loglevel = Logger::LEVEL_INFO;
-                break;
-        }
-        return $loglevel;
-    }
-
-    /**
      * 读取管理端监听地址
      * @return string|null
      */
@@ -332,6 +319,31 @@ class Config
         } else if ($this->args->hasOption('env')) {
             $e = $this->args->getOption('env');
             $e && $this->setEnvironment($e);
+        }
+        // 4. log level
+        $level = $this->args->getOption('log-level');
+        if ($level) {
+            $level = strtoupper($level);
+            switch ($level) {
+                case "DEBUG" :
+                    $this->_logLevel = Logger::LEVEL_DEBUG;
+                    break;
+                case "INFO" :
+                    $this->_logLevel = Logger::LEVEL_INFO;
+                    break;
+                case "WARNING" :
+                    $this->_logLevel = Logger::LEVEL_WARNING;
+                    break;
+                case "ERROR" :
+                    $this->_logLevel = Logger::LEVEL_ERROR;
+                    break;
+                case "FATAL" :
+                    $this->_logLevel = Logger::LEVEL_FATAL;
+                    break;
+                case "OFF" :
+                    $this->_logLevel = Logger::LEVEL_OFF;
+                    break;
+            }
         }
         // n. end
         return $this;

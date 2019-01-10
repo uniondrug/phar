@@ -142,7 +142,7 @@ trait Phalcon
             $this->container->setShared('logger', function() use ($server, $cfg, $args){
                 $logger = new Logger($args);
                 $logger->setServer($server);
-                $logger->setLogLevel($cfg->getLogLevel());
+                $logger->setLogLevel($cfg->logLevel);
                 return $logger;
             });
             // 1.4 application boot

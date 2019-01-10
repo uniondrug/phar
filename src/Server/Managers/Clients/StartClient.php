@@ -50,6 +50,11 @@ class StartClient extends Abstracts\Client
             'desc' => '指定端口号, 默认: 从配置文件{yellow=config/server.php}中读取'
         ],
         [
+            'name' => 'log-level',
+            'value' => 'str',
+            'desc' => '日志级别, 可选: {yellow=DEBUG}、{yellow=INFO}、{yellow=WARNING}、{yellow=ERROR}, 默认: {yellow=DEBUG}'
+        ],
+        [
             'name' => 'consul-register',
             'value' => 'URL',
             'desc' => '服务注册, 项目启动时请求Consul注册服务'
