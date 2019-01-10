@@ -62,11 +62,11 @@ class KvClient extends Abstracts\Client
     {
         $host = $this->boot->getArgs()->getOption('consul');
         if ($host === null) {
-            $this->printLine("同步出错: 未通过'--option=URL'选项指定服务地址");
+            $this->printLine("同步出错: 未通过'--consul=URL'选项指定服务地址");
             return;
         }
         if ($host === "") {
-            $this->printLine("同步出错: 选项'--option=URL'指定的服务地址不能为空");
+            $this->printLine("同步出错: 选项'--consul=URL'指定的服务地址不能为空");
             return;
         }
         // 0. 环境名称
