@@ -50,8 +50,9 @@ class LogTable extends XTable
      */
     public function __construct($server, $size)
     {
-        parent::__construct($server, $size + 200);
-        $this->maxCount = $size;
+        $size < 128 && $size = 128;
+        parent::__construct($server, $size);
+        $this->maxCount = $size - 100;
     }
 
     /**
