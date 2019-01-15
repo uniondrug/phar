@@ -8,7 +8,7 @@ namespace Uniondrug\Phar\Server\Tasks;
 use Uniondrug\Phar\Server\XHttp;
 
 /**
- * ITask
+ * XTask/异步任务基类
  * @package Uniondrug\Phar\Server\Tasks
  */
 abstract class XTask implements ITask
@@ -23,16 +23,23 @@ abstract class XTask implements ITask
      * @var array
      */
     protected $data = [];
+    /**
+     * 任务ID
+     * @var int
+     */
     protected $taskId;
+    /**
+     * Log前缀
+     * @var string
+     */
     protected $logPrefix;
 
     /**
-     * XTask constructor.
      * @param        $server
      * @param array  $data
      * @param string $logPrefix
      */
-    final public function __construct($server, array $data, int $taskId, $logPrefix = '')
+    public function __construct($server, array $data, int $taskId, $logPrefix = '')
     {
         $this->data = $data;
         $this->server = $server;
@@ -40,10 +47,15 @@ abstract class XTask implements ITask
         $this->logPrefix = $logPrefix;
     }
 
+    /**
+     * 释放资源
+     */
     public function __destruct()
     {
         $this->data = null;
         $this->server = null;
+        $this->taskId = null;
+        $this->logPrefix = null;
     }
 
     /**
@@ -57,7 +69,33 @@ abstract class XTask implements ITask
     }
 
     /**
+     * 后置操作
+     * 在run()方法之后执行, 并将run()方法的返回值作为参数, 由
+     * afterRun()方法对其再加工;
+     * 由于本方法处理为引用传递, 对入参进行操作会影响最终的返回
+     * 结果
+     * @param mixed $result
+     * @return void
+     */
+    public function afterRun(& $result) : void
+    {
+    }
+
+    /**
+     * 前置操作
+     * 在调用run()方法前触发, 其返回值决定后续run()/afterRun()
+     * 方法是否继续执行, 当返回true时, 继续执行run()/afterRun()
+     * 方法, 反之则退出任务
+     * @return bool
+     */
+    public function beforeRun() : bool
+    {
+        return true;
+    }
+
+    /**
      * Server对象
+     * 在异步任务中, 通过本方法读取XHttp对象实例
      * @return XHttp
      */
     public function getServer()
@@ -66,32 +104,11 @@ abstract class XTask implements ITask
     }
 
     /**
-     * 任务ID
+     * 读取任务ID
      * @return int
      */
-    public function getTaskId()
+    public function getTaskId() : int
     {
         return $this->taskId;
-    }
-
-    /**
-     * Task结束前触发
-     * 本方法入参为run()方法返回值, 可以本方法中操作入
-     * 参数据, Task最终返回操作后的数据
-     * @param mixed $result
-     */
-    public function afterRun(& $result)
-    {
-    }
-
-    /**
-     * Task开始前触发
-     * 当返回true时, 继续触发run()、after()方法, 反之
-     * 则退出Task
-     * @return bool
-     */
-    public function beforeRun()
-    {
-        return true;
     }
 }

@@ -17,7 +17,7 @@ interface IProcess
 
     /**
      * 任务过程
-     * @return mixed
+     * @return void
      */
     public function run();
 }

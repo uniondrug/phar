@@ -34,6 +34,10 @@ class StopClient extends Abstracts\Client
             'desc' => '向指定进程发送SIGTERM退出信号'
         ],
         [
+            'name' => 'force-kill',
+            'desc' => '向指定进程发送SIGKILL退出信号'
+        ],
+        [
             'name' => 'list',
             'short' => 'l',
             'desc' => '按名称列出进程列表'
@@ -53,6 +57,7 @@ class StopClient extends Abstracts\Client
         foreach ([
             'k',
             'kill',
+            'force-kill',
             'l',
             'list',
             'name'
@@ -75,14 +80,15 @@ class StopClient extends Abstracts\Client
         $name || $name = substr($this->boot->getConfig()->environment, 0, 1).'.'.$this->boot->getConfig()->name;
         $this->printLine("发送指定: {yellow=列出参数含【".$name."】的进程}");
         // 2. 是否Kill进程
-        $kill = ($this->boot->getArgs()->hasOption('k') || $this->boot->getArgs()->hasOption('kill'));
+        $kill = ($this->boot->getArgs()->hasOption('k') || $this->boot->getArgs()->hasOption('kill') || $this->boot->getArgs()->hasOption('force-kill'));
+        $signal = $this->boot->getArgs()->hasOption('force-kill') ? SIGKILL : SIGTERM;
         // 3. 读取进程
         $data = $this->callProcessByName($name);
         foreach ($data as $proc) {
             $this->printLine("          {green=%d}({yellow=%d}): %s %s", $proc['pid'], $proc['ppid'], $proc['args'], $kill ? '  {red=killed}' : '');
             // 4. send signal
             if ($kill) {
-                Process::kill($proc['pid'], 0) && Process::kill($proc['pid'], SIGTERM);
+                Process::kill($proc['pid'], 0) && Process::kill($proc['pid'], $signal);
             }
         }
     }

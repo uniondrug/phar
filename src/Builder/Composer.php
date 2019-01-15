@@ -12,6 +12,9 @@ use Composer\Script\Event;
  */
 class Composer
 {
+    /**
+     * @param Event $e
+     */
     public static function init($e)
     {
         echo "Initialize Composer after install/upadte\n";

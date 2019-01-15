@@ -147,7 +147,11 @@ class Config
         } else {
             // 1. 扫描配置文件目录
             $env = $this->_environment;
-            $path = __DIR__.'/../../../../../config';
+            if (defined('PHAR_WORKING_NAME')) {
+                $path = __DIR__.'/../../../../../config';
+            } else {
+                $path = $this->args->getBasePath().'/config';
+            }
             if (is_dir($path)) {
                 $scan = dir($path);
                 while (false !== ($name = $scan->read())) {

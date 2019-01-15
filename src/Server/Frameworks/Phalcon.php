@@ -134,6 +134,7 @@ trait Phalcon
         if ($this->application === null || $this->container === null) {
             $cfg = $server->getConfig();
             $args = $server->getArgs();
+            $server->getLogger()->debug("初始化Phalcon容器");
             // 1.1 create object
             $this->container = new Container($args->getBasePath());
             // 1.2 set shared server
