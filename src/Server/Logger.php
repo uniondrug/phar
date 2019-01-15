@@ -340,7 +340,6 @@ class Logger
         array_unshift($args, $message);
         $message = ($this->logPrefix === null ? '' : $this->logPrefix).call_user_func_array('sprintf', $args);
         $level = isset(self::$levels[$level]) ? self::$levels[$level] : 'CUSTOM';
-        echo $message."\n"; return;
         // 2. Server启动
         if ($this->server) {
             $table = $this->server->getLogTable();

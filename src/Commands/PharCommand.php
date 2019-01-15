@@ -39,6 +39,10 @@ abstract class PharCommand extends Command
      */
     public function handle()
     {
+        if (defined("PHAR_WORKING_NAME")) {
+            $this->getOutput()->writeln("ERROR - can not worker in ".PHAR_WORKING_NAME." file.");
+            return;
+        }
         /**
          * @var Container $container
          */

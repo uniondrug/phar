@@ -9,13 +9,15 @@ date_default_timezone_set("Asia/ShangHai");
  * 在phar和fpm模式下, vendor/autoload路径计算方式有差异
  * 按场景计算相对/绝对路径
  */
-$vendorFile = null;
+$vendorBoot = null;
 if (defined("PHAR_WORKING_DIR")) {
-    $vendorFile = __DIR__."/../../../autoload.php";
+    $vendorBoot = __DIR__."/../../../../";
+    $vendorFile = $vendorBoot.'/vendor/autoload.php';
 } else {
-    $vendorFile = getcwd().'/vendor/autoload.php';
+    $vendorBoot = getcwd();
 }
-if (!$vendorFile || !file_exists($vendorFile)) {
+$vendorFile = $vendorBoot.'/vendor/autoload.php';
+if ($vendorBoot === null || !file_exists($vendorFile)) {
     echo "composer install|update not executed.";
     exit(1);
 }
@@ -99,7 +101,16 @@ if ($args->getCommand() === 'console') {
      * 1. 保持Console继续可用
      */
     $config->mergeArgs();
-    // todo: 兼容console暂未实现
+    // 2. reset SERVER
+    $serv = $_SERVER['argv'];
+    array_shift($serv);
+    $_SERVER['argv'] = $serv;
+    $_SERVER['argc'] = count($serv);
+    // 3. run command
+    $container = new \Uniondrug\Framework\Container($vendorBoot);
+    $application = (new \Uniondrug\Framework\Application($container))->boot();
+    $console = new \Uniondrug\Console\Console($container);
+    $console->run();
 } else {
     // 2. BootStrap
     if ($config->environment === "production") {
