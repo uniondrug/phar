@@ -28,6 +28,11 @@ class Args
      */
     private $command;
     /**
+     * 子命令名
+     * @var string
+     */
+    private $subCommand;
+    /**
      * 命令选项
      * @var array
      */
@@ -80,7 +85,13 @@ class Args
                     $this->command = $arg;
                     continue;
                 }
-                // 3.3 值模式
+                // 3.4 子命令
+                //     在php server console name命令时使用
+                //     兼容原php console命令
+                if ($i === 1) {
+                    $this->subCommand = $arg;
+                }
+                // 3.5 值模式
                 if ($key !== null) {
                     $this->options[$key] = $arg;
                     $key = null;
@@ -101,12 +112,21 @@ class Args
     }
 
     /**
-     * 读取脚本
+     * 读取命令
      * @return string
      */
     public function getCommand()
     {
         return $this->command;
+    }
+
+    /**
+     * 读取子命令
+     * @return string
+     */
+    public function getSubCommand()
+    {
+        return $this->subCommand;
     }
 
     /**

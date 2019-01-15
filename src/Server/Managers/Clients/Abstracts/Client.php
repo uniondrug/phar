@@ -221,6 +221,8 @@ abstract class Client implements IClient
             switch ($a[1]) {
                 case 'red' :
                     return sprintf("\033[%d;%dm%s\033[0m", 31, 49, $a[2]);
+                case 'gray' :
+                    return sprintf("\033[%d;%dm%s\033[0m", 37, 49, $a[2]);
                 case 'blue' :
                     return sprintf("\033[%d;%dm%s\033[0m", 34, 49, $a[2]);
                 case 'yellow' :

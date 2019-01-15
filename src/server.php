@@ -4,13 +4,15 @@
  * @date   2018-12-29
  */
 date_default_timezone_set("Asia/ShangHai");
-// 1. load autoload
+/**
+ * Composer
+ * 在phar和fpm模式下, vendor/autoload路径计算方式有差异
+ * 按场景计算相对/绝对路径
+ */
 $vendorFile = null;
 if (defined("PHAR_WORKING_DIR")) {
-    // 1.1. in phar
     $vendorFile = __DIR__."/../../../autoload.php";
 } else {
-    // 1.2. in phar
     $vendorFile = getcwd().'/vendor/autoload.php';
 }
 if (!$vendorFile || !file_exists($vendorFile)) {
@@ -18,16 +20,26 @@ if (!$vendorFile || !file_exists($vendorFile)) {
     exit(1);
 }
 include($vendorFile);
-// 2. server manager
+/**
+ * 初始化前设置处理实例
+ * 1). 命令行Arguments
+ * 2). 业务Logger存储
+ */
 $args = new \Uniondrug\Phar\Server\Args();
 $logger = new \Uniondrug\Phar\Server\Logger($args);
-// 2.1 shutdown
+/**
+ * Fatal/Shutdown Handler
+ * 在异步模式下, 当前脚本中止或Fatal错误时
+ * 由本回调收集, 并做统一的日志处理
+ */
 register_shutdown_function(function() use ($logger){
+    // 1. 读取最近Fatal错误
     $e = error_get_last();
     if ($e === null) {
         return;
     }
-    $e['message'] = "在{{$e['file']}}的第{{$e['line']}}行触发 - {{$e['message']}}";
+    // 2. 按Level进程业务转发
+    $e['message'] = $e['message']." at {$e['file']}({$e['line']})";
     switch ($e['type']) {
         case E_ERROR :
         case E_USER_ERROR :
@@ -45,9 +57,12 @@ register_shutdown_function(function() use ($logger){
             break;
     }
 });
-// 2.2 error
+/**
+ * RuntimeError Handler
+ * 在运行过程中, 产生的错误回调
+ */
 set_error_handler(function($errno, $error, $file, $line) use ($logger){
-    $error = "在{{$file}}的第{{$line}}行触发 - {$error}";
+    $error = $error." at {$file}({$line})";
     switch ($errno) {
         case E_ERROR :
         case E_USER_ERROR :
@@ -65,16 +80,33 @@ set_error_handler(function($errno, $error, $file, $line) use ($logger){
             break;
     }
 });
-// 2.3 exception
+/**
+ * Uncatch Exception/Handler
+ * 未捕获的异常错误处理
+ */
 set_exception_handler(function(\Throwable $e) use ($logger){
-    $logger->fatal("在{%s}的第{%d}行出现{%s}异常 - %s", $e->getFile(), $e->getLine(), get_class($e), $e->getMessage());
+    $logger->fatal("%s at %s(%d)", $e->getMessage(), $e->getFile(), $e->getLine());
 });
-// 2.3 bootstrap
+/**
+ * 兼容Console
+ */
 $config = new \Uniondrug\Phar\Server\Config($args);
-if ($config->environment === "production") {
-    error_reporting(E_ERROR | E_WARNING | E_PARSE);
+/**
+ * 入口转发
+ */
+if ($args->getCommand() === 'console') {
+    /**
+     * 1. 保持Console继续可用
+     */
+    $config->mergeArgs();
+    // todo: 兼容console暂未实现
 } else {
-    error_reporting(E_ALL);
+    // 2. BootStrap
+    if ($config->environment === "production") {
+        error_reporting(E_ERROR | E_WARNING | E_PARSE);
+    } else {
+        error_reporting(E_ALL);
+    }
+    $booter = new \Uniondrug\Phar\Server\Bootstrap($args, $config, $logger);
+    $booter->run();
 }
-$booter = new \Uniondrug\Phar\Server\Bootstrap($args, $config, $logger);
-$booter->run();
