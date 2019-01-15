@@ -18,7 +18,7 @@ class Args
      */
     private $basePath;
     /**
-     * 脚本/包路径
+     * 脚本名称
      * @var string
      */
     private $script = "";
@@ -29,11 +29,13 @@ class Args
     private $command;
     /**
      * 子命令名
+     * 兼容原`php console`用法
      * @var string
      */
     private $subCommand;
     /**
      * 命令选项
+     * 从命令行脚本中提取
      * @var array
      */
     private $options = [];
@@ -141,6 +143,10 @@ class Args
         return $e;
     }
 
+    /**
+     * 读取Log目录
+     * @return string
+     */
     public function getLogDir()
     {
         return $this->basePath.'/log';
@@ -165,7 +171,7 @@ class Args
     }
 
     /**
-     * 读取脚本
+     * 读取脚本名称
      * @return string
      */
     public function getScript()
@@ -173,13 +179,17 @@ class Args
         return $this->script;
     }
 
+    /**
+     * 读取Tmp目录
+     * @return string
+     */
     public function getTmpDir()
     {
         return $this->basePath.'/tmp';
     }
 
     /**
-     * 指定选项是否传递
+     * 命令行选项是否传递
      * @param string $key
      * @return bool
      */
@@ -202,7 +212,7 @@ class Args
     }
 
     /**
-     * 创建Tmp文件存储目录
+     * 创建Tmp存储目录
      * @return bool
      */
     public function makeTmpDir()
