@@ -43,22 +43,12 @@ trait DoRequest
         $server->getLogger()->debug("%s健康检查", $handler->getRequestHash());
         $handler->addResponseHeader('content-type', 'application/json');
         $handler->setStatusCode(200);
-
-        if ($handler->getUri() === '/consul.health'){
+        if ($handler->getUri() === '/consul.health') {
             $stats = $server->stats();
-            $datas = ['status'=>"UP"];
-            $datas['startTime'] = date('r', $stats['start_time']);
-            $datas['connectionCount'] = $stats['connection_num'];
-            $datas['acceptCount'] = $stats['accept_count'];
-            $datas['closedCount'] = $stats['close_count'];
-            $datas['taskingCount'] = $stats['tasking_num'];
-            $datas['requestCount'] = $stats['request_count'];
-            $datas['workerRequestCount'] = $stats['worker_request_count'];
-            $handler->setContent(json_encode($datas));
+            $handler->setContent(json_encode($stats));
         } else {
             $handler->setContent('{"status":"UP"}');
         }
-
     }
 
     /**
