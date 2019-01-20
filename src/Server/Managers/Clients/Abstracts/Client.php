@@ -189,7 +189,7 @@ abstract class Client implements IClient
             $data[] = [
                 'ppid' => $cols[0],
                 'pid' => $cols[1],
-                'args' => implode(" ", array_slice($cols, 2, $lens - 2))
+                'args' => substr(implode(" ", array_slice($cols, 2, $lens - 2)), 0, 120)
             ];
         }
         return $data;

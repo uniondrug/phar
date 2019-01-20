@@ -44,6 +44,7 @@ class StopClient extends Abstracts\Client
         ],
         [
             'name' => 'name',
+            'short' => 'n',
             'desc' => '指定进程名称'
         ]
     ];
@@ -76,14 +77,15 @@ class StopClient extends Abstracts\Client
     public function runForce() : void
     {
         // 1. 进程名称
-        $name = $this->boot->getArgs()->getOption('name');
+        $name = $this->boot->getArgs()->getOption('n');
+        $name || $this->boot->getArgs()->getOption('name');
         $name || $name = substr($this->boot->getConfig()->environment, 0, 1).'.'.$this->boot->getConfig()->name;
-        $this->printLine("发送指定: {yellow=列出参数含【".$name."】的进程}");
         // 2. 是否Kill进程
         $kill = ($this->boot->getArgs()->hasOption('k') || $this->boot->getArgs()->hasOption('kill') || $this->boot->getArgs()->hasOption('force-kill'));
         $signal = $this->boot->getArgs()->hasOption('force-kill') ? SIGKILL : SIGTERM;
         // 3. 读取进程
         $data = $this->callProcessByName($name);
+        $this->printLine("发送指定: 列出含【{yellow=".$name."}】的进程共【{yellow=".count($data)."}】个");
         foreach ($data as $proc) {
             $this->printLine("          {green=%d}({yellow=%d}): %s %s", $proc['pid'], $proc['ppid'], $proc['args'], $kill ? '  {red=killed}' : '');
             // 4. send signal

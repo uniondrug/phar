@@ -268,7 +268,9 @@ class Config
             $this->_class = $srv['class'];
         }
         // 6.2 设置: https://wiki.swoole.com/wiki/page/274.html
-        if (isset($srv['options']) && is_array($srv['options'])) {
+        if (isset($srv['settings']) && is_array($srv['settings'])) {
+            $this->_settings = $srv['settings'];
+        } else if (isset($srv['options']) && is_array($srv['options'])) {
             $this->_settings = $srv['options'];
         }
         $this->_settings['pid_file'] = $this->args->getTmpDir().'/server.pid';
@@ -300,6 +302,19 @@ class Config
         $host = isset($srv['host']) && is_string($srv['host']) ? $srv['host'] : "";
         if (preg_match("/([a-zA-Z0-9\.]+):(\d+)/", $host, $m)) {
             $this->setHost($m[1])->setPort($m[2]);
+        }
+        // 7. logger
+        if (isset($srv['logBatchLimit']) && is_numeric($srv['logBatchLimit']) && $srv['logBatchLimit'] >= 1){
+            $this->_logBatchLimit = (int) $srv['logBatchLimit'];
+        }
+        if (isset($srv['logBatchSeconds']) && is_numeric($srv['logBatchSeconds']) && $srv['logBatchSeconds'] >= 1){
+            $this->_logBatchSeconds = (int) $srv['logBatchSeconds'];
+        }
+        if (isset($srv['logKafkaOn']) && is_bool($srv['logKafkaOn'])){
+            $this->_logKafkaOn = $srv['logKafkaOn'];
+        }
+        if (isset($srv['logKafkaUrl']) && is_string($srv['logKafkaUrl'])){
+            $this->_logKafkaUrl = $srv['logKafkaUrl'];
         }
         // 7. 完成
         return $this;

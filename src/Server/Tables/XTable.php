@@ -78,6 +78,19 @@ abstract class XTable extends Table implements ITable
     }
 
     /**
+     * Key列表
+     * @return array
+     */
+    public function keys()
+    {
+        $keys = [];
+        foreach ($this as $key => $temp) {
+            $keys[] = $key;
+        }
+        return $keys;
+    }
+
+    /**
      * 转Array数组
      * @return array
      */

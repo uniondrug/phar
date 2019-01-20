@@ -92,10 +92,9 @@ class LogTable extends XTable
     {
         $mutex = new Lock(SWOOLE_MUTEX);
         $mutex->lock();
-        $data = [];
+        $data = $this->toArray();
         foreach ($this as $key => $item) {
             $this->del($key);
-            $data[] = $item;
         }
         $this->getServer()->getStatsTable()->resetLogs();
         $mutex->unlock();
