@@ -6,7 +6,7 @@
 namespace Uniondrug\Phar\Server\Tasks;
 
 /**
- * 以异步方式, 将业务Log发送到Log中心
+ * LogTask/异步Log任务
  * @package Uniondrug\Phar\Server\Tasks
  */
 class LogTask extends XTask
@@ -15,7 +15,7 @@ class LogTask extends XTask
      * 当Log数据为空/则退出执行
      * @return bool
      */
-    public function beforeRun()
+    public function beforeRun() : bool
     {
         if (count($this->data) === 0) {
             return false;
@@ -29,14 +29,17 @@ class LogTask extends XTask
      */
     public function run()
     {
-        $this->withFile();
-        return false;
+        if ($this->getServer()->getConfig()->logKafkaOn && $this->withKafka()) {
+            return true;
+        }
+        return $this->withFile();
     }
 
     /**
-     * 使用文件模式
+     * 将日志写入文件
+     * @return bool
      */
-    private function withFile()
+    private function withFile() : bool
     {
         $dir = $this->getServer()->getArgs()->getLogDir();
         $path = $dir.'/'.date('Y-m');
@@ -52,11 +55,18 @@ class LogTask extends XTask
         if (false !== ($fp = @fopen($file, $mode))) {
             fwrite($fp, $text);
             fclose($fp);
+            return true;
         }
+        return false;
     }
 
-    private function withKafka()
+    /**
+     * 将日志提交到Kafka
+     * @return bool
+     */
+    private function withKafka() : bool
     {
         // todo: send log to kafka
+        return false;
     }
 }

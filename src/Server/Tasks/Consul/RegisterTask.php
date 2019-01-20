@@ -10,7 +10,7 @@ use Uniondrug\Phar\Server\Tasks\XTask;
 use Uniondrug\Phar\Server\XVersion;
 
 /**
- * 注册Consul服务
+ * RegisterTask/注册Consul服务
  * @package Uniondrug\Phar\Server\Tasks\Consul
  */
 class RegisterTask extends XTask
@@ -90,6 +90,8 @@ class RegisterTask extends XTask
             ]);
         } catch(\Throwable $e) {
             $this->getServer()->getLogger()->error("注册Consul服务失败 - %s", $e->getMessage());
+            return false;
         }
+        return true;
     }
 }

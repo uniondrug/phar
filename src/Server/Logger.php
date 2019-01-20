@@ -340,7 +340,11 @@ class Logger
         array_unshift($args, $message);
         $message = ($this->logPrefix === null ? '' : $this->logPrefix).call_user_func_array('sprintf', $args);
         $level = isset(self::$levels[$level]) ? self::$levels[$level] : 'CUSTOM';
-        // 2. Server启动
+        // 2. 打印日志
+        if ($this->logOutput($level, $message)) {
+            return;
+        }
+        // 3. Server启动
         if ($this->server) {
             $table = $this->server->getLogTable();
             if ($table !== false) {
@@ -352,8 +356,41 @@ class Logger
                 return;
             }
         }
-        // 3. Server未启动
+        // 4. Server未启动
         $this->logSaver($level, $message);
+    }
+
+    /**
+     * 日志落盘
+     * @param string $level
+     * @param string $message
+     * @return bool
+     */
+    private function logOutput($level, & $message)
+    {
+        if ($this->args->hasOption('log-stdout')) {
+            $text = "[".(new \DateTime())->format('Y-m-d H:i:s.u')."][{$level}]{$message}";
+            switch ($level) {
+                case self::$levels[self::LEVEL_FATAL] :
+                    $text = sprintf("\033[%d;%dm%s\033[0m", 33, 41, $text);
+                    break;
+                case self::$levels[self::LEVEL_ERROR] :
+                    $text = sprintf("\033[%d;%dm%s\033[0m", 31, 49, $text);
+                    break;
+                case self::$levels[self::LEVEL_WARNING] :
+                    $text = sprintf("\033[%d;%dm%s\033[0m", 33, 49, $text);
+                    break;
+                case self::$levels[self::LEVEL_INFO] :
+                    $text = sprintf("\033[%d;%dm%s\033[0m", 34, 49, $text);
+                    break;
+                case self::$levels[self::LEVEL_DEBUG] :
+                    $text = sprintf("\033[%d;%dm%s\033[0m", 37, 49, $text);
+                    break;
+            }
+            file_put_contents('php://stdout', "{$text}\n");
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -364,7 +401,6 @@ class Logger
     private function logSaver($level, & $message)
     {
         $text = "[".(new \DateTime())->format('Y-m-d H:i:s.u')."][{$level}]{$message}\n";
-        file_put_contents('php://stdout', $text);
         /**
          * 写入文件
          * Phalcon的Logger已被重写

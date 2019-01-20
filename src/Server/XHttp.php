@@ -30,6 +30,7 @@ use Uniondrug\Phar\Server\Events\OnWorkerError;
 use Uniondrug\Phar\Server\Events\OnWorkerStart;
 use Uniondrug\Phar\Server\Events\OnWorkerStop;
 use Uniondrug\Phar\Server\Frameworks\Phalcon;
+use Uniondrug\Phar\Server\Processes\CronProcess;
 use Uniondrug\Phar\Server\Processes\IProcess;
 use Uniondrug\Phar\Server\Processes\LogProcess;
 use Uniondrug\Phar\Server\Tables\ITable;
@@ -85,7 +86,7 @@ class XHttp extends swoole_http_server
         $this->boot = $boot;
         // 1. construct
         $log->setPrefix("[%s:%d][%s]", $cfg->host, $cfg->port, $cfg->name);
-        $log->info("创建{%s}实例", get_class($this));
+        $log->info("创建{%s}实例, 以{%s}Mode和{%s}Sock", get_class($this), $cfg->serverMode, $cfg->serverSockType);
         parent::__construct($cfg->host, $cfg->port, $cfg->serverMode, $cfg->serverSockType);
         // 2. settings
         $settings = $cfg->settings;
@@ -153,11 +154,13 @@ class XHttp extends swoole_http_server
             $log->debug("Process{%s}加入启动", $process);
         }
         // 6. manager
-        $managerHost = $cfg->getManagerHost();
-        if ($managerHost !== null) {
-            $this->addListener($managerHost, $cfg->port, $cfg->serverSockType);
-            $log->info("Agent绑定{%s:%d}Manager代理", $managerHost, $cfg->port);
-        }
+        // todo: ignore manager listener
+        //       swManager_check_status_exit
+        //$managerHost = $cfg->getManagerHost();
+        //if ($managerHost !== null) {
+        //    $this->addListener($managerHost, $cfg->port, $cfg->serverSockType);
+        //    $log->info("Agent绑定{%s:%d}Manager代理", $managerHost, $cfg->port);
+        //}
     }
 
     /**

@@ -42,6 +42,7 @@ class LogTable extends XTable
         ]
     ];
     protected $name = self::TABLE_NAME;
+    private $mutex;
 
     /**
      * LogTable constructor.
@@ -53,6 +54,7 @@ class LogTable extends XTable
         $size < 128 && $size = 128;
         parent::__construct($server, $size);
         $this->maxCount = $size - 100;
+        $this->mutex = new Lock(SWOOLE_MUTEX);
     }
 
     /**
@@ -71,8 +73,7 @@ class LogTable extends XTable
             $msg = substr($msg, 0, self::MESSAGE_LENGTH);
         }
         // 3. 加锁
-        $mutex = new Lock(SWOOLE_MUTEX);
-        $mutex->lock();
+        $this->mutex->lock();
         $this->set($key, [
             'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
             'level' => $level,
@@ -80,7 +81,7 @@ class LogTable extends XTable
         ]);
         // 4. 统计
         $count = $this->getServer()->getStatsTable()->incrLogs();
-        $mutex->unlock();
+        $this->mutex->unlock();
         return $count >= $this->maxCount;
     }
 
@@ -90,15 +91,13 @@ class LogTable extends XTable
      */
     public function flush()
     {
-        $mutex = new Lock(SWOOLE_MUTEX);
-        $mutex->lock();
-        $data = [];
+        $this->mutex->lock();
+        $data = $this->toArray();
         foreach ($this as $key => $item) {
             $this->del($key);
-            $data[] = $item;
         }
         $this->getServer()->getStatsTable()->resetLogs();
-        $mutex->unlock();
+        $this->mutex->unlock();
         return $data;
     }
 }

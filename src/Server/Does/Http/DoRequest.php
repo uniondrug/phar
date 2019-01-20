@@ -40,10 +40,15 @@ trait DoRequest
     public function doHealthRequest(XHttp $server, HttpHandler $handler)
     {
         // /sidecar.health
+        $server->getLogger()->debug("%s健康检查", $handler->getRequestHash());
         $handler->addResponseHeader('content-type', 'application/json');
         $handler->setStatusCode(200);
-        $handler->setContent('{"status":"UP"}');
-        $server->getLogger()->debug("%s健康检查", $handler->getRequestHash());
+        if ($handler->getUri() === '/consul.health') {
+            $stats = $server->stats();
+            $handler->setContent(json_encode($stats));
+        } else {
+            $handler->setContent('{"status":"UP"}');
+        }
     }
 
     /**

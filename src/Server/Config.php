@@ -38,42 +38,88 @@ class Config
     const DEFAULT_HOST = "0.0.0.0";
     const DEFAULT_PORT = 8080;
     /**
+     * 命令行Args对象
      * @var Args
      */
     private $args;
     /**
-     * 每300条Log保存一次
+     * 日志落盘频率
+     * 每512条Log保存一次
      * @var int
      */
     private $_logBatchLimit = 512;
     /**
-     * 每隔180秒保存一次Log
+     * 日志落盘频率
+     * 每隔60秒保存一次Log
      * @var int
      */
-    private $_logBatchSeconds = 15;
+    private $_logBatchSeconds = 60;
     /**
-     * 是否启用Kafka日卖
+     * 日志启用Kafka
+     * 启用Kafka时, Kafka对应的URL必须指定, 当启用时
+     * 日志将批量发到Kafka, 由Kafka进程日志处理
      * @var bool
      */
     private $_logKafkaOn = false;
     /**
      * Kafka接收地址
+     * 接收Log的Kafka服务的URL地址
      * @var string
      */
     private $_logKafkaUrl = "";
+    /**
+     * 日志级别
+     * @var int
+     */
     private $_logLevel = Logger::LEVEL_DEBUG;
     /**
      * HTTP服务对象
+     * 本项为默认值, 可通过配置文件的class字段重定义
      * @var string
      */
     private $_class = XHttp::class;
+    /**
+     * 运行环境名
+     * 支持development、testing、release、production中之一
+     * @var string
+     */
     private $_environment;
+    /**
+     * 项目名称
+     * @var string
+     */
     private $_name = 'sketch';
+    /**
+     * 项目版本
+     * @var string
+     */
     private $_version = '0.0.0';
+    /**
+     * 启动主机/IP地址
+     * @var string
+     */
     private $_host = self::DEFAULT_HOST;
+    /**
+     * 启动端口
+     * @var int
+     */
     private $_port = self::DEFAULT_PORT;
+    /**
+     * 服务模式
+     * 支持SWOOLE_PROCESS、SWOOLE_BASE
+     * @var int
+     */
     private $_serverMode = \SWOOLE_PROCESS;
+    /**
+     * Sock类型
+     * @var int
+     */
     private $_serverSockType = \SWOOLE_SOCK_TCP;
+    /**
+     * SwooleServer配置
+     * 可以配置文件的settings字段重定义
+     * @var array
+     */
     private $_settings = [
         'log_level' => 0,
         'worker_num' => 4,
@@ -81,6 +127,11 @@ class Config
         'max_request' => 0,
         'task_max_request' => 0
     ];
+    /**
+     * Swoole事件
+     * 可以配置文件的events字段重定义
+     * @var array
+     */
     private $_events = [
         // 1. server
         'start',
@@ -96,22 +147,32 @@ class Config
         'request',
     ];
     /**
+     * 定时任务
      * @var array
      */
     private $_crons = [];
     /**
+     * 内存表
      * @var array
      */
     private $_tables = [];
     /**
+     * Process进程
      * @var array
      */
     private $_processes = [];
+    /**
+     * Process STD重定向
+     * @var bool
+     */
     private $_processesStdRedirect = self::DEFAULT_PROCESSES_STD_REDIRECT;
+    /**
+     * Process Pipe管道
+     * @var bool
+     */
     private $_processesCreatePipe = self::DEFAULT_PROCESSES_PIPE;
 
     /**
-     * Config constructor.
      * @param Args $args
      */
     public function __construct(Args $args)
@@ -120,6 +181,11 @@ class Config
         $this->_environment = $this->args->getEnvironment();
     }
 
+    /**
+     * 读取配置项
+     * @param string $name
+     * @return mixed
+     */
     final public function __get($name)
     {
         $prop = "_{$name}";
@@ -129,6 +195,11 @@ class Config
         throw new ConfigExeption("call undefined '{$name}' configuration.");
     }
 
+    /**
+     * 配置项只读模式
+     * @param string $name
+     * @param mixed  $value
+     */
     final public function __set($name, $value)
     {
         throw new ConfigExeption("can not change '{$name}' value of configuration.");
@@ -147,7 +218,11 @@ class Config
         } else {
             // 1. 扫描配置文件目录
             $env = $this->_environment;
-            $path = __DIR__.'/../../../../../config';
+            if (defined('PHAR_WORKING_NAME')) {
+                $path = __DIR__.'/../../../../../config';
+            } else {
+                $path = $this->args->getBasePath().'/config';
+            }
             if (is_dir($path)) {
                 $scan = dir($path);
                 while (false !== ($name = $scan->read())) {
@@ -193,7 +268,9 @@ class Config
             $this->_class = $srv['class'];
         }
         // 6.2 设置: https://wiki.swoole.com/wiki/page/274.html
-        if (isset($srv['options']) && is_array($srv['options'])) {
+        if (isset($srv['settings']) && is_array($srv['settings'])) {
+            $this->_settings = $srv['settings'];
+        } else if (isset($srv['options']) && is_array($srv['options'])) {
             $this->_settings = $srv['options'];
         }
         $this->_settings['pid_file'] = $this->args->getTmpDir().'/server.pid';
@@ -226,6 +303,19 @@ class Config
         if (preg_match("/([a-zA-Z0-9\.]+):(\d+)/", $host, $m)) {
             $this->setHost($m[1])->setPort($m[2]);
         }
+        // 7. logger
+        if (isset($srv['logBatchLimit']) && is_numeric($srv['logBatchLimit']) && $srv['logBatchLimit'] >= 1){
+            $this->_logBatchLimit = (int) $srv['logBatchLimit'];
+        }
+        if (isset($srv['logBatchSeconds']) && is_numeric($srv['logBatchSeconds']) && $srv['logBatchSeconds'] >= 1){
+            $this->_logBatchSeconds = (int) $srv['logBatchSeconds'];
+        }
+        if (isset($srv['logKafkaOn']) && is_bool($srv['logKafkaOn'])){
+            $this->_logKafkaOn = $srv['logKafkaOn'];
+        }
+        if (isset($srv['logKafkaUrl']) && is_string($srv['logKafkaUrl'])){
+            $this->_logKafkaUrl = $srv['logKafkaUrl'];
+        }
         // 7. 完成
         return $this;
     }
@@ -254,6 +344,7 @@ class Config
 
     /**
      * 生成配置字典
+     * @return string
      */
     public function generate()
     {
@@ -269,6 +360,10 @@ class Config
         return $str;
     }
 
+    /**
+     * 生成配置文件名称
+     * @return string
+     */
     public function generateFile()
     {
         return $this->args->getTmpDir().'/server.cfg';
@@ -297,7 +392,8 @@ class Config
     }
 
     /**
-     * 将命令行参数合并入配置
+     * 合并配置
+     * 将命令行中的参数合并到配置中
      * @return $this
      */
     public function mergeArgs()
@@ -350,7 +446,8 @@ class Config
     }
 
     /**
-     * 将配置写入文件
+     * 将启动配置落盘保存
+     * @return $this
      */
     public function save()
     {
@@ -371,6 +468,11 @@ class Config
         return $this;
     }
 
+    /**
+     * 设置环境名称
+     * @param string $env
+     * @return $this
+     */
     public function setEnvironment(string $env)
     {
         $this->_environment = $env;
@@ -404,6 +506,8 @@ class Config
     }
 
     /**
+     * 用网卡名读取IP地址
+     * 使用Shell调用ip add
      * @param string $name
      * @return  false|string
      */
@@ -419,6 +523,8 @@ class Config
     }
 
     /**
+     * 用网卡名读取IP地址
+     * 使用Shell调用ifconfig
      * @param string $name
      * @return false|string
      */

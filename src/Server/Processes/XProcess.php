@@ -15,6 +15,7 @@ abstract class XProcess extends Process implements IProcess
      */
     private $server;
     protected $data;
+    protected $processName = null;
 
     /**
      * @param XHttp $server
@@ -69,7 +70,7 @@ abstract class XProcess extends Process implements IProcess
     final public function runProcess()
     {
         // 1. prepare
-        $name = $this->getServer()->setProcessName('process', get_class($this));
+        $name = $this->getServer()->setProcessName('process', get_class($this), $this->processName);
         $this->getServer()->getLogger()->setServer($this->getServer())->setPrefix("[%s:%d][%s][x=p:%d]", $this->getServer()->getConfig()->host, $this->getServer()->getConfig()->port, $this->getServer()->getConfig()->name, $this->pid);
         $this->getServer()->getLogger()->info("启动{%s}进程", $name);
         // 2. 每1秒进程一次健康检查
