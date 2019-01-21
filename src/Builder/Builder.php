@@ -132,6 +132,9 @@ class Builder
         $this->output->writeln("开始打包: 【".count($this->folders)."】个目录");
         $lastOffset = 0;
         foreach ($this->folders as $folder) {
+
+
+
             $this->runScanner($phar, $folder);
             $countOffset = $this->countFiles - $lastOffset;
             $lastOffset = $this->countFiles;
@@ -303,6 +306,9 @@ STUB;
     private function runScanner(\Phar $phar, string $path)
     {
         $p = $this->basePath.'/'.$path;
+        if (!is_dir($p)){
+            return;
+        }
         $d = dir($p);
         while (false !== ($e = $d->read())) {
             if ($e == '.' || $e == '..') {
