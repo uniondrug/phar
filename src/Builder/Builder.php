@@ -303,6 +303,9 @@ STUB;
     private function runScanner(\Phar $phar, string $path)
     {
         $p = $this->basePath.'/'.$path;
+        if (!is_dir($p)) {
+            return;
+        }
         $d = dir($p);
         while (false !== ($e = $d->read())) {
             if ($e == '.' || $e == '..') {
