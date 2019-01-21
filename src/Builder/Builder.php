@@ -62,6 +62,7 @@ class Builder
     private $folders = [
         'app',
         'config',
+        'lib',
         'vendor'
     ];
     /**

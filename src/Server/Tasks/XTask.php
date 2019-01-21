@@ -33,17 +33,20 @@ abstract class XTask implements ITask
      * @var string
      */
     protected $logPrefix;
+    protected $logUniqid;
 
     /**
      * @param        $server
      * @param array  $data
+     * @param string $logUniqid
      * @param string $logPrefix
      */
-    public function __construct($server, array $data, int $taskId, $logPrefix = '')
+    public function __construct($server, array $data, int $taskId, $logUniqid, $logPrefix = '')
     {
         $this->data = $data;
         $this->server = $server;
         $this->taskId = $taskId;
+        $this->logUniqid = $logUniqid;
         $this->logPrefix = $logPrefix;
     }
 

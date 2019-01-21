@@ -17,18 +17,19 @@ trait DoTask
      * 执行Task任务
      * @param XHttp  $server
      * @param int    $taskId
+     * @param string $logUniqid
      * @param string $logPrefix
      * @param string $class
      * @param array  $data
      * @return mixed
      * @throws \Exception
      */
-    public function doTask($server, $taskId, string $logPrefix, string $class, array $data)
+    public function doTask($server, $taskId, string $logUniqid, string $logPrefix, string $class, array $data)
     {
         /**
          * @var ITask $task
          */
-        $task = new $class($server, $data, $taskId, $logPrefix);
+        $task = new $class($server, $data, $taskId, $logUniqid, $logPrefix);
         if ($task->beforeRun() !== true) {
             return false;
         }
