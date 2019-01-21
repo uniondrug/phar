@@ -27,7 +27,8 @@ trait OnTask
         $begin = microtime(true);
         $memory = memory_get_usage(true) / 1024 / 1024;
         $logger = $server->getLogger();
-        $logPrefix = sprintf("[r=%s][z=%d]", uniqid('task'), $taskId);
+        $logUniqid = uniqid('task');
+        $logPrefix = sprintf("[r=%s][z=%d]", $logUniqid, $taskId);
         try {
             // 1. 任务解码
             //    固定的JSON数据
@@ -42,7 +43,7 @@ trait OnTask
             // 3. 执行任务
             $logPrefix .= "[y=".$data['class']."]";
             $logger->debug("%s任务开始,申请内存{%.01f}M内存", $logPrefix, $memory);
-            $result = $this->doTask($server, $taskId, $logPrefix, $data['class'], $data['params']);
+            $result = $this->doTask($server, $taskId, $logUniqid, $logPrefix, $data['class'], $data['params']);
             $logger->debug("%s[d=%.06f]任务完成", $logPrefix, microtime(true) - $begin);
             return $result != false;
         } catch(\Throwable $e) {
