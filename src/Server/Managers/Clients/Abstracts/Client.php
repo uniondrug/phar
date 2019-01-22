@@ -240,7 +240,7 @@ abstract class Client implements IClient
             }
             return $a[2];
         }, $message);
-        echo "{$message}\n";
+        file_put_contents('php://stdout', "{$message}\n");
     }
 
     /**
@@ -263,7 +263,7 @@ abstract class Client implements IClient
                     $comma = $middleComma;
                 }
                 $str .= $endComma;
-                echo $str;
+                file_put_contents('php://stdout', $str);
             }
             // 2. body
             $str = "";
@@ -273,7 +273,7 @@ abstract class Client implements IClient
                 $comma = $middleComma;
             }
             $str .= $endComma;
-            echo $str;
+            file_put_contents('php://stdout', $str);
         }
     }
 
@@ -298,3 +298,6 @@ abstract class Client implements IClient
         return $size;
     }
 }
+
+
+
