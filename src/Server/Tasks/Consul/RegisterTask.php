@@ -60,15 +60,17 @@ class RegisterTask extends XTask
             $healthPort = $port;
         }
         // 4. 服务注册结构
+        $tag = defined("PHAR_WORKING_TAG") ? PHAR_WORKING_TAG : $this->getServer()->getConfig()->version;
         $body = [
             'Name' => $name,
             'Address' => $addr,
             'Port' => $port,
             'Tags' => [
+                "ver/".$tag,
                 "xphar/".XVersion::get(),
-                "php/".PHP_VERSION,
-                'swoole/'.SWOOLE_VERSION,
-                'phalcon/'.\Phalcon\Version::get(),
+                //"php/".PHP_VERSION,
+                //'swoole/'.SWOOLE_VERSION,
+                //'phalcon/'.\Phalcon\Version::get(),
                 'framework/'.\Uniondrug\Framework\Container::VERSION
             ],
             'Tag' => [],
