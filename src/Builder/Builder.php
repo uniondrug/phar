@@ -196,6 +196,7 @@ class Builder
 #!/usr/bin/env php
 <?php
 define("PHAR_WORKING_DIR", getcwd());
+define("PHAR_WORKING_TAG", "{$this->tag}");
 define("PHAR_WORKING_NAME", "{$this->pharName}");
 define("PHAR_WORKING_FILE", __FILE__);
 Phar::mapPhar('{$this->pharName}');

@@ -11,8 +11,8 @@ namespace Uniondrug\Phar\Server;
 class XVersion
 {
     const VERSION_MAJOR = 1;
-    const VERSION_MINOR = 0;
-    const VERSION_RELEASE = 6;
+    const VERSION_MINOR = 1;
+    const VERSION_RELEASE = 0;
 
     /**
      * 读取版本号

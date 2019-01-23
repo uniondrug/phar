@@ -124,8 +124,8 @@ class Config
         'log_level' => 0,
         'worker_num' => 4,
         'task_worker_num' => 4,
-        'max_request' => 0,
-        'task_max_request' => 0
+        'max_request' => 5000,
+        'task_max_request' => 5000
     ];
     /**
      * Swoole事件
