@@ -66,6 +66,6 @@ trait OnRequest
         // 5. 打印内容
         $response->end($handler->getContent());
         // 6. 释放资源
-//        unset($handler);
+        unset($handler);
     }
 }

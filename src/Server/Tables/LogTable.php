@@ -28,6 +28,10 @@ class LogTable extends XTable
      * @var array
      */
     protected $columns = [
+        'key' => [
+            parent::TYPE_STRING,
+            23
+        ],
         'time' => [
             parent::TYPE_STRING,
             28
@@ -67,7 +71,7 @@ class LogTable extends XTable
     {
         // 1. 计算唯一Key
         //    非绝对重复, 可能性比较小
-        $key = sprintf("l%13d%03d%03d", microtime(true) * 1000, mt_rand(1, 999), mt_rand(1, 999));
+        $key = sprintf("l%16d%03d%03d", microtime(true) * 1000000, mt_rand(1, 999), mt_rand(1, 999));
         // 2. 消息长度
         if (strlen($msg) > self::MESSAGE_LENGTH) {
             $msg = substr($msg, 0, self::MESSAGE_LENGTH);
@@ -75,6 +79,7 @@ class LogTable extends XTable
         // 3. 加锁
         $this->mutex->lock();
         $this->set($key, [
+            'key' => $key,
             'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
             'level' => $level,
             'message' => $msg

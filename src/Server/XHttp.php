@@ -114,7 +114,7 @@ class XHttp extends swoole_http_server
         $tables = $cfg->tables;
         // 4.1 预定义表
         if (!isset($tables[StatsTable::class])) {
-            $tables[StatsTable::class] = 256;
+            $tables[StatsTable::class] = 2048;
         }
         if (!isset($tables[LogTable::class])) {
             $tables[LogTable::class] = $cfg->logBatchLimit;
