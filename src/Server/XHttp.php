@@ -133,7 +133,7 @@ class XHttp extends swoole_http_server
             $tbl = new $table($this, $size);
             $name = $tbl->getName();
             $this->_tableLoads[$name] = $tbl;
-            $log->debug("内存表{%s}注册到{%s}", $name, $table);
+            $log->debug("内存表{%s}注册到{%s}并初始化{%d}条记录", $name, $table, $size);
         }
         // 5. processes
         $processes = $cfg->processes;
