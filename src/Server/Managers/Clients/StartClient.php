@@ -55,6 +55,10 @@ class StartClient extends Abstracts\Client
             'desc' => '日志级别, 可选: {yellow=DEBUG}、{yellow=INFO}、{yellow=WARNING}、{yellow=ERROR}, 默认: {yellow=DEBUG}'
         ],
         [
+            'name' => 'log-stdout',
+            'desc' => '在标准输出打印日志内容, 禁用文件/Kafka日志'
+        ],
+        [
             'name' => 'enable-crontab',
             'desc' => '启用定时任务, 类似于crontab'
         ],

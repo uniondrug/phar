@@ -85,7 +85,7 @@ class XHttp extends swoole_http_server
         $log->setLogLevel($cfg->logLevel);
         $this->boot = $boot;
         // 1. construct
-        $log->setPrefix("[%s:%d][%s]", $cfg->host, $cfg->port, $cfg->name);
+        $log->setPrefix("[%s:%d][%s]", $cfg->getDeployIp(), $cfg->port, $cfg->name);
         $log->info("创建{%s}实例, 以{%s}Mode和{%s}Sock", get_class($this), $cfg->serverMode, $cfg->serverSockType);
         parent::__construct($cfg->host, $cfg->port, $cfg->serverMode, $cfg->serverSockType);
         // 2. settings

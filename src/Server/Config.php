@@ -28,7 +28,6 @@ use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
  * @property array  $processes            Process进程列表
  * @property bool   $processesStdRedirect redirect stdin/out
  * @property bool   $processesCreatePipe  create pipe
- * @property string $deployIp             项目所在机器的IP地址
  * @package Uniondrug\Phar\Bootstrap
  */
 class Config
@@ -42,6 +41,7 @@ class Config
      * @var Args
      */
     private $args;
+    private $addr;
     /**
      * 日志落盘频率
      * 每512条Log保存一次
@@ -304,16 +304,16 @@ class Config
             $this->setHost($m[1])->setPort($m[2]);
         }
         // 7. logger
-        if (isset($srv['logBatchLimit']) && is_numeric($srv['logBatchLimit']) && $srv['logBatchLimit'] >= 1){
+        if (isset($srv['logBatchLimit']) && is_numeric($srv['logBatchLimit']) && $srv['logBatchLimit'] >= 1) {
             $this->_logBatchLimit = (int) $srv['logBatchLimit'];
         }
-        if (isset($srv['logBatchSeconds']) && is_numeric($srv['logBatchSeconds']) && $srv['logBatchSeconds'] >= 1){
+        if (isset($srv['logBatchSeconds']) && is_numeric($srv['logBatchSeconds']) && $srv['logBatchSeconds'] >= 1) {
             $this->_logBatchSeconds = (int) $srv['logBatchSeconds'];
         }
-        if (isset($srv['logKafkaOn']) && is_bool($srv['logKafkaOn'])){
+        if (isset($srv['logKafkaOn']) && is_bool($srv['logKafkaOn'])) {
             $this->_logKafkaOn = $srv['logKafkaOn'];
         }
-        if (isset($srv['logKafkaUrl']) && is_string($srv['logKafkaUrl'])){
+        if (isset($srv['logKafkaUrl']) && is_string($srv['logKafkaUrl'])) {
             $this->_logKafkaUrl = $srv['logKafkaUrl'];
         }
         // 7. 完成
@@ -506,6 +506,33 @@ class Config
     }
 
     /**
+     * 读取部署机器的IP
+     * @return string
+     */
+    public function getDeployIp()
+    {
+        if ($this->addr === null) {
+            $names = [
+                'en0',
+                'eth0',
+                'eth1'
+            ];
+            foreach ($names as $name) {
+                $ip = $this->ipFromAddr($name);
+                $ip || $ip = $this->ipFromConfig($name);
+                if ($ip) {
+                    $this->addr = $ip;
+                    break;
+                }
+            }
+            if ($this->addr === null) {
+                $this->addr = '0.0.0.0';
+            }
+        }
+        return $this->addr;
+    }
+
+    /**
      * 用网卡名读取IP地址
      * 使用Shell调用ip add
      * @param string $name
@@ -513,6 +540,7 @@ class Config
      */
     public function ipFromAddr(string $name)
     {
+        // stderr redirect
         $cmd = "ip -o -4 addr list '{$name}' | head -n1 | awk '{print \$4}' | cut -d/ -f1";
         $addr = shell_exec($cmd);
         $addr = trim($addr);

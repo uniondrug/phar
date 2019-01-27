@@ -16,7 +16,13 @@ use Uniondrug\Phar\Server\XHttp;
  */
 class LogTable extends XTable
 {
-    const MESSAGE_LENGTH = 4096;
+    /**
+     * 单条Log最大字符数
+     */
+    const MESSAGE_LENGTH = 8192;
+    /**
+     * 内存表名称
+     */
     const TABLE_NAME = 'logTable';
     /**
      * 数量
