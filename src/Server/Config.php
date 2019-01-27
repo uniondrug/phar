@@ -128,11 +128,14 @@ class Config
      * @var array
      */
     private $_settings = [
-        'log_level' => 0,
+        'reactor_num' => 8,
         'worker_num' => 8,
-        'task_worker_num' => 2,
         'max_request' => 20000,
-        'task_max_request' => 20000
+        'task_worker_num' => 2,
+        'task_max_request' => 20000,
+        'log_level' => 0,
+        'request_slowlog_file' => '',
+        'request_slowlog_timeout' => 5
     ];
     /**
      * Swoole事件
@@ -308,6 +311,7 @@ class Config
         }
         $this->_settings['pid_file'] = $this->args->getTmpDir().'/server.pid';
         $this->_settings['log_file'] = $this->args->getLogDir().'/server.log';
+        $this->_settings['request_slowlog_file'] = $this->args->getLogDir().'/slow.log';
         // 6.3 Tables
         if (isset($srv['tables']) && is_array($srv['tables'])) {
             $this->_tables = $srv['tables'];
