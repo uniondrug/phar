@@ -43,6 +43,13 @@ class Config
     private $args;
     private $addr;
     /**
+     * PHP默认最大可申请内存
+     * @var int
+     */
+    private $memoryLimit = 134217728;
+    private $memoryAllow = 0;
+    private $memoryProtected = 8388608;
+    /**
      * 日志落盘频率
      * 每512条Log保存一次
      * @var int
@@ -178,6 +185,32 @@ class Config
     public function __construct(Args $args)
     {
         $this->args = $args;
+        // 1. PHP最大可申请内存峰值
+        $iniMemory = trim(ini_get('memory_limit'));
+        if (preg_match("/^(\d+)([^\d]+)$/", $iniMemory, $m) > 0) {
+            $m[1] = (int) $m[1];
+            $m[2] = strtoupper($m[2]);
+            switch ($m[2]) {
+                case 'K' :
+                case 'KB' :
+                    $this->memoryLimit = $m[1] * 1024;
+                    break;
+                case 'M' :
+                case 'MB' :
+                    $this->memoryLimit = $m[1] * 1024 * 1024;
+                    break;
+                case 'G' :
+                case "GB" :
+                    $this->memoryLimit = $m[1] * 1024 * 1024 * 1024;
+            }
+        } else if (preg_match("/^\d+$/", $iniMemory)) {
+            $this->memoryLimit = (int) $iniMemory;
+        }
+        // 2. PHAR允许申请内存值
+        //    当实际超过此时值, 退出Worker/Tasker进程并重启
+        $this->memoryAllow = $this->memoryLimit - $this->memoryProtected;
+        $this->memoryAllow < 0 && $this->memoryAllow = 58720256; // 最低56M内存
+        // 3. 环境名称定义
         $this->_environment = $this->args->getEnvironment();
     }
 
@@ -367,6 +400,24 @@ class Config
     public function generateFile()
     {
         return $this->args->getTmpDir().'/server.cfg';
+    }
+
+    /**
+     * PHAR允许内存
+     * @return int
+     */
+    public function getAllowMemory()
+    {
+        return $this->memoryAllow;
+    }
+
+    /**
+     * PHP最大申请内存
+     * @return int
+     */
+    public function getLimitMemory()
+    {
+        return $this->memoryLimit;
     }
 
     /**

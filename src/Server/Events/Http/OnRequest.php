@@ -29,6 +29,7 @@ trait OnRequest
          */
         $server = $this;
         $handler = new HttpHandler($server, $request, $response);
+        $stopWorker = $handler->memoryUsage >= $server->getConfig()->getAllowMemory();
         $handler->addResponseContentType();
         $handler->addResponseHeader(HttpHandler::REQID_KEY, $handler->getRequestId());
         $handler->addResponseHeader('Server', $server->getConfig()->getServerSoft());
@@ -67,5 +68,11 @@ trait OnRequest
         $response->end($handler->getContent());
         // 6. 释放资源
         unset($handler);
+        // 7. 退出进程
+        //    内存使用量过大时, 退出Worker进程, Manager
+        //    进程将重新启动
+        if ($stopWorker) {
+            $server->stop($this->getWorkerId());
+        }
     }
 }
