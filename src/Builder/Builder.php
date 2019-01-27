@@ -80,7 +80,7 @@ class Builder
      * @var array
      */
     private $files = [
-        "/\.php$/i"
+        "/\.(php|yml|xml)$/i"
     ];
     /**
      * 合计扫描文件数
