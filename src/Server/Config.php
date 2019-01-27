@@ -129,10 +129,10 @@ class Config
      */
     private $_settings = [
         'log_level' => 0,
-        'worker_num' => 4,
-        'task_worker_num' => 4,
-        'max_request' => 5000,
-        'task_max_request' => 5000
+        'worker_num' => 8,
+        'task_worker_num' => 2,
+        'max_request' => 20000,
+        'task_max_request' => 20000
     ];
     /**
      * Swoole事件
