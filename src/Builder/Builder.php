@@ -293,7 +293,8 @@ STUB;
     private function runCollector(\Phar $phar, $path)
     {
         $this->countFiles++;
-        $phar->addFile($path);
+        // $phar->addFile($path);
+        $phar->addFromString($path, file_get_contents($this->basePath.'/'.$path));
     }
 
     /**
@@ -332,6 +333,12 @@ STUB;
             }
         }
         $d->close();
+    }
+
+    public function setBasePath(string $basePath)
+    {
+        $this->basePath = $basePath;
+        return $this;
     }
 
     /**
