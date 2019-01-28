@@ -50,6 +50,21 @@ class StartClient extends Abstracts\Client
             'desc' => '指定端口号, 默认: 从配置文件{yellow=config/server.php}中读取'
         ],
         [
+            'name' => 'reactor-num',
+            'value' => 'int',
+            'desc' => 'Master进程的线程数, 一般为CPU核心数的2倍, 默认: {red=8}个'
+        ],
+        [
+            'name' => 'worker-num',
+            'value' => 'int',
+            'desc' => 'Worker进程数, 默认: {red=8}个'
+        ],
+        [
+            'name' => 'tasker-num',
+            'value' => 'int',
+            'desc' => 'Tasker进程数, 默认: {red=8}个'
+        ],
+        [
             'name' => 'log-level',
             'value' => 'str',
             'desc' => '日志级别, 可选: {yellow=DEBUG}、{yellow=INFO}、{yellow=WARNING}、{yellow=ERROR}, 默认: {yellow=DEBUG}'
@@ -58,10 +73,10 @@ class StartClient extends Abstracts\Client
             'name' => 'log-stdout',
             'desc' => '在标准输出打印日志内容, 禁用文件/Kafka日志'
         ],
-        [
-            'name' => 'enable-crontab',
-            'desc' => '启用定时任务, 类似于crontab'
-        ],
+        //[
+        //    'name' => 'enable-crontab',
+        //    'desc' => '启用定时任务, 类似于crontab'
+        //],
         [
             'name' => 'consul-register',
             'value' => 'URL',

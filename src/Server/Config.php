@@ -495,6 +495,27 @@ class Config
                     break;
             }
         }
+        // 5. worker num
+        if ($this->args->hasOption('worker-num')) {
+            $workerNum = (int) $this->args->getOption('worker-num');
+            if ($workerNum > 0) {
+                $this->_settings['worker_num'] = $workerNum;
+            }
+        }
+        // 6. tasker num
+        if ($this->args->hasOption('tasker-num')) {
+            $taskerNum = (int) $this->args->getOption('tasker-num');
+            if ($taskerNum > 0) {
+                $this->_settings['task_worker_num'] = $taskerNum;
+            }
+        }
+        // 7. reactor num
+        if ($this->args->hasOption('reactor-num')) {
+            $reactorNum = (int) $this->args->getOption('reactor-num');
+            if ($reactorNum > 0) {
+                $this->_settings['reactor_num'] = $reactorNum;
+            }
+        }
         // n. end
         return $this;
     }
