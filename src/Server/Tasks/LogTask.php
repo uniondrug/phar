@@ -5,6 +5,8 @@
  */
 namespace Uniondrug\Phar\Server\Tasks;
 
+use GuzzleHttp\Client;
+
 /**
  * LogTask/异步Log任务
  * @package Uniondrug\Phar\Server\Tasks
@@ -13,19 +15,34 @@ class LogTask extends XTask
 {
     /**
      * Log结构
+     * <ul>
+     * <li>time: 日志产生时间</li>
+     * <li>level: 日志级别/INFO,ERROR,DEBUG等</li>
+     * <li>action: 操作动作/CURL和增、删、改、查</li>
+     * <li>module: 模块名称, 由哪个模块提交的日志</li>
+     * <li>duration: 执行时长, 记录哪些脚本/接口跑的比较慢</li>
+     * <li>pid: 进程ID</li>
+     * <li>requestId: 请求标识, 同个一请求产生的Log, 都会带此参数</li>
+     * <li>requestMethod: 请求方式, Restful的GET/POST等</li>
+     * <li>requestUrl: 请求URL地址</li>
+     * <li>serverAddr: 服务地址</li>
+     * <li>taskId: 异步任务ID</li>
+     * <li>taskName: 异步任务名称</li>
+     * <li>content: 日志内容</li>
+     * </ul>
      * @var array
      */
     private $logFields = [
         'time' => '',
         'level' => '',
         'action' => '',
-        'host' => '',
         'module' => '',
         'duration' => 0.0,
         'pid' => 0,
         'requestId' => '',
         'requestMethod' => '',
         'requestUrl' => '',
+        'serverAddr' => '',
         'taskId' => 0,
         'taskName' => '',
         'content' => ''
@@ -95,6 +112,28 @@ class LogTask extends XTask
      */
     private function withKafka() : bool
     {
+        $parsed = $this->parseRows();
+        if ($parsed['count'] > 0) {
+            $url = $this->getServer()->getConfig()->logKafkaUrl;
+            try {
+                /**
+                 * @var Client $client
+                 */
+                $client = $this->getServer()->getContainer()->getShared('httpClient');
+                $client->post($url, [
+                    'timeout' => 3,
+                    'headers' => [
+                        'content-type' => 'application/json'
+                    ],
+                    'json' => [
+                        'logs' => $parsed['logs']
+                    ]
+                ]);
+                return true;
+            } catch(\Throwable $e) {
+                $this->getServer()->getLogger()->warning("%s向{%s}提交Log失败 - %s", $this->logPrefix, $url, $e->getMessage());
+            }
+        }
         return false;
     }
 
@@ -118,6 +157,10 @@ class LogTask extends XTask
                 $num++;
             }
         }
+        return [
+            'count' => $num,
+            'logs' => $logs
+        ];
     }
 
     /**
@@ -130,7 +173,7 @@ class LogTask extends XTask
     {
         $rexp = "/\[(\d+\.\d+\.\d+\.\d+:\d+)\]\[([^\]]*)\]/";
         if (preg_match($rexp, $text, $m) > 0) {
-            $data['host'] = $m[1];
+            $data['serverAddr'] = $m[1];
             $data['module'] = $m[2];
             $text = preg_replace($rexp, "", $text);
         }
