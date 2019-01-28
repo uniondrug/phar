@@ -6,6 +6,7 @@
 namespace Uniondrug\Phar\Server\Frameworks;
 
 use Phalcon\Db\Adapter\Pdo\Mysql;
+use Phalcon\Di;
 use Phalcon\Http\Response as PhalconResponse;
 use Uniondrug\Framework\Application;
 use Uniondrug\Framework\Container;
@@ -146,6 +147,7 @@ trait Phalcon
                 $logger->setLogLevel($cfg->logLevel);
                 return $logger;
             });
+            Di::setDefault($this->container);
             // 1.4 application boot
             $this->application = new Application($this->container);
             $this->application->boot();

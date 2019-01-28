@@ -7,6 +7,7 @@ namespace Uniondrug\Phar\Server\Frameworks;
 
 use App\Http\Application;
 use Pails\Container;
+use Phalcon\Di;
 use Phalcon\Http\Response;
 use Uniondrug\Framework\Request;
 use Uniondrug\Phar\Server\Args;
@@ -151,6 +152,7 @@ trait OldPhalcon
                 $logger->setLogLevel($cfg->logLevel);
                 return $logger;
             });
+            Di::setDefault($this->container);
             // 1.4 application boot
             $this->application = new Application($this->container);
             $this->application->boot();
