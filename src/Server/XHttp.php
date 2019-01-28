@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Server;
 
+use Swoole\Lock;
 use swoole_http_server;
 use Uniondrug\Phar\Server\Does\BeforeStart;
 use Uniondrug\Phar\Server\Does\DoFinish;
@@ -48,6 +49,7 @@ class XHttp extends swoole_http_server
      * @var Bootstrap
      */
     public $boot;
+    private $_mutex;
     private $_tableLoads = [];
     /**
      * callbacks
@@ -259,6 +261,18 @@ class XHttp extends swoole_http_server
     public function getWorkerId()
     {
         return $this->worker_id;
+    }
+
+    /**
+     * 读取全局锁
+     * @return Lock
+     */
+    public function getMutex()
+    {
+        if ($this->_mutex === null) {
+            $this->_mutex = new Lock(SWOOLE_MUTEX);
+        }
+        return $this->_mutex;
     }
 
     /**
