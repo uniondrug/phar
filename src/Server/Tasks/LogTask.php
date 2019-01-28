@@ -75,10 +75,14 @@ class LogTask extends XTask
      */
     public function run()
     {
-        if ($this->getServer()->getConfig()->logKafkaOn && $this->withKafka()) {
-            return true;
+        try {
+            if ($this->getServer()->getConfig()->logKafkaOn && $this->withKafka()) {
+                return true;
+            }
+            return $this->withFile();
+        } catch(\Throwable $e) {
+            return false;
         }
-        return $this->withFile();
     }
 
     /**
@@ -112,10 +116,10 @@ class LogTask extends XTask
      */
     private function withKafka() : bool
     {
-        $parsed = $this->parseRows();
-        if ($parsed['count'] > 0) {
-            $url = $this->getServer()->getConfig()->logKafkaUrl;
-            try {
+        try {
+            $parsed = $this->parseRows();
+            if ($parsed['count'] > 0) {
+                $url = $this->getServer()->getConfig()->logKafkaUrl;
                 /**
                  * @var Client $client
                  */
@@ -130,9 +134,9 @@ class LogTask extends XTask
                     ]
                 ]);
                 return true;
-            } catch(\Throwable $e) {
-                $this->getServer()->getLogger()->warning("%s向{%s}提交Log失败 - %s", $this->logPrefix, $url, $e->getMessage());
             }
+        } catch(\Throwable $e) {
+            $this->getServer()->getLogger()->warning("%s向{%s}提交Log失败 - %s", $this->logPrefix, $this->getServer()->getConfig()->logKafkaUrl, $e->getMessage());
         }
         return false;
     }
