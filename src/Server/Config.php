@@ -304,10 +304,9 @@ class Config
             $this->_class = $srv['class'];
         }
         // 6.2 设置: https://wiki.swoole.com/wiki/page/274.html
+        $settings = $this->_settings;
         if (isset($srv['settings']) && is_array($srv['settings'])) {
-            $this->_settings = $srv['settings'];
-        } else if (isset($srv['options']) && is_array($srv['options'])) {
-            $this->_settings = $srv['options'];
+            $this->_settings = array_merge_recursive($settings, $srv['settings']);
         }
         $this->_settings['pid_file'] = $this->args->getTmpDir().'/server.pid';
         $this->_settings['log_file'] = $this->args->getLogDir().'/server.log';
