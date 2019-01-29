@@ -28,7 +28,6 @@ use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
  * @property array  $processes            Process进程列表
  * @property bool   $processesStdRedirect redirect stdin/out
  * @property bool   $processesCreatePipe  create pipe
- * @property string $deployIp             项目所在机器的IP地址
  * @package Uniondrug\Phar\Bootstrap
  */
 class Config
@@ -42,6 +41,14 @@ class Config
      * @var Args
      */
     private $args;
+    private $addr;
+    /**
+     * PHP默认最大可申请内存
+     * @var int
+     */
+    private $memoryLimit = 134217728;
+    private $memoryAllow = 0;
+    private $memoryProtected = 8388608;
     /**
      * 日志落盘频率
      * 每512条Log保存一次
@@ -121,11 +128,14 @@ class Config
      * @var array
      */
     private $_settings = [
+        'reactor_num' => 8,
+        'worker_num' => 8,
+        'max_request' => 20000,
+        'task_worker_num' => 2,
+        'task_max_request' => 20000,
         'log_level' => 0,
-        'worker_num' => 4,
-        'task_worker_num' => 4,
-        'max_request' => 5000,
-        'task_max_request' => 5000
+        'request_slowlog_file' => '',
+        'request_slowlog_timeout' => 5
     ];
     /**
      * Swoole事件
@@ -178,6 +188,32 @@ class Config
     public function __construct(Args $args)
     {
         $this->args = $args;
+        // 1. PHP最大可申请内存峰值
+        $iniMemory = trim(ini_get('memory_limit'));
+        if (preg_match("/^(\d+)([^\d]+)$/", $iniMemory, $m) > 0) {
+            $m[1] = (int) $m[1];
+            $m[2] = strtoupper($m[2]);
+            switch ($m[2]) {
+                case 'K' :
+                case 'KB' :
+                    $this->memoryLimit = $m[1] * 1024;
+                    break;
+                case 'M' :
+                case 'MB' :
+                    $this->memoryLimit = $m[1] * 1024 * 1024;
+                    break;
+                case 'G' :
+                case "GB" :
+                    $this->memoryLimit = $m[1] * 1024 * 1024 * 1024;
+            }
+        } else if (preg_match("/^\d+$/", $iniMemory)) {
+            $this->memoryLimit = (int) $iniMemory;
+        }
+        // 2. PHAR允许申请内存值
+        //    当实际超过此时值, 退出Worker/Tasker进程并重启
+        $this->memoryAllow = $this->memoryLimit - $this->memoryProtected;
+        $this->memoryAllow < 0 && $this->memoryAllow = 58720256; // 最低56M内存
+        // 3. 环境名称定义
         $this->_environment = $this->args->getEnvironment();
     }
 
@@ -268,13 +304,13 @@ class Config
             $this->_class = $srv['class'];
         }
         // 6.2 设置: https://wiki.swoole.com/wiki/page/274.html
+        $settings = $this->_settings;
         if (isset($srv['settings']) && is_array($srv['settings'])) {
-            $this->_settings = $srv['settings'];
-        } else if (isset($srv['options']) && is_array($srv['options'])) {
-            $this->_settings = $srv['options'];
+            $this->_settings = array_merge_recursive($settings, $srv['settings']);
         }
         $this->_settings['pid_file'] = $this->args->getTmpDir().'/server.pid';
         $this->_settings['log_file'] = $this->args->getLogDir().'/server.log';
+        $this->_settings['request_slowlog_file'] = $this->args->getLogDir().'/slow.log';
         // 6.3 Tables
         if (isset($srv['tables']) && is_array($srv['tables'])) {
             $this->_tables = $srv['tables'];
@@ -304,16 +340,16 @@ class Config
             $this->setHost($m[1])->setPort($m[2]);
         }
         // 7. logger
-        if (isset($srv['logBatchLimit']) && is_numeric($srv['logBatchLimit']) && $srv['logBatchLimit'] >= 1){
+        if (isset($srv['logBatchLimit']) && is_numeric($srv['logBatchLimit']) && $srv['logBatchLimit'] >= 1) {
             $this->_logBatchLimit = (int) $srv['logBatchLimit'];
         }
-        if (isset($srv['logBatchSeconds']) && is_numeric($srv['logBatchSeconds']) && $srv['logBatchSeconds'] >= 1){
+        if (isset($srv['logBatchSeconds']) && is_numeric($srv['logBatchSeconds']) && $srv['logBatchSeconds'] >= 1) {
             $this->_logBatchSeconds = (int) $srv['logBatchSeconds'];
         }
-        if (isset($srv['logKafkaOn']) && is_bool($srv['logKafkaOn'])){
+        if (isset($srv['logKafkaOn']) && is_bool($srv['logKafkaOn'])) {
             $this->_logKafkaOn = $srv['logKafkaOn'];
         }
-        if (isset($srv['logKafkaUrl']) && is_string($srv['logKafkaUrl'])){
+        if (isset($srv['logKafkaUrl']) && is_string($srv['logKafkaUrl'])) {
             $this->_logKafkaUrl = $srv['logKafkaUrl'];
         }
         // 7. 完成
@@ -367,6 +403,24 @@ class Config
     public function generateFile()
     {
         return $this->args->getTmpDir().'/server.cfg';
+    }
+
+    /**
+     * PHAR允许内存
+     * @return int
+     */
+    public function getAllowMemory()
+    {
+        return $this->memoryAllow;
+    }
+
+    /**
+     * PHP最大申请内存
+     * @return int
+     */
+    public function getLimitMemory()
+    {
+        return $this->memoryLimit;
     }
 
     /**
@@ -441,6 +495,27 @@ class Config
                     break;
             }
         }
+        // 5. worker num
+        if ($this->args->hasOption('worker-num')) {
+            $workerNum = (int) $this->args->getOption('worker-num');
+            if ($workerNum > 0) {
+                $this->_settings['worker_num'] = $workerNum;
+            }
+        }
+        // 6. tasker num
+        if ($this->args->hasOption('tasker-num')) {
+            $taskerNum = (int) $this->args->getOption('tasker-num');
+            if ($taskerNum > 0) {
+                $this->_settings['task_worker_num'] = $taskerNum;
+            }
+        }
+        // 7. reactor num
+        if ($this->args->hasOption('reactor-num')) {
+            $reactorNum = (int) $this->args->getOption('reactor-num');
+            if ($reactorNum > 0) {
+                $this->_settings['reactor_num'] = $reactorNum;
+            }
+        }
         // n. end
         return $this;
     }
@@ -506,6 +581,33 @@ class Config
     }
 
     /**
+     * 读取部署机器的IP
+     * @return string
+     */
+    public function getDeployIp()
+    {
+        if ($this->addr === null) {
+            $names = [
+                'en0',
+                'eth0',
+                'eth1'
+            ];
+            foreach ($names as $name) {
+                $ip = $this->ipFromAddr($name);
+                $ip || $ip = $this->ipFromConfig($name);
+                if ($ip) {
+                    $this->addr = $ip;
+                    break;
+                }
+            }
+            if ($this->addr === null) {
+                $this->addr = '0.0.0.0';
+            }
+        }
+        return $this->addr;
+    }
+
+    /**
      * 用网卡名读取IP地址
      * 使用Shell调用ip add
      * @param string $name
@@ -513,6 +615,7 @@ class Config
      */
     public function ipFromAddr(string $name)
     {
+        // stderr redirect
         $cmd = "ip -o -4 addr list '{$name}' | head -n1 | awk '{print \$4}' | cut -d/ -f1";
         $addr = shell_exec($cmd);
         $addr = trim($addr);

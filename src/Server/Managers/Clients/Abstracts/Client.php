@@ -55,7 +55,7 @@ abstract class Client implements IClient
         $this->printLine("当前项目: {green=%s/%s} in {green=%s}", $this->boot->getConfig()->name, $this->boot->getConfig()->version, $this->boot->getConfig()->environment);
         $this->printLine("项目目录: {green=%s}", $this->boot->getArgs()->getBasePath());
         $this->printLine("运行环境: {green=xphar/%s}, {green=php/%s}, {green=swoole/%s}, {green=phalcon/%s}, {green=framework/%s}", XVersion::get(), $phpver, $swover, $phaver, $fraver);
-        $this->printLine("服务地址: {green=%s}:{green=%s}", $this->boot->getConfig()->host, $this->boot->getConfig()->port);
+        $this->printLine("服务地址: {green=%s}:{green=%d} 部署于 {green=%s}:{green=%d}", $this->boot->getConfig()->host, $this->boot->getConfig()->port, $this->boot->getConfig()->getDeployIp(), $this->boot->getConfig()->port);
     }
 
     public static function getDescription() : string

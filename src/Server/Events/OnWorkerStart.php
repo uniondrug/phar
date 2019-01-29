@@ -25,7 +25,7 @@ trait OnWorkerStart
         // 1. 进程信息
         $proc = $server->isTasker() ? 'tasker' : 'worker';
         $name = $server->setProcessName($proc, $workerId);
-        $server->getLogger()->setServer($server)->setPrefix("[%s:%d][%s][x=%s:%d:%d]", $server->getConfig()->host, $server->getConfig()->port, $server->getConfig()->name, ($server->isTasker() ? 't' : 'w'), $server->getWorkerPid(), $workerId);
+        $server->getLogger()->setServer($server)->setPrefix("[%s:%d][%s][x=%s:%d:%d]", $server->getConfig()->getDeployIp(), $server->getConfig()->port, $server->getConfig()->name, ($server->isTasker() ? 't' : 'w'), $server->getWorkerPid(), $workerId);
         $server->getLogger()->info("启动{%s}进程", $name);
         // 2. 自定义操作
         $server->doWorkerStart($server, $workerId);

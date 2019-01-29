@@ -8,6 +8,7 @@ namespace Uniondrug\Phar\Server\Does\Http;
 use Uniondrug\Phar\Server\Handlers\HttpHandler;
 use Uniondrug\Phar\Server\Managers\Agents\IAgent;
 use Uniondrug\Phar\Server\XHttp;
+use Uniondrug\Phar\Server\XOld;
 
 /**
  * 处理HTTP请求
@@ -17,11 +18,11 @@ trait DoRequest
 {
     /**
      * 处理HTTP请求
-     * @param XHttp       $server
+     * @param XHttp|XOld  $server
      * @param HttpHandler $handler
      * @throws \Exception
      */
-    public function doRequest(XHttp $server, HttpHandler $handler)
+    public function doRequest($server, HttpHandler $handler)
     {
         // 1. 静态资源
         if ($handler->isAssetsRequest()) {
@@ -34,13 +35,12 @@ trait DoRequest
 
     /**
      * 健康检查请求
-     * @param XHttp       $server
+     * @param XHttp|XOld  $server
      * @param HttpHandler $handler
      */
-    public function doHealthRequest(XHttp $server, HttpHandler $handler)
+    public function doHealthRequest($server, HttpHandler $handler)
     {
         // /sidecar.health
-        $server->getLogger()->debug("%s健康检查", $handler->getRequestHash());
         $handler->addResponseHeader('content-type', 'application/json');
         $handler->setStatusCode(200);
         if ($handler->getUri() === '/consul.health') {
@@ -53,10 +53,10 @@ trait DoRequest
 
     /**
      * 管理端请求
-     * @param XHttp       $server
+     * @param XHttp|XOld  $server
      * @param HttpHandler $handler
      */
-    public function doManagerRequest(XHttp $server, HttpHandler $handler)
+    public function doManagerRequest($server, HttpHandler $handler)
     {
         $info = $handler->getClientInfo();
         // 1. info error

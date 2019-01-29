@@ -5,13 +5,13 @@
  */
 namespace Uniondrug\Phar\Server;
 
-use Uniondrug\Phar\Server\Frameworks\Phalcon;
+use Uniondrug\Phar\Server\Frameworks\OldPhalcon;
 
 /**
  * HttpServer
  * @package Uniondrug\Phar\Server
  */
-class XHttp extends Http
+class XOld extends Http
 {
-    use Phalcon;
+    use OldPhalcon;
 }

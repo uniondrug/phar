@@ -26,6 +26,7 @@ abstract class PharCommand extends Command
     protected $signature = 'phar
         {--name= : 包名称}
         {--tag= : 包标签/版本号名称}
+        {--path= : 项目根目录}
         {--compress=false : 是否以GZIP压缩PHAR包}
         {--consul= : Consul服务地址}';
     /**
@@ -47,6 +48,8 @@ abstract class PharCommand extends Command
          * @var Container $container
          */
         $container = Di::getDefault();
+        // 0. path
+        $path = $this->input->getOption('path');
         // 1. name
         $name = $this->input->getOption('name');
         $name || $name = $container->getConfig()->path('app.appName');
@@ -59,6 +62,7 @@ abstract class PharCommand extends Command
         $consul = (string) $this->input->getOption('consul');
         // n. builder
         $builder = new Builder($container, $this->output);
+        $path && $builder->setBasePath($path);
         $builder->setName($name);
         $builder->setTag($tag);
         $builder->setCompress($compress === true);

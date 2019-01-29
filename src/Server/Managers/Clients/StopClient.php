@@ -38,11 +38,6 @@ class StopClient extends Abstracts\Client
             'desc' => '向指定进程发送SIGKILL退出信号'
         ],
         [
-            'name' => 'list',
-            'short' => 'l',
-            'desc' => '按名称列出进程列表'
-        ],
-        [
             'name' => 'name',
             'short' => 'n',
             'desc' => '指定进程名称'
@@ -54,21 +49,7 @@ class StopClient extends Abstracts\Client
      */
     public function run() : void
     {
-        $useForce = false;
-        foreach ([
-            'k',
-            'kill',
-            'force-kill',
-            'l',
-            'list',
-            'name'
-        ] as $x) {
-            if ($this->boot->getArgs()->hasOption($x)) {
-                $useForce = true;
-                break;
-            }
-        }
-        $useForce ? $this->runForce() : $this->runNormal();
+        $this->runForce();
     }
 
     /**
@@ -101,6 +82,7 @@ class StopClient extends Abstracts\Client
      */
     public function runNormal() : void
     {
+        // todo: 停用向manager端口发送reload信号
         $pid = $this->callMasterPid();
         // 1. pid not found
         if ($pid === false) {

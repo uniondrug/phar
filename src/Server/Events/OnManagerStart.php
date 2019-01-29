@@ -21,7 +21,7 @@ trait OnManagerStart
     {
         $server->getConfig()->save();
         $name = $server->setProcessName('manager');
-        $server->getLogger()->setServer($server)->setPrefix("[%s:%d][%s][x=n:%d]", $server->getConfig()->host, $server->getConfig()->port, $server->getConfig()->name, $server->getMasterPid());
+        $server->getLogger()->setServer($server)->setPrefix("[%s:%d][%s][x=n:%d]", $server->getConfig()->getDeployIp(), $server->getConfig()->port, $server->getConfig()->name, $server->getMasterPid());
         $server->getLogger()->info("启动{%s}进程", $name);
         $server->doManagerStart($server);
     }

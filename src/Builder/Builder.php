@@ -55,6 +55,7 @@ class Builder
      * @var string
      */
     private $pharFile;
+    private $pharWithSourceCode = false;
     /**
      * 扫描目录
      * @var array
@@ -80,7 +81,7 @@ class Builder
      * @var array
      */
     private $files = [
-        "/\.php$/i"
+        "/\.(php|yml|xml)$/i"
     ];
     /**
      * 合计扫描文件数
@@ -293,7 +294,13 @@ STUB;
     private function runCollector(\Phar $phar, $path)
     {
         $this->countFiles++;
-        $phar->addFile($path);
+        if ($this->pharWithSourceCode) {
+            // 慢
+            $phar->addFromString($path, file_get_contents($this->basePath.'/'.$path));
+        } else {
+            // 快
+            $phar->addFile($path);
+        }
     }
 
     /**
@@ -332,6 +339,13 @@ STUB;
             }
         }
         $d->close();
+    }
+
+    public function setBasePath(string $basePath)
+    {
+        $this->basePath = $basePath;
+        $this->pharWithSourceCode = true;
+        return $this;
     }
 
     /**

@@ -24,8 +24,9 @@ trait OnTask
      */
     final public function onTask($server, int $taskId, int $srcWorkerId, $message)
     {
+        $usage = memory_get_usage(true);
         $begin = microtime(true);
-        $memory = memory_get_usage(true) / 1024 / 1024;
+        $memory = ($usage / 1024) / 1024;
         $logger = $server->getLogger();
         $logUniqid = uniqid('task');
         $logPrefix = sprintf("[r=%s][z=%d]", $logUniqid, $taskId);
@@ -45,10 +46,23 @@ trait OnTask
             $logger->debug("%s任务开始,申请内存{%.01f}M内存", $logPrefix, $memory);
             $result = $this->doTask($server, $taskId, $logUniqid, $logPrefix, $data['class'], $data['params']);
             $logger->debug("%s[d=%.06f]任务完成", $logPrefix, microtime(true) - $begin);
+            $this->stopTaskerAfterOnTask($server, $usage);
             return $result != false;
         } catch(\Throwable $e) {
             $logger->error("%s[d=%.06f]任务返回{%d}错误 - %s - 位于{%s}第{%d}行", $logPrefix, microtime(true) - $begin, $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+            $this->stopTaskerAfterOnTask($server, $usage);
             return false;
+        }
+    }
+
+    /**
+     * @param XHttp $server
+     * @param int   $usage
+     */
+    private function stopTaskerAfterOnTask($server, int $usage)
+    {
+        if ($usage > $server->getConfig()->getAllowMemory()) {
+            $server->stop($server->getWorkerId(), true);
         }
     }
 }

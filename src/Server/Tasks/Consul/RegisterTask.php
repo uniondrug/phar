@@ -53,7 +53,7 @@ class RegisterTask extends XTask
         }
         // 3. 健康检查
         //    "Check": {"HTTP": "http://192.168.3.195:8118/consul.health","Interval": "5s","TTL": "5s"}
-        $healthHost = $this->getServer()->getConfig()->host;
+        $healthHost = $this->getServer()->getConfig()->getDeployIp();
         $healthPort = $this->getServer()->getConfig()->port;
         if ($healthHost === "0.0.0.0" || $healthHost === "127.0.0.1") {
             $healthHost = $addr;

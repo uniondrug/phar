@@ -1,73 +1,76 @@
-# 部署过程
+# 部署规范
 
-> 以`PHAR`部署时, 项目目录结构如下
+> 当以`PHAR`在`development`、`testing`、`release`、`production`环境下部署时, 需遵循以下规范。
 
-```
-├── phars
-│   ├── package-1.0.0.phar
-│   └── package-1.1.0.phar
-├── log
-│   ├── month
-│   │   └── date.log
-│   └── server.log
-├── tmp
-│   └── server.pid
-└── server -> phars/package-1.1.0.phar
-```
+1. [目录结构](#目录结构)
+1. [项目配置](#项目配置)
+1. [启动项目](#启动项目)
+1. [退出项目](#退出项目)
+1. [重启项目](#重启项目)
 
 
-### 下载PHAR
 
-> 下载待发布的`PHAR`包文件到`phars`目录下, 一般有3种方式, 任选一
-
-1. 在待部署机通过`wget/apt-get`待下载源码包
-1. 在构建机通过`scp/rsync`等上传到目标机器
-1. 使用`Jekins`等工具
-
-```bash
-# 1. 下载文件
-# 2. 构建文件连接(软连接)到目标文件
-wget -O phars/package-1.1.0.phar http://hub.uniondrug.net/module/package-1.1.0.phar
-rm -rf server
-ln -s phars/package-1.1.0.phar server
-```
-
-
-### 同步KV
-
-> 使用phar包同步Consul/KV配置。
-说明: 本操作非必须，若构建PHAR时，已经合入指定环境的配置则可跳过
-
-```bash
-php server kv --consul sdk.uniondrug.net
-```
-
-### 启动服务
-
-```bash
-php server stop
-php server start -e release -d
-```
-
-### 反向代理
-
-> 以PHAR启动时, 使用的是Swoole模式, 若开放域名访问，则使用NGINX反代模式
+### 目录结构
 
 ```text
-upstream srv8888 {
-    server 192.168.3.195:8101;
-    keepalive 2000;
-}
-server {
-    listen       80;
-    server_name  host.module.uniondrug.net;
-    client_max_body_size 1024M;
-    access_log /data/logs/nginx/host.module.uniondrug.net.access.log main1;
-    error_log /data/logs/nginx/host.module.uniondrug.net.error.log error;
-    location / {
-        proxy_pass http://srv8888;
-        proxy_set_header Host $host:$server_port;
-    }
-}
+/data
+├── apps
+│   └── backend.wx
+│       ├── log
+│       │   ├── 2019-01
+│       │   │   └── 2019-01-24.log                              # 业务日志(下阶段迁入Kafka)
+│       │   └── server.log
+│       ├── server -> /data/phar/wx.backend-190124.phar         # PHAR软连接
+│       └── tmp
+│           ├── config.json
+│           ├── config.php
+│           ├── server.cfg
+│           └── server.pid
+├── conf
+│   └── nginx
+│       └── conf.d
+│           └── backend.wx.conf                                 # 项目的Nginx反代配置
+├── logs
+│   └── nginx
+└── phar
+    └── wx.backend-190124.phar                                  # 项目PHAR包文件
 ```
 
+
+### 项目配置
+
+> 项目运行期的环境配置参数(如: mysql、redis连接信息)等，存储在Consul服务的KV中；
+项目启动前需拉取KV配置信息, PHAR包将拉取到的配置信息和项目默认配置进行合并，写将合并
+后的配置信息写入到`tmp/config.php`文件中；项目启动时以此配置为最终配置信息。命令如下
+
+```bash
+php server kv --consul udsdk.uniondrug.cn
+```
+
+
+### 启动项目
+
+1. 快速启动
+    ```bash
+    php server start -e production -d
+    ```
+1. 启动并注册Consul服务, 以最终IP为准
+
+    ```bash
+    php server start -e production -d --consul-register 127.0.0.1:8500
+    ```
+
+### 退出项目
+
+```bash
+php server stop                         # 安全退出
+php server stop -l --kill               # 发送SIGTERM信号退出
+php server stop -l --force-kill         # 发送SIGKILL信息(强杀进程)退出
+```
+
+### 重启项目
+
+```bash
+php server stop -l --force-kill && \
+php server start -e production -d
+```

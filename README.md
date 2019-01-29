@@ -1,46 +1,105 @@
 # PHAR
 
-> 本项目用于，将基于`uniondrug/sketch`创建的应用，构建成`PHAR`（`PHP Archive`）包，并以`swoole`模式启动。
+> 基于`uniondrug/sketch`模板构建的项目, 可平滑切换到`PHAR`+`Swoole`运行模式。
+
+1. [安装依赖](#安装依赖) - 在项目添加`uniondrug/phar`依赖
+1. [添加入口](#添加入口) - 让项目支持`Command`入口
+1. [项目打包](#项目打包) - 将项目打成`PHAR`包
+1. [启动项目](#启动项目) - 以`PHAR`方式启动项目
+1. [退出服务](#退出服务)
+1. [项目部署](./docs/deploy.md) - 在`development`、`testing`、`release`、`production`环境下的部署规范
+1. [注意事项](#注册事项) - 构建PHAR包时注意事项
+    1. 项目名称与版本
+    1. 启动IP与端口
+    1. 服务参数
 
 
 
 ### 安装依赖
 
-```bash
-composer require uniondrug/phar
+> 请在项目根目录下的`composer.json`文件加添加`uniondrug/phar`扩展；效果如下
+
+```text
+{
+    ...
+    "require" : {
+        ...
+        "uniondrug/console" : "^2.2",
+        "uniondrug/phar" : "^1.0"
+    },
+    ...
+}
 ```
 
 
 
-### 构建PHAR
+### 添加入口
 
-1. command
-    1. `phar`
-1. options
-    1. `--name` 指定包名, 默认为域名前缀
-    1. `--tag` 版本号, 默认由项目设定
-    1. `--compress` 是否压缩成GZIP文件
-    1. `--consul` Consul地址
+> 创建`app/Commands/PharCommand.php`文件, 完整代码如下
 
-```bash
-php console phar \
-    --name example \
-    --tag 1.2.3 \
-    --consul sdk.uniondrug.net
+```php
+<?php
+/**
+ * @author wsfuyibing <websearch@163.com>
+ * @date   2019-01-24
+ */
+namespace App\Commands;
+
+/**
+ * 构建PHAR入口
+ * @package App\Commands
+ */
+class PharCommand extends \Uniondrug\Phar\Commands\PharCommand
+{
+}
+
 ```
 
 
 
-### 启动PHAR
+### 项目打包
 
-> 启动时, 自动创建`log`、`tmp`目录，用于存储临时启动文件。
+> 将项目构建成`PHAR`包
+
+1. 语法
+    ```bash
+    php console phar -h
+    ```
+1. 示例
+    ```bash
+    php console phar
+    php console phar -e production
+    php console phar -e production --tag version
+    php console phar -e production --tag version --name package
+    ```
 
 
-```bash
-php example-1.2.3.phar start \
-    --host=eth0 \
-    --port=8080 \
-    -e release \
-    -d
-```
+### 启动项目
 
+1. 语法
+    ```bash
+    php package-version.phar start -h
+    ```
+1. 示例
+    ```bash
+    php package-version.phar start -h 
+    php package-version.phar start -e production
+    php package-version.phar start -e production -d
+    php package-version.phar start -e production -d --consul-register 127.0.0.1:8500
+    php package-version.phar start -e production --log-stdout
+    ```
+
+
+
+### 退出服务
+
+1. 语法
+    ```bash
+    php package-version.phar stop -h
+    ```
+1. 示例
+    ```bash
+    php package-version.phar stop -l 
+    php package-version.phar stop -l --kill 
+    php package-version.phar stop -l --force-kill
+    ```

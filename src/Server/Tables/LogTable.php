@@ -16,13 +16,14 @@ use Uniondrug\Phar\Server\XHttp;
  */
 class LogTable extends XTable
 {
-    const MESSAGE_LENGTH = 4096;
-    const TABLE_NAME = 'logTable';
     /**
-     * 数量
-     * @var int
+     * 单条Log最大字符数
      */
-    private $maxCount = 0;
+    const MESSAGE_LENGTH = 8192;
+    /**
+     * 内存表名称
+     */
+    const TABLE_NAME = 'logTable';
     /**
      * 列信息
      * @var array
@@ -45,11 +46,24 @@ class LogTable extends XTable
             self::MESSAGE_LENGTH
         ]
     ];
-    protected $name = self::TABLE_NAME;
+    /**
+     * 互拆锁
+     * @var Lock
+     */
     private $mutex;
+    /**
+     * 防内存溢出阀值
+     * @var int
+     */
+    private $limit = 0;
+    /**
+     * 内存表名称
+     * @var string
+     */
+    protected $name = self::TABLE_NAME;
 
     /**
-     * LogTable constructor.
+     * constructor.
      * @param XHttp $server
      * @param int   $size
      */
@@ -57,52 +71,76 @@ class LogTable extends XTable
     {
         $size < 128 && $size = 128;
         parent::__construct($server, $size);
-        $this->maxCount = $size - 100;
+        $this->limit = $size - 32;
         $this->mutex = new Lock(SWOOLE_MUTEX);
     }
 
     /**
      * 添加记录
-     * @param string $level
-     * @param string $msg
-     * @return bool
+     * @param StatsTable $table
+     * @param string     $level
+     * @param string     $msg
+     * @return array|null
      */
-    public function add(string $level, string $msg)
+    public function add(StatsTable $table, string $level, string $msg)
     {
-        // 1. 计算唯一Key
-        //    非绝对重复, 可能性比较小
-        $key = sprintf("l%16d%03d%03d", microtime(true) * 1000000, mt_rand(1, 999), mt_rand(1, 999));
-        // 2. 消息长度
+        // 1. 生成键名/Key
+        $key = $this->makeKey();
+        // 2. 日志长度/单条日志最大字符数限制
         if (strlen($msg) > self::MESSAGE_LENGTH) {
             $msg = substr($msg, 0, self::MESSAGE_LENGTH);
         }
-        // 3. 加锁
+        // 3. 内存表加锁
         $this->mutex->lock();
+        // 4. 向内存表写入数据
         $this->set($key, [
             'key' => $key,
             'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
             'level' => $level,
             'message' => $msg
         ]);
-        // 4. 统计
-        $count = $this->getServer()->getStatsTable()->incrLogs();
+        // 5. 统计内存表数量
+        $count = $table->incrLogs();
+        // 6. 内存表解锁
         $this->mutex->unlock();
-        return $count >= $this->maxCount;
+        // 7. 返回数据
+        if ($count >= $this->limit) {
+            return $this->flush($table);
+        }
+        return null;
     }
 
     /**
-     * 提交日志
-     * @return array
+     * 清空日志
+     * @param StatsTable $table
+     * @return array|null
      */
-    public function flush()
+    public function flush(StatsTable $table)
     {
+        // 1. 加锁
         $this->mutex->lock();
+        // 2. 读取数据
+        $num = 0;
         $data = $this->toArray();
         foreach ($this as $key => $item) {
+            $num++;
             $this->del($key);
         }
-        $this->getServer()->getStatsTable()->resetLogs();
+        // 4. 统计重设置
+        $table->resetLogs();
+        // 3. 解锁
         $this->mutex->unlock();
-        return $data;
+        // 4. 返回结果
+        return $num > 0 ? $data : null;
+    }
+
+    /**
+     * 生成键名
+     * 按时间生成长度为23个字符的Key名称
+     * @return string
+     */
+    public function makeKey()
+    {
+        return sprintf("l%16d%03d%03d", microtime(true) * 1000000, mt_rand(1, 999), mt_rand(1, 999));
     }
 }

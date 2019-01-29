@@ -5,6 +5,9 @@
  */
 namespace Uniondrug\Phar\Server\Tables;
 
+use Uniondrug\Phar\Server\XHttp;
+use Uniondrug\Phar\Server\XOld;
+
 /**
  * 数据统计表
  * @package Uniondrug\Phar\Server\Tables
@@ -12,17 +15,32 @@ namespace Uniondrug\Phar\Server\Tables;
 class StatsTable extends XTable
 {
     const TABLE_NAME = 'statsTable';
+    const TABLE_COUNT = 'count';
     /**
      * 列信息
      * @var array
      */
     protected $columns = [
-        'count' => [
+        self::TABLE_COUNT => [
             parent::TYPE_INT,
             4
         ]
     ];
+    /**
+     * 表名称
+     * @var string
+     */
     protected $name = self::TABLE_NAME;
+
+    /**
+     * constructor.
+     * @param XHttp|XOld $server
+     * @param int        $size
+     */
+    public function __construct($server, $size)
+    {
+        parent::__construct($server, $size);
+    }
 
     /**
      * 追加Logs数量
@@ -31,26 +49,57 @@ class StatsTable extends XTable
     public function incrLogs()
     {
         $key = 'logTable';
-        if (!$this->exist($key)) {
-            $this->set($key, [
-                'count' => 1
-            ]);
-            return 1;
-        }
-        $this->incr($key, 'count', 1);
-        $data = $this->get($key);
-        return $data['count'];
+        $this->incrCount($key);
+        return $this->getCount($key);
     }
 
     /**
      * 重置Logs统计
-     * @return int
+     * @return bool
      */
     public function resetLogs()
     {
-        $key = 'logTable';
-        $value = 0;
-        $this->set($key, ['count' => $value]);
-        return $value;
+        return $this->resetCount('logTable');
+    }
+
+    /**
+     * 读取统计值
+     * @param string $key
+     * @return int
+     */
+    public function getCount(string $key)
+    {
+        if ($this->exist($key)) {
+            $data = $this->get($key);
+            if (is_array($data) && isset($data[self::TABLE_COUNT])) {
+                return (int) $data[self::TABLE_COUNT];
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 统计递加
+     * @param string $key
+     * @param int    $count
+     * @return int
+     */
+    public function incrCount(string $key, int $count = 1)
+    {
+        if ($this->exist($key)) {
+            return $this->incr($key, self::TABLE_COUNT, $count);
+        }
+        return $this->resetCount($key);
+    }
+
+    /**
+     * 重置统计值
+     * @param string $key
+     * @param int    $count
+     * @return bool
+     */
+    public function resetCount(string $key, int $count = 0)
+    {
+        return $this->set($key, [self::TABLE_COUNT => $count]);
     }
 }

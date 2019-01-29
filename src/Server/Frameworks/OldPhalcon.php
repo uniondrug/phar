@@ -5,24 +5,22 @@
  */
 namespace Uniondrug\Phar\Server\Frameworks;
 
-use Phalcon\Db\Adapter\Pdo\Mysql;
+use App\Http\Application;
+use Pails\Container;
 use Phalcon\Di;
-use Phalcon\Http\Response as PhalconResponse;
-use Uniondrug\Framework\Application;
-use Uniondrug\Framework\Container;
+use Phalcon\Http\Response;
 use Uniondrug\Framework\Request;
 use Uniondrug\Phar\Server\Args;
 use Uniondrug\Phar\Server\Bootstrap;
 use Uniondrug\Phar\Server\Handlers\HttpHandler;
 use Uniondrug\Phar\Server\Logger;
-use Uniondrug\Phar\Server\XHttp;
-use Uniondrug\Service\Server as ServiceServer;
+use Uniondrug\Phar\Server\XOld;
 
 /**
  * Phalcon应用支持
  * @package Uniondrug\Phar\Server\Frameworks
  */
-trait Phalcon
+trait OldPhalcon
 {
     /**
      * Phalcon应用
@@ -89,18 +87,16 @@ trait Phalcon
          * @var Bootstrap $b
          */
         $b = $this->boot;
-        $t = microtime(true);
         /**
          * 2. init container
-         * @var ServiceServer $service
          */
         $this->phalconLoader();
         // 3. init logger
         $logger = $this->container->getShared('logger');
         /**
          * 4. assign phalcon request
-         * @var Request         $request
-         * @var PhalconResponse $result
+         * @var Request  $request
+         * @var Response $result
          */
         $request = $this->container->getShared('request');
         $handler->assignPhalcon($request);
@@ -108,15 +104,21 @@ trait Phalcon
         // 5. run progress
         try {
             $result = $this->application->handle($handler->getUri());
-            if (!($result instanceof PhalconResponse)) {
-                $result = $service->withSuccess();
+            if (!$result instanceof Response) {
+                $result = new Response();
+                $result->setStatusCode(200);
+                $result->setContent('{}');
+                $result->setContentType("application/json;charset=utf-8");
             }
         } catch(\Throwable $e) {
             $logger->error("请求获得{%d}号错误 - %s - 位于{%s}第{%d}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
-            $service = $this->container->getShared('serviceServer');
-            $result = $service->withError($e->getMessage(), $e->getCode());
+            $result = new Response();
+            $result->setStatusCode(500);
+            $result->setContent('{"errno":1,"error":"'.addslashes($e->getMessage()).'","data":{},"dataType":"ERROR"}');
+            $result->setContentType("application/json;charset=utf-8");
         }
-        $handler->setStatusCode($result->getStatusCode());
+        $code = (int) $result->getStatusCode();
+        $handler->setStatusCode($code);
         $handler->setContent((string) $result->getContent());
     }
 
@@ -128,18 +130,21 @@ trait Phalcon
     {
         /**
          * 1. 创建实例
-         * @var XHttp $server
-         * @var Args  $args
+         * @var XOld $server
+         * @var Args $args
          */
         $server = $this;
         if ($this->application === null || $this->container === null) {
             $cfg = $server->getConfig();
             $args = $server->getArgs();
             $server->getLogger()->debug("初始化Phalcon容器");
+            // 1.0 Constants
+            defined("APP_DEBUG") || define("APP_DEBUG", false);
             // 1.1 create object
             $this->container = new Container($args->getBasePath());
             // 1.2 set shared server
             $this->container->setShared('server', $server);
+            $this->container->setShared('request', new Request());
             // 1.3 remove/reset shared logger
             $this->container->setShared('logger', function() use ($server, $cfg, $args){
                 $logger = new Logger($args);
@@ -168,26 +173,6 @@ trait Phalcon
      */
     private function phalconLoaderMysql()
     {
-        foreach ($this->connectionMysqls as $name) {
-            // 1. not shared
-            if (!$this->container->hasSharedInstance($name)) {
-                continue;
-            }
-            /**
-             * 2. shared
-             * @var Mysql $db
-             */
-            try {
-                $db = $this->container->getShared($name);
-                $db->query("SELECT 1");
-            } catch(\Throwable $e) {
-                // 3. 执行失败
-                if (preg_match("/gone\s+away/i", $e->getMessage()) > 0) {
-                    $this->container->removeSharedInstance($name);
-                    $this->getLogger()->warning("移除断开的{%s}连接 - %s", $name, $e->getMessage());
-                }
-            }
-        }
     }
 
     /**
@@ -195,25 +180,5 @@ trait Phalcon
      */
     private function phalconLoaderRedis()
     {
-        foreach ($this->connectionRedises as $name) {
-            // 1. not shared
-            if (!$this->container->hasSharedInstance($name)) {
-                continue;
-            }
-            /**
-             * 2. shared
-             * @var \Redis $db
-             */
-            try {
-                $db = $this->container->getShared($name);
-                $db->exists("test");
-            } catch(\Throwable $e) {
-                // 3. 执行失败
-                if (preg_match("/went\s+away/i", $e->getMessage()) > 0) {
-                    $this->container->removeSharedInstance($name);
-                    $this->getLogger()->warning("移除断开的{%s}连接 - %s", $name, $e->getMessage());
-                }
-            }
-        }
     }
 }
