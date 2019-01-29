@@ -28,7 +28,7 @@ trait OnTask
         $begin = microtime(true);
         $memory = ($usage / 1024) / 1024;
         $logger = $server->getLogger();
-        $logUniqid = uniqid('task');
+        $logUniqid = 't'.date('ymdHis').uniqid().mt_rand(100000, 999999);
         $logPrefix = sprintf("[r=%s][z=%d]", $logUniqid, $taskId);
         try {
             // 1. 任务解码
