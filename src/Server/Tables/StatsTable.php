@@ -26,10 +26,14 @@ class StatsTable extends XTable
             4
         ]
     ];
+    /**
+     * 表名称
+     * @var string
+     */
     protected $name = self::TABLE_NAME;
 
     /**
-     * StatsTable constructor.
+     * constructor.
      * @param XHttp|XOld $server
      * @param int        $size
      */
@@ -44,16 +48,18 @@ class StatsTable extends XTable
      */
     public function incrLogs()
     {
-        return $this->withIncr('logTable');
+        $key = 'logTable';
+        $this->incrCount($key);
+        return $this->getCount($key);
     }
 
     /**
      * 重置Logs统计
-     * @return $this
+     * @return bool
      */
     public function resetLogs()
     {
-        return $this->withInit('logTable');
+        return $this->resetCount('logTable');
     }
 
     /**
@@ -63,45 +69,37 @@ class StatsTable extends XTable
      */
     public function getCount(string $key)
     {
-        $data = $this->withInit($key)->get($key);
-        return is_array($data) && isset($data[self::TABLE_COUNT]) ? (int) $data[self::TABLE_COUNT] : 0;
+        if ($this->exist($key)) {
+            $data = $this->get($key);
+            if (is_array($data) && isset($data[self::TABLE_COUNT])) {
+                return (int) $data[self::TABLE_COUNT];
+            }
+        }
+        return 0;
     }
 
     /**
-     * 初始化统计字段
+     * 统计递加
      * @param string $key
-     * @return $this
+     * @param int    $count
+     * @return int
      */
-    public function withInit(string $key)
+    public function incrCount(string $key, int $count = 1)
     {
         if ($this->exist($key)) {
-            return $this;
+            return $this->incr($key, self::TABLE_COUNT, $count);
         }
-        $this->set($key, [self::TABLE_COUNT => 0]);
-        return $this;
+        return $this->resetCount($key);
     }
 
     /**
-     * 数量加
+     * 重置统计值
      * @param string $key
      * @param int    $count
-     * @return int
+     * @return bool
      */
-    public function withIncr(string $key, int $count = 1)
+    public function resetCount(string $key, int $count = 0)
     {
-        $this->withInit($key)->incr($key, self::TABLE_COUNT, $count);
-        return $this->getCount($key);
-    }
-
-    /**
-     * 数量减
-     * @param string $key
-     * @param int    $count
-     * @return int
-     */
-    public function withDecr(string $key, int $count = 1)
-    {
-        $this->withInit($key)->decr($key, self::TABLE_COUNT, $count);
-        return $this->getCount($key);
+        return $this->set($key, [self::TABLE_COUNT => $count]);
     }
 }

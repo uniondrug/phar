@@ -19,6 +19,11 @@ class LogProcess extends XProcess
      */
     public function run()
     {
+        // disable log storage.
+        if ($this->getServer()->getArgs()->hasOption('log-stdout')) {
+            return;
+        }
+        // enable log process
         $seconds = (int) $this->getServer()->getConfig()->logBatchSeconds;
         $seconds > 1 || $seconds = 5;
         $this->getServer()->getLogger()->debug("设置每隔{%d}秒后,保存一次日志", $seconds);
@@ -33,9 +38,8 @@ class LogProcess extends XProcess
      */
     public function publishLogs()
     {
-        $table = $this->getServer()->getLogTable();
-        if ($table) {
-            $data = $table->flush();
+        $data = $this->getServer()->getLogTable()->flush($this->getServer()->getStatsTable());
+        if ($data !== null) {
             $this->getServer()->runTask(LogTask::class, $data);
         }
     }

@@ -346,15 +346,11 @@ class Logger
         }
         // 3. Server启动
         if ($this->server) {
-            $table = $this->server->getLogTable();
-            if ($table !== false) {
-                $full = $table->add($level, $message);
-                if ($full) {
-                    $data = $table->flush();
-                    $this->server->runTask(LogTask::class, $data);
-                }
-                return;
+            $data = $this->server->getLogTable()->add($this->server->getStatsTable(), $level, $message);
+            if ($data !== null) {
+                $this->server->runTask(LogTask::class, $data);
             }
+            return;
         }
         // 4. Server未启动
         $this->logSaver($level, $message);
