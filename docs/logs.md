@@ -10,6 +10,7 @@
     1. PHP内存限制 - 自动按PHP设置的内存上限, 达临界值时退出Worker/Tasker进程, 重新启动
     1. 支持老版本的打包PHAR部署, 兼容tm-new-api、tm-appbackend、uniondrug等项目
     1. Server对象全局锁 - `->getServer()->getMutex()`
+    1. Start/Stop命令选项支持
 
 
 ### 1.1

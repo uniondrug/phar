@@ -38,11 +38,6 @@ class StopClient extends Abstracts\Client
             'desc' => '向指定进程发送SIGKILL退出信号'
         ],
         [
-            'name' => 'list',
-            'short' => 'l',
-            'desc' => '按名称列出进程列表'
-        ],
-        [
             'name' => 'name',
             'short' => 'n',
             'desc' => '指定进程名称'
