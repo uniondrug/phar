@@ -54,21 +54,7 @@ class StopClient extends Abstracts\Client
      */
     public function run() : void
     {
-        $useForce = false;
-        foreach ([
-            'k',
-            'kill',
-            'force-kill',
-            'l',
-            'list',
-            'name'
-        ] as $x) {
-            if ($this->boot->getArgs()->hasOption($x)) {
-                $useForce = true;
-                break;
-            }
-        }
-        $useForce ? $this->runForce() : $this->runNormal();
+        $this->runForce();
     }
 
     /**
@@ -101,6 +87,7 @@ class StopClient extends Abstracts\Client
      */
     public function runNormal() : void
     {
+        // todo: 停用向manager端口发送reload信号
         $pid = $this->callMasterPid();
         // 1. pid not found
         if ($pid === false) {

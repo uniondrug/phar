@@ -41,7 +41,6 @@ trait DoRequest
     public function doHealthRequest($server, HttpHandler $handler)
     {
         // /sidecar.health
-        $server->getLogger()->debug("%s健康检查", $handler->getRequestHash());
         $handler->addResponseHeader('content-type', 'application/json');
         $handler->setStatusCode(200);
         if ($handler->getUri() === '/consul.health') {
