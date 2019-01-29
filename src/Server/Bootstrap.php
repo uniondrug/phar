@@ -16,22 +16,23 @@ use Uniondrug\Phar\Server\Managers\Clients\IClient;
 class Bootstrap
 {
     /**
-     * 命令行
+     * 命令行对象
      * @var Args
      */
     protected $args;
     /**
-     * Server配置
+     * Config对象
      * @var Config
      */
     protected $config;
     /**
-     * Logger实例
+     * Logger对象
      * @var Logger
      */
     protected $logger;
 
     /**
+     * Boot构造
      * @param Args   $args
      * @param Config $config
      * @param Logger $logger

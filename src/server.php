@@ -5,14 +5,13 @@
  */
 date_default_timezone_set("Asia/ShangHai");
 /**
- * Composer
+ * 计算路径
  * 在phar和fpm模式下, vendor/autoload路径计算方式有差异
  * 按场景计算相对/绝对路径
  */
 $vendorBoot = null;
 if (defined("PHAR_WORKING_DIR")) {
     $vendorBoot = __DIR__."/../../../../";
-    $vendorFile = $vendorBoot.'/vendor/autoload.php';
 } else {
     $vendorBoot = getcwd();
 }
@@ -23,7 +22,7 @@ if ($vendorBoot === null || !file_exists($vendorFile)) {
 }
 include($vendorFile);
 /**
- * 初始化前设置处理实例
+ * 初始化前设置实例
  * 1). 命令行Arguments
  * 2). 业务Logger存储
  */
@@ -90,11 +89,12 @@ set_exception_handler(function(\Throwable $e) use ($logger){
     $logger->fatal("%s at %s(%d)", $e->getMessage(), $e->getFile(), $e->getLine());
 });
 /**
- * 兼容Console
+ * 导入配置文件
  */
 $config = new \Uniondrug\Phar\Server\Config($args);
 /**
  * 入口转发
+ * 兼容console, 由原命令`php console`变更为`php server console`
  */
 if ($args->getCommand() === 'console') {
     /**
@@ -113,7 +113,7 @@ if ($args->getCommand() === 'console') {
     $console->run();
 } else {
     // 2. BootStrap
-    if ($config->environment === "production") {
+    if (strtoupper($config->environment) === "PRODUCTION") {
         error_reporting(E_ERROR | E_WARNING | E_PARSE);
     } else {
         error_reporting(E_ALL);

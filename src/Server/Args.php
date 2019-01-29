@@ -11,6 +11,9 @@ namespace Uniondrug\Phar\Server;
  */
 class Args
 {
+    /**
+     * 默认环境变量名称
+     */
     const ENVIRONMENT_DEFAULT = 'development';
     /**
      * 项目根目录
