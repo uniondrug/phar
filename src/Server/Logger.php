@@ -332,19 +332,31 @@ class Logger
      * @param string $message
      * @param array  ...$args
      * @return void
+     *
+     * info("%stext");
+     * info("%stext", 's");
+     *
      */
     private function log(int $level, string $message, ... $args)
     {
         // 1. 日志入参
         $args = is_array($args) ? $args : [];
         array_unshift($args, $message);
-        $message = ($this->logPrefix === null ? '' : $this->logPrefix).call_user_func_array('sprintf', $args);
+        // 2. 格式化文本
+        $format = @call_user_func_array('sprintf', $args);
+        if ($format === false) {
+            error_clear_last();
+            $format = implode("|", $args);
+        }
+        // 3. 文本连接
+        $message = ($this->logPrefix === null ? '' : $this->logPrefix).$format;
+        // 4. 日志级别
         $level = isset(self::$levels[$level]) ? self::$levels[$level] : 'CUSTOM';
-        // 2. 打印日志
+        // 5. 打印日志
         if ($this->logOutput($level, $message)) {
             return;
         }
-        // 3. Server启动
+        // 6. 存储日志
         if ($this->server) {
             $data = $this->server->getLogTable()->add($this->server->getStatsTable(), $level, $message);
             if ($data !== null) {
@@ -352,7 +364,7 @@ class Logger
             }
             return;
         }
-        // 4. Server未启动
+        // 7. 非Swoole模式
         $this->logSaver($level, $message);
     }
 
