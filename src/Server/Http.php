@@ -30,7 +30,6 @@ use Uniondrug\Phar\Server\Events\OnTask;
 use Uniondrug\Phar\Server\Events\OnWorkerError;
 use Uniondrug\Phar\Server\Events\OnWorkerStart;
 use Uniondrug\Phar\Server\Events\OnWorkerStop;
-use Uniondrug\Phar\Server\Frameworks\Phalcon;
 use Uniondrug\Phar\Server\Processes\CronProcess;
 use Uniondrug\Phar\Server\Processes\IProcess;
 use Uniondrug\Phar\Server\Processes\LogProcess;
@@ -110,22 +109,24 @@ abstract class Http extends swoole_http_server
         }
         // 4. tables
         $tables = $cfg->tables;
-        // 4.1 预定义表
+        // 4.1 tables.stats
         if (!isset($tables[StatsTable::class])) {
             $tables[StatsTable::class] = 2048;
         }
+        // 4.2 tables.log
         if (!isset($tables[LogTable::class])) {
             $tables[LogTable::class] = $cfg->logBatchLimit;
         }
         $log->info("注册{%d}个内存表", count($tables));
+        // 4.3 tables.*
         foreach ($tables as $table => $size) {
-            // 4.2. 无效表
+            // 4.3.1 无效表
             if (!is_a($table, ITable::class, true)) {
                 $log->warning("Table{%s}未实现{%s}接口", $table, ITable::class);
                 continue;
             }
             /**
-             * 4.3 创建表
+             * 4.3.2 创建表
              * @var ITable $tbl
              */
             $tbl = new $table($this, $size);
@@ -135,8 +136,13 @@ abstract class Http extends swoole_http_server
         }
         // 5. processes
         $processes = $cfg->processes;
+        // 5.1 log process
         if (!in_array(LogProcess::class, $processes)) {
             $processes[] = LogProcess::class;
+        }
+        // 5.2 cron(crontab) process
+        if (!in_array(CronProcess::class, $processes)) {
+            $processes[] = CronProcess::class;
         }
         // 5.3: 加入启动
         $log->info("加入{%d}个自启动进程", count($processes));
