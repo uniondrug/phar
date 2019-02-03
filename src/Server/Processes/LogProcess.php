@@ -38,7 +38,7 @@ class LogProcess extends XProcess
      */
     public function publishLogs()
     {
-        $data = $this->getServer()->getLogTable()->flush($this->getServer()->getStatsTable());
+        $data = $this->getServer()->getLogTable()->flush();
         if ($data !== null) {
             $this->getServer()->runTask(LogTask::class, $data);
         }

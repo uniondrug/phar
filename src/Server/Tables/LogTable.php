@@ -5,7 +5,6 @@
  */
 namespace Uniondrug\Phar\Server\Tables;
 
-use Swoole\Lock;
 use Uniondrug\Phar\Server\XHttp;
 
 /**
@@ -47,11 +46,6 @@ class LogTable extends XTable
         ]
     ];
     /**
-     * 互拆锁
-     * @var Lock
-     */
-    private $mutex;
-    /**
      * 防内存溢出阀值
      * @var int
      */
@@ -69,69 +63,47 @@ class LogTable extends XTable
      */
     public function __construct($server, $size)
     {
-        $size < 128 && $size = 128;
+        $size < 1024 && $size = 1024;
         parent::__construct($server, $size);
-        $this->limit = $size - 32;
-        $this->mutex = new Lock(SWOOLE_MUTEX);
+        $this->limit = $size / 2;
     }
 
     /**
-     * 添加记录
-     * @param StatsTable $table
-     * @param string     $level
-     * @param string     $msg
-     * @return array|null
+     * 添加日志
+     * @param string $level
+     * @param string $message
+     * @return bool
+     * @throws \Exception
      */
-    public function add(StatsTable $table, string $level, string $msg)
+    public function add(string $level, string $message)
     {
-        // 1. 生成键名/Key
         $key = $this->makeKey();
-        // 2. 日志长度/单条日志最大字符数限制
-        if (strlen($msg) > self::MESSAGE_LENGTH) {
-            $msg = substr($msg, 0, self::MESSAGE_LENGTH);
-        }
-        // 3. 内存表加锁
-        $this->mutex->lock();
-        // 4. 向内存表写入数据
         $this->set($key, [
             'key' => $key,
             'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
             'level' => $level,
-            'message' => $msg
+            'message' => $message
         ]);
-        // 5. 统计内存表数量
-        $count = $table->incrLogs();
-        // 6. 内存表解锁
-        $this->mutex->unlock();
-        // 7. 返回数据
-        if ($count >= $this->limit) {
-            return $this->flush($table);
+        if (error_get_last() !== null) {
+            error_clear_last();
+            throw new \Exception("can not save memory table '".get_class($this)."'");
         }
-        return null;
+        $count = count($this);
+        return $count >= $this->limit;
     }
 
     /**
      * 清空日志
-     * @param StatsTable $table
-     * @return array|null
+     * @return array
      */
-    public function flush(StatsTable $table)
+    public function flush()
     {
-        // 1. 加锁
-        $this->mutex->lock();
-        // 2. 读取数据
-        $num = 0;
-        $data = $this->toArray();
-        foreach ($this as $key => $item) {
-            $num++;
+        $logs = [];
+        foreach ($this as $key => $data) {
+            $logs[$key] = $data;
             $this->del($key);
         }
-        // 4. 统计重设置
-        $table->resetLogs();
-        // 3. 解锁
-        $this->mutex->unlock();
-        // 4. 返回结果
-        return $num > 0 ? $data : null;
+        return $logs;
     }
 
     /**
@@ -139,7 +111,7 @@ class LogTable extends XTable
      * 按时间生成长度为23个字符的Key名称
      * @return string
      */
-    public function makeKey()
+    private function makeKey()
     {
         return sprintf("l%16d%03d%03d", microtime(true) * 1000000, mt_rand(1, 999), mt_rand(1, 999));
     }

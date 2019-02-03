@@ -202,16 +202,26 @@ class Args
     }
 
     /**
+     * 创建目录
+     * @param $path
+     * @return bool
+     */
+    public function makeDir($path)
+    {
+        if (@mkdir($path, 0777, true)) {
+            return is_dir($path);
+        }
+        return false;
+    }
+
+    /**
      * 创建Log存储目录
      * @return bool
      */
     public function makeLogDir()
     {
-        $dir = $this->getLogDir();
-        if (!is_dir($dir)) {
-            return mkdir($dir, 0777);
-        }
-        return true;
+        $path = $this->getLogDir();
+        return is_dir($path) ? true : $this->makeDir($path);
     }
 
     /**
@@ -220,10 +230,7 @@ class Args
      */
     public function makeTmpDir()
     {
-        $dir = $this->getTmpDir();
-        if (!is_dir($dir)) {
-            return mkdir($dir, 0777);
-        }
-        return true;
+        $path = $this->getTmpDir();
+        return is_dir($path) ? true : $this->makeDir($path);
     }
 }
