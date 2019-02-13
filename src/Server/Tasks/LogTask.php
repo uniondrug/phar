@@ -57,15 +57,8 @@ class LogTask extends XTask
         if (count($this->data) === 0) {
             return false;
         }
-        $data = [];
-        foreach ($this->data as $tmp) {
-            if (isset($tmp['key']) && $tmp['key'] !== '') {
-                $data[$tmp['key']] = $tmp;
-            }
-        }
-        ksort($data);
-        reset($data);
-        $this->data = $data;
+        ksort($this->data);
+        reset($this->data);
         return parent::beforeRun();
     }
 

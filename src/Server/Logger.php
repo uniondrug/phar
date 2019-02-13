@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Server;
 
+use Uniondrug\Phar\Server\Tasks\Logs\AddTask;
 use Uniondrug\Phar\Server\Tasks\LogTask;
 
 /**
@@ -33,17 +34,11 @@ class Logger
      */
     private $server;
     /**
-     * 日志数据
-     * 从请求开始前或提交Kafka后清空, 当日志提交Kafka时,
-     * 按数量与时间配置以先到者为准, 开始提交
-     * @var array
-     */
-    private $logData = [];
-    /**
      * 日志前缀
      * @var null
      */
     private $logPrefix = null;
+    private $logStdout = false;
     /**
      * 日志级别与
      * @var array
@@ -56,9 +51,13 @@ class Logger
         self::LEVEL_FATAL => 'FATAL'
     ];
 
+    /**
+     * @param Args $args
+     */
     public function __construct(Args $args)
     {
         $this->args = $args;
+        $this->logStdout = $args->hasOption('log-stdout');
     }
 
     /**
@@ -78,9 +77,16 @@ class Logger
      */
     public function setPrefix(string $message, ... $args)
     {
+        // 1. 入参
         $args = is_array($args) ? $args : [];
         array_unshift($args, $message);
-        $this->logPrefix = call_user_func_array('sprintf', $args);
+        // 2. 格式化文本
+        $this->logPrefix = @call_user_func_array('sprintf', $args);
+        if ($this->logPrefix === false) {
+            error_clear_last();
+            $this->logPrefix = implode("|", $args);
+        }
+        // 3. next
         return $this;
     }
 
@@ -117,6 +123,8 @@ class Logger
     }
 
     /**
+     * 设置Server
+     * 当前Server启时, 一经设置将使用异步模式提交Log
      * @param $server
      * @return $this
      */
@@ -124,15 +132,6 @@ class Logger
     {
         $this->server = $server;
         return $this;
-    }
-
-    /**
-     * 日志数据
-     * @return array|null
-     */
-    public function endLogData()
-    {
-        return $this->logData;
     }
 
     /**
@@ -303,6 +302,32 @@ class Logger
     }
 
     /**
+     * 本地存储
+     * 将日志内容写入到本地存储(磁盘上)
+     * @param string $label
+     * @param string $message
+     * @return bool
+     */
+    public function localStorage(string $label, string $message)
+    {
+        try {
+            // 1. 计算算路
+            $path = $this->args->getLogDir().'/'.date('Y-m');
+            $file = $path.'/'.date('Y-m-d').'.log';
+            $mode = file_exists($file) ? 'a+' : 'wb+';
+            $text = "[".(new \DateTime())->format('Y-m-d H:i:s.u')."][{$label}]{$message}\n";
+            // 2. 写入Log
+            if ($fp = @fopen($file, $mode)) {
+                @fwrite($fp, $text);
+                @fclose($fp);
+                return true;
+            }
+        } catch(\Throwable $e) {
+        }
+        return false;
+    }
+
+    /**
      * 写入Logger
      * 一、 Log格式定义
      *      col.1 - 第1组|时间 - 如[2019-01-04 09:10:12]
@@ -331,99 +356,81 @@ class Logger
      * @param int    $level
      * @param string $message
      * @param array  ...$args
-     * @return void
-     *
-     * info("%stext");
-     * info("%stext", 's");
-     *
+     * @return bool
      */
     private function log(int $level, string $message, ... $args)
     {
-        // 1. 日志入参
+        /**
+         * 1. 日志准备
+         *    a) 入参转成数组
+         *    b) 通过sprintf格式化内容
+         *    c) 前置添加日志前缀
+         */
         $args = is_array($args) ? $args : [];
         array_unshift($args, $message);
-        // 2. 格式化文本
-        $format = @call_user_func_array('sprintf', $args);
-        if ($format === false) {
+        $label = isset(self::$levels[$level]) ? self::$levels[$level] : 'CUSTOM';
+        $message = @call_user_func_array('sprintf', $args);
+        if ($message === false) {
             error_clear_last();
-            $format = implode("|", $args);
+            $message = implode("|", $args);
         }
-        // 3. 文本连接
-        $message = ($this->logPrefix === null ? '' : $this->logPrefix).$format;
-        // 4. 日志级别
-        $level = isset(self::$levels[$level]) ? self::$levels[$level] : 'CUSTOM';
-        // 5. 打印日志
-        if ($this->logOutput($level, $message)) {
-            return;
+        if ($this->logPrefix !== null) {
+            $message = $this->logPrefix.$message;
         }
-        // 6. 存储日志
-        if ($this->server) {
-            $data = $this->server->getLogTable()->add($this->server->getStatsTable(), $level, $message);
-            if ($data !== null) {
-                $this->server->runTask(LogTask::class, $data);
+        /**
+         * 2. 日志处理
+         *    a) 在Console打印
+         *    b) 加入内存表异步提交
+         *    c) 本地落盘
+         */
+        if ($this->logStdout) {
+            // a) 在stdout/标准输出上打印
+            //    在启动时指定--log-stdout时生效
+            $this->logOutput($label, $message);
+            return true;
+        }
+        if ($this->server !== null) {
+            try {
+                // b) 加入内存表
+                //    当内存表数量满时
+                $tbl = $this->server->getLogTable();
+                $full = $tbl->add($label, $message);
+                if ($full) {
+                    $data = $tbl->flush();
+                    $this->server->runTask(LogTask::class, $data);
+                }
+            } catch(\Throwable $e) {
             }
-            return;
         }
-        // 7. 非Swoole模式
-        $this->logSaver($level, $message);
+        // c) 本地落盘
+        return $this->localStorage($label, $message);
     }
 
     /**
-     * 日志落盘
+     * 日志输出
      * @param string $level
      * @param string $message
-     * @return bool
      */
     private function logOutput($level, & $message)
     {
-        if ($this->args->hasOption('log-stdout')) {
-            $text = "[".(new \DateTime())->format('Y-m-d H:i:s.u')."][{$level}]{$message}";
-            switch ($level) {
-                case self::$levels[self::LEVEL_FATAL] :
-                    $text = sprintf("\033[%d;%dm%s\033[0m", 33, 41, $text);
-                    break;
-                case self::$levels[self::LEVEL_ERROR] :
-                    $text = sprintf("\033[%d;%dm%s\033[0m", 31, 49, $text);
-                    break;
-                case self::$levels[self::LEVEL_WARNING] :
-                    $text = sprintf("\033[%d;%dm%s\033[0m", 33, 49, $text);
-                    break;
-                case self::$levels[self::LEVEL_INFO] :
-                    $text = sprintf("\033[%d;%dm%s\033[0m", 34, 49, $text);
-                    break;
-                case self::$levels[self::LEVEL_DEBUG] :
-                    $text = sprintf("\033[%d;%dm%s\033[0m", 37, 49, $text);
-                    break;
-            }
-            file_put_contents('php://stdout', "{$text}\n");
-            return true;
+        $text = "[".(new \DateTime())->format('Y-m-d H:i:s.u')."][{$level}]{$message}";
+        switch ($level) {
+            case self::$levels[self::LEVEL_FATAL] :
+                $text = sprintf("\033[%d;%dm%s\033[0m", 33, 41, $text);
+                break;
+            case self::$levels[self::LEVEL_ERROR] :
+                $text = sprintf("\033[%d;%dm%s\033[0m", 31, 49, $text);
+                break;
+            case self::$levels[self::LEVEL_WARNING] :
+                $text = sprintf("\033[%d;%dm%s\033[0m", 33, 49, $text);
+                break;
+            case self::$levels[self::LEVEL_INFO] :
+                $text = sprintf("\033[%d;%dm%s\033[0m", 34, 49, $text);
+                break;
+            case self::$levels[self::LEVEL_DEBUG] :
+                $text = sprintf("\033[%d;%dm%s\033[0m", 37, 49, $text);
+                break;
         }
-        return false;
-    }
-
-    /**
-     * 日志落盘
-     * @param string $level
-     * @param string $message
-     */
-    private function logSaver($level, & $message)
-    {
-        $text = "[".(new \DateTime())->format('Y-m-d H:i:s.u')."][{$level}]{$message}\n";
-        /**
-         * 写入文件
-         * Phalcon的Logger已被重写
-         */
-        $dir = $this->args->getLogDir();
-        $this->args->makeLogDir();
-        $path = $dir.'/'.date('Y-m');
-        if (!is_dir($path)) {
-            mkdir($path, 0777);
-        }
-        $file = $path.'/'.date('Y-m-d').'.log';
-        $mode = file_exists($file) ? 'a+' : 'wb+';
-        if (false !== ($fp = @fopen($file, $mode))) {
-            fwrite($fp, $text);
-            fclose($fp);
-        }
+        file_put_contents('php://stdout', "{$text}\n");
     }
 }

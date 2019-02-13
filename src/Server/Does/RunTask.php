@@ -48,7 +48,11 @@ trait RunTask
                 }
             }
             // 4. 非Worker进程
-            return $this->sendMessage($message, 0);
+            $send = $this->sendMessage($message, 0);
+            if (error_get_last() !== null) {
+                error_clear_last();
+            }
+            return $send;
         } catch(\Throwable $e) {
             // 5. 发送Task错误
             $logger->fatal("调用runTask()失败 - %s", $e->getMessage());

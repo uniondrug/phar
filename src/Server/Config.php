@@ -54,7 +54,7 @@ class Config
      * 每512条Log保存一次
      * @var int
      */
-    private $_logBatchLimit = 512;
+    private $_logBatchLimit = 2048;
     /**
      * 日志落盘频率
      * 每隔60秒保存一次Log
