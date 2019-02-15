@@ -346,8 +346,12 @@ class Config
         if (isset($srv['logBatchSeconds']) && is_numeric($srv['logBatchSeconds']) && $srv['logBatchSeconds'] >= 1) {
             $this->_logBatchSeconds = (int) $srv['logBatchSeconds'];
         }
-        if (isset($srv['logKafkaOn']) && is_bool($srv['logKafkaOn'])) {
-            $this->_logKafkaOn = $srv['logKafkaOn'];
+        if (isset($srv['logKafkaOn'])) {
+            if (is_bool($srv['logKafkaOn'])) {
+                $this->_logKafkaOn = $srv['logKafkaOn'];
+            } else if (is_string($srv['logKafkaOn'])) {
+                $this->_logKafkaOn = strtolower($srv['logKafkaOn']) === "true";
+            }
         }
         if (isset($srv['logKafkaUrl']) && is_string($srv['logKafkaUrl'])) {
             $this->_logKafkaUrl = $srv['logKafkaUrl'];
