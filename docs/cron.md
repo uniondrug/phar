@@ -1,9 +1,26 @@
 # CRON
 
-> 定时任务(Cron/Crontab)
+> 定时任务(Cron/Crontab), 
+项目在启动时扫描`app/Servers/Crons`目录下的Cron文件, 
+然后通过反射`Reflection`解析各计划任务的执行时段、时间点。
 
 
-### 示例
+### 代码片段
+
+```text
+/**
+ * 示例定时
+ * @Timer(1m)
+ */
+class ExampleCron extends XCron 
+{
+    public function run()
+    {
+        // todo: logic codes
+    }
+}
+```
+
 
 1. 时间间隔, 连续2次执行的时间间隔
     1. `@Timer(5s)` - 每隔5秒执行1次
