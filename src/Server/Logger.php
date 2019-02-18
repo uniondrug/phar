@@ -24,7 +24,7 @@ class Logger
      * 当前级别
      * @var int
      */
-    private $level = self::LEVEL_DEBUG;
+    private $level = self::LEVEL_INFO;
     /**
      * @var Args
      */
