@@ -111,7 +111,11 @@ trait Phalcon
                 $result = $service->withSuccess();
             }
         } catch(\Throwable $e) {
-            $logger->fatal("请求Phalcon出错 - %s - 位于{%s}第{%d}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+            if ($e instanceof \App\Errors\Error) {
+                $logger->enableDebug() && $logger->debug("[exception=%s]Phalcon业务条件错误 - %s - 位于{%s}第{%d}行", get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
+            } else {
+                $logger->fatal("[exception=%s]Phalcon未捕获异常 - %s - 位于{%s}第{%d}行", get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
+            }
             $service = $this->container->getShared('serviceServer');
             $result = $service->withError($e->getMessage(), $e->getCode());
         }
