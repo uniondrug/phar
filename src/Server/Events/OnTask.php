@@ -43,13 +43,13 @@ trait OnTask
             }
             // 3. 执行任务
             $logPrefix .= "[y=".$data['class']."]";
-            $logger->debug("%s任务开始,申请内存{%.01f}M内存", $logPrefix, $memory);
+            $logger->enableDebug() && $logger->debug("%s任务开始,申请内存{%.01f}M内存", $logPrefix, $memory);
             $result = $this->doTask($server, $taskId, $logUniqid, $logPrefix, $data['class'], $data['params']);
-            $logger->debug("%s[d=%.06f]任务完成", $logPrefix, microtime(true) - $begin);
+            $logger->info("%s[d=%.06f]任务完成", $logPrefix, microtime(true) - $begin);
             $this->stopTaskerAfterOnTask($server, $usage);
             return $result != false;
         } catch(\Throwable $e) {
-            $logger->error("%s[d=%.06f]任务返回{%d}错误 - %s - 位于{%s}第{%d}行", $logPrefix, microtime(true) - $begin, $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+            $logger->error("%s[d=%.06f]任务出错 - %s - 位于{%s}第{%d}行", $logPrefix, microtime(true) - $begin, $e->getMessage(), $e->getFile(), $e->getLine());
             $this->stopTaskerAfterOnTask($server, $usage);
             return false;
         }

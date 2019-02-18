@@ -89,7 +89,6 @@ trait Phalcon
          * @var Bootstrap $b
          */
         $b = $this->boot;
-        $t = microtime(true);
         /**
          * 2. init container
          * @var ServiceServer $service
@@ -112,7 +111,7 @@ trait Phalcon
                 $result = $service->withSuccess();
             }
         } catch(\Throwable $e) {
-            $logger->error("请求获得{%d}号错误 - %s - 位于{%s}第{%d}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
+            $logger->fatal("请求Phalcon出错 - %s - 位于{%s}第{%d}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
             $service = $this->container->getShared('serviceServer');
             $result = $service->withError($e->getMessage(), $e->getCode());
         }
@@ -135,7 +134,7 @@ trait Phalcon
         if ($this->application === null || $this->container === null) {
             $cfg = $server->getConfig();
             $args = $server->getArgs();
-            $server->getLogger()->debug("初始化Phalcon容器");
+            $server->getLogger()->enableDebug() && $server->getLogger()->debug("初始化Phalcon容器");
             // 1.1 create object
             $this->container = new Container($args->getBasePath());
             // 1.2 set shared server

@@ -89,8 +89,10 @@ abstract class Http extends swoole_http_server
         $settings = $cfg->settings;
         $log->info("配置{%d}项参数", count($settings));
         $this->set($settings);
-        foreach ($settings as $key => $value) {
-            $log->debug("参数{%s}赋值为{%s}值", $key, $value);
+        if ($log->enableDebug()) {
+            foreach ($settings as $key => $value) {
+                $log->debug("参数{%s}赋值为{%s}值", $key, $value);
+            }
         }
         // 3. events
         $events = $cfg->events;
@@ -102,7 +104,7 @@ abstract class Http extends swoole_http_server
                     $this,
                     'on'.ucfirst($event)
                 ]);
-                $log->debug("方法{%s}绑定到{%s}事件回调", $call, $event);
+                $log->enableDebug() && $log->debug("方法{%s}绑定到{%s}事件回调", $call, $event);
             } else {
                 $log->warning("方法{%s}未定, {%s}事件被忽略", $call, $event);
             }
@@ -132,7 +134,7 @@ abstract class Http extends swoole_http_server
             $tbl = new $table($this, $size);
             $name = $tbl->getName();
             $this->_tableLoads[$name] = $tbl;
-            $log->debug("内存表{%s}注册到{%s}并初始化{%d}条记录", $name, $table, $size);
+            $log->enableDebug() && $log->debug("内存表{%s}注册到{%s}并初始化{%d}条记录", $name, $table, $size);
         }
         // 5. processes
         $processes = $cfg->processes;
@@ -155,7 +157,7 @@ abstract class Http extends swoole_http_server
             // 5.3.2 join
             $proc = new $process($this);
             $this->addProcess($proc);
-            $log->debug("Process{%s}加入启动", $process);
+            $log->enableDebug() && $log->debug("Process{%s}加入启动", $process);
         }
         // 6. manager
         // todo: ignore manager listener
@@ -206,6 +208,10 @@ abstract class Http extends swoole_http_server
         return false;
     }
 
+    /**
+     * 读取内存表列表
+     * @return array
+     */
     public function getTables()
     {
         return $this->_tableLoads;
