@@ -78,6 +78,10 @@ class LogTable extends XTable
     public function add(string $level, string $message)
     {
         $key = $this->makeKey();
+        $len = strlen($message);
+        if ($len > self::MESSAGE_LENGTH) {
+            $message = substr($message, 0, self::MESSAGE_LENGTH - 8).' ...';
+        }
         $this->set($key, [
             'key' => $key,
             'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
