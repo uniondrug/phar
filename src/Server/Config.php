@@ -78,7 +78,7 @@ class Config
      * 日志级别
      * @var int
      */
-    private $_logLevel = Logger::LEVEL_DEBUG;
+    private $_logLevel = Logger::LEVEL_INFO;
     /**
      * HTTP服务对象
      * 本项为默认值, 可通过配置文件的class字段重定义
