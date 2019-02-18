@@ -311,6 +311,7 @@ class Config
         $this->_settings['pid_file'] = $this->args->getTmpDir().'/server.pid';
         $this->_settings['log_file'] = $this->args->getLogDir().'/server.log';
         $this->_settings['request_slowlog_file'] = $this->args->getLogDir().'/slow.log';
+        $this->_settings['task_tmpdir'] = $this->args->getTmpDir().'/tasks';
         // 6.3 Tables
         if (isset($srv['tables']) && is_array($srv['tables'])) {
             $this->_tables = $srv['tables'];
