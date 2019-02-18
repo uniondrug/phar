@@ -20,8 +20,6 @@ if ($vendorBoot === null || !file_exists($vendorFile)) {
     echo "composer install|update not executed.";
     exit(1);
 }
-echo $vendorFile;
-exit;
 include($vendorFile);
 /**
  * 初始化前设置实例
