@@ -49,7 +49,11 @@ trait OnTask
             $this->stopTaskerAfterOnTask($server, $usage);
             return $result != false;
         } catch(\Throwable $e) {
-            $logger->error("%s[d=%.06f]任务出错 - %s - 位于{%s}第{%d}行", $logPrefix, microtime(true) - $begin, $e->getMessage(), $e->getFile(), $e->getLine());
+            if ($e instanceof \App\Errors\Error){
+                $logger->enableDebug() && $logger->debug("%s[d=%.06f][exception=%s]任务出错 - %s - 位于{%s}第{%d}行", $logPrefix, microtime(true) - $begin, get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
+            } else {
+                $logger->error("%s[d=%.06f][exception=%s]任务出错 - %s - 位于{%s}第{%d}行", $logPrefix, microtime(true) - $begin, get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
+            }
             $this->stopTaskerAfterOnTask($server, $usage);
             return false;
         }
