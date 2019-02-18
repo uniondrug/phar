@@ -29,6 +29,7 @@ class Logger
      * @var Args
      */
     private $args;
+    private $_debugEnabled = null;
     /**
      * @var XHttp
      */
@@ -58,6 +59,18 @@ class Logger
     {
         $this->args = $args;
         $this->logStdout = $args->hasOption('log-stdout');
+    }
+
+    /**
+     * 是否启用了Debug
+     * @return bool|null
+     */
+    public function enableDebug()
+    {
+        if ($this->_debugEnabled === null) {
+            $this->_debugEnabled = $this->level >= self::LEVEL_DEBUG;
+        }
+        return $this->_debugEnabled;
     }
 
     /**
@@ -185,7 +198,7 @@ class Logger
      */
     public function debug(string $message, ... $args)
     {
-        if ($this->level >= self::LEVEL_DEBUG) {
+        if ($this->enableDebug()) {
             $this->log(self::LEVEL_DEBUG, $message, ... $args);
             return true;
         }
