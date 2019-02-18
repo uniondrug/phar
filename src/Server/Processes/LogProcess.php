@@ -26,7 +26,7 @@ class LogProcess extends XProcess
         // enable log process
         $seconds = (int) $this->getServer()->getConfig()->logBatchSeconds;
         $seconds > 1 || $seconds = 5;
-        $this->getServer()->getLogger()->debug("设置每隔{%d}秒后,保存一次日志", $seconds);
+        $this->getServer()->getLogger()->enableDebug() && $this->getServer()->getLogger()->debug("设置每隔{%d}秒后,保存一次日志", $seconds);
         $this->getServer()->tick($seconds * 1000, [
             $this,
             'publishLogs'

@@ -66,7 +66,7 @@ class CronProcess extends XProcess
     {
         // 1. 是否有定义
         if (count($this->cronSeconds) === 0 && count($this->cronDatetime) === 0) {
-            $this->getServer()->getLogger()->debug("未找到需要定时执行的任务");
+            $this->getServer()->getLogger()->enableDebug() && $this->getServer()->getLogger()->debug("未找到需要定时执行的任务");
             return false;
         }
         // 2. 定时执行
@@ -110,7 +110,7 @@ class CronProcess extends XProcess
                 }
             }
         } catch(\Throwable $e) {
-            $this->getServer()->getLogger()->fatal("触发定时器失败 - %s", $e->getMessage());
+            $this->getServer()->getLogger()->fatal("[exception=%s]触发定时器失败 - %s", get_class($e), $e->getMessage());
         }
     }
 
@@ -123,7 +123,7 @@ class CronProcess extends XProcess
     {
         $cronNum = 0;
         try {
-            $this->getServer()->getLogger()->info("扫描定时任务/Crontab");
+            $this->getServer()->getLogger()->enableDebug() && $this->getServer()->getLogger()->debug("扫描定时任务/Crontab");
             // 1. 按配置或默认计算定时任务
             //    1): 扫描目录
             //    2): 命名空间
@@ -176,7 +176,7 @@ class CronProcess extends XProcess
             if (!in_array($key, $this->cronDatetime[$key])) {
                 $this->cronDatetime[$key][] = [$index];
             }
-            $this->getServer()->getLogger()->debug("定时任务{%s}每天{%s}执行1次", $name, $key);
+            $this->getServer()->getLogger()->enableDebug() && $this->getServer()->getLogger()->debug("定时任务{%s}每天{%s}执行1次", $name, $key);
             return;
         }
         // 3. 时间间隔
@@ -202,7 +202,7 @@ class CronProcess extends XProcess
             }
             if ($seconds > 0) {
                 $this->cronSeconds[$index] = $seconds;
-                $this->getServer()->getLogger()->debug("定时任务{%s}每隔{%s}秒执行1次", $name, $seconds);
+                $this->getServer()->getLogger()->enableDebug() && $this->getServer()->getLogger()->debug("定时任务{%s}每隔{%s}秒执行1次", $name, $seconds);
             } else {
                 $this->getServer()->getLogger()->warning("定时任务{%s}的执行频率{%s}设置无效", $name, $timer);
             }
@@ -229,7 +229,7 @@ class CronProcess extends XProcess
      */
     private function scannerReflect(int $index, string $cronNamespace, string $name)
     {
-        $this->getServer()->getLogger()->debug("发现{%s}定时任务", $name);
+        $this->getServer()->getLogger()->enableDebug() && $this->getServer()->getLogger()->debug("发现{%s}定时任务", $name);
         // 1. 必须实现ICron接口
         $class = $cronNamespace.'\\'.$name;
         if (!is_a($class, ICron::class, true)) {
