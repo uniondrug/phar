@@ -230,7 +230,7 @@ class Args
      */
     public function makeTmpDir()
     {
-        $path = $this->getTmpDir();
+        $path = $this->getTmpDir().'/tasks';
         return is_dir($path) ? true : $this->makeDir($path);
     }
 }

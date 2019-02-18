@@ -26,7 +26,7 @@ trait DoRequest
     {
         // 1. 静态资源
         if ($handler->isAssetsRequest()) {
-            $server->getLogger()->debug("%s忽略静态资源", $handler->getRequestHash());
+            $server->getLogger()->enableDebug() && $server->getLogger()->debug("%s忽略静态资源", $handler->getRequestHash());
             return;
         }
         // 2. 运行容器

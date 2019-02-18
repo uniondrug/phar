@@ -40,13 +40,13 @@ register_shutdown_function(function() use ($logger){
         return;
     }
     // 2. 按Level进程业务转发
-    $e['message'] = $e['message']." at {$e['file']}({$e['line']})";
     switch ($e['type']) {
         case E_ERROR :
         case E_USER_ERROR :
         case E_CORE_ERROR :
         case E_COMPILE_ERROR :
-            $logger->fatal($e['message']);
+            $logger->fatal("[errno=%d]%s", $e['type'], $e['message']);
+            $logger->enableDebug() && $logger->debug("错误位于{%s}的第{%d}行", $e['file'], $e['line']);
             break;
         case E_WARNING :
         case E_USER_WARNING :
@@ -54,7 +54,8 @@ register_shutdown_function(function() use ($logger){
         case E_NOTICE :
         case E_USER_NOTICE :
         case E_DEPRECATED :
-            $logger->warning($e['message']);
+            $logger->warning("[errno=%d]%s", $e['type'], $e['message']);
+            $logger->enableDebug() && $logger->debug("报警位于{%s}的第{%d}行", $e['file'], $e['line']);
             break;
     }
 });
@@ -63,13 +64,13 @@ register_shutdown_function(function() use ($logger){
  * 在运行过程中, 产生的错误回调
  */
 set_error_handler(function($errno, $error, $file, $line) use ($logger){
-    $error = $error." at {$file}({$line})";
     switch ($errno) {
         case E_ERROR :
         case E_USER_ERROR :
         case E_CORE_ERROR :
         case E_COMPILE_ERROR :
-            $logger->fatal($error);
+            $logger->fatal("[errno=%d]%s", $errno, $error);
+            $logger->enableDebug() && $logger->debug("错误位于{%s}的第{%d}行", $file, $line);
             break;
         case E_DEPRECATED :
         case E_WARNING :
@@ -77,7 +78,8 @@ set_error_handler(function($errno, $error, $file, $line) use ($logger){
         case E_CORE_WARNING :
         case E_NOTICE :
         case E_USER_NOTICE :
-            $logger->warning($error);
+            $logger->warning("[errno=%d]%s", $errno, $error);
+            $logger->enableDebug() && $logger->debug("报警位于{%s}的第{%d}行", $file, $line);
             break;
     }
 });
@@ -86,7 +88,8 @@ set_error_handler(function($errno, $error, $file, $line) use ($logger){
  * 未捕获的异常错误处理
  */
 set_exception_handler(function(\Throwable $e) use ($logger){
-    $logger->fatal("%s at %s(%d)", $e->getMessage(), $e->getFile(), $e->getLine());
+    $logger->fatal("[exception=%s]%s", get_class($e), $e->getMessage());
+    $logger->enableDebug() && $logger->debug("异常位于{%s}的第{%d}行", $e->getFile(), $e->getLine());
 });
 /**
  * 导入配置文件

@@ -91,7 +91,7 @@ class RegisterTask extends XTask
                 'json' => $body
             ]);
         } catch(\Throwable $e) {
-            $this->getServer()->getLogger()->error("注册Consul服务失败 - %s", $e->getMessage());
+            $this->getServer()->getLogger()->fatal("注册Consul服务失败 - %s", $e->getMessage());
             return false;
         }
         return true;

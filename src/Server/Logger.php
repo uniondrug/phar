@@ -29,6 +29,7 @@ class Logger
      * @var Args
      */
     private $args;
+    private $_debugEnabled = null;
     /**
      * @var XHttp
      */
@@ -58,6 +59,18 @@ class Logger
     {
         $this->args = $args;
         $this->logStdout = $args->hasOption('log-stdout');
+    }
+
+    /**
+     * 是否启用了Debug
+     * @return bool|null
+     */
+    public function enableDebug()
+    {
+        if ($this->_debugEnabled === null) {
+            $this->_debugEnabled = $this->level >= self::LEVEL_DEBUG;
+        }
+        return $this->_debugEnabled;
     }
 
     /**
@@ -185,7 +198,7 @@ class Logger
      */
     public function debug(string $message, ... $args)
     {
-        if ($this->level >= self::LEVEL_DEBUG) {
+        if ($this->enableDebug()) {
             $this->log(self::LEVEL_DEBUG, $message, ... $args);
             return true;
         }
@@ -331,7 +344,12 @@ class Logger
      * 写入Logger
      * 一、 Log格式定义
      *      col.1 - 第1组|时间 - 如[2019-01-04 09:10:12]
-     *      col.2 - 第2组|状态 - 支持[INFO|ERROR|WARNING|FATAL|DEBUG]
+     *      col.2 - 第2组|状态 - 即log级别支持[INFO|ERROR|WARNING|FATAL|DEBUG]
+     *                          DEBUG: 用于Debug调试的信息, 如: 入参、入参等, 生产环境不记录此类信息。
+     *                          INFO: 简略的业务INFO信息, 如: 绑定微信。 详细信息请配合DEBUG段
+     *                          WARNING: 简略的节点WARNING信息, 如: 精度丢失败。可配合Debug段
+     *                          ERROR: 简略的节点ERROR信息, 如: 请求SDK超时。{发weixin/dingding提醒}, 可配合Debug段
+     *                          FATAL: 简略的节点FATAL信息, 如: Worker进程异常退出。{发weixin/dingding提醒}, 可配合Debug段
      *      col.3 - 第3组|机器 - 机器IP与端口, 如[192.168.10.110:8080]
      *      col.4 - 第4组|模块 - 模块名, 如 [user.module]
      *      col.x - 第x组|键值 - 第5-n组为业务键值对/关键元素/字段, 如下

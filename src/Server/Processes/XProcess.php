@@ -8,6 +8,10 @@ namespace Uniondrug\Phar\Server\Processes;
 use Swoole\Process;
 use Uniondrug\Phar\Server\XHttp;
 
+/**
+ * Class XProcess
+ * @package Uniondrug\Phar\Server\Processes
+ */
 abstract class XProcess extends Process implements IProcess
 {
     /**

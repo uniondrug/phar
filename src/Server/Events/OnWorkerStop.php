@@ -22,6 +22,6 @@ trait OnWorkerStop
     final public function onWorkerStop($server, int $workerId)
     {
         $this->doWorkerStop($server, $workerId);
-        $server->getLogger()->fatal("%s进程退出", $server->isTasker() ? 'tasker' : 'worker');
+        $server->getLogger()->enableDebug() && $server->getLogger()->debug("%s进程退出", $server->isTasker() ? 'tasker' : 'worker');
     }
 }
