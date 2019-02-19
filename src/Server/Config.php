@@ -130,9 +130,9 @@ class Config
     private $_settings = [
         'reactor_num' => 8,
         'worker_num' => 8,
-        'max_request' => 20000,
-        'task_worker_num' => 2,
-        'task_max_request' => 20000,
+        'max_request' => 10000,
+        'task_worker_num' => 4,
+        'task_max_request' => 10000,
         'log_level' => 4,
         'request_slowlog_file' => '',
         'request_slowlog_timeout' => 5
