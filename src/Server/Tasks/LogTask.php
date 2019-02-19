@@ -49,16 +49,19 @@ class LogTask extends XTask
     ];
 
     /**
-     * 当Log数据为空/则退出执行
+     * 前置检查
      * @return bool
      */
     public function beforeRun() : bool
     {
+        // 1. 空数据不操作
         if (count($this->data) === 0) {
             return false;
         }
+        // 2. 数据排弃
         ksort($this->data);
         reset($this->data);
+        // 3. 继续执行run()方法
         return parent::beforeRun();
     }
 
@@ -68,14 +71,15 @@ class LogTask extends XTask
      */
     public function run()
     {
+        // 1. Kafka模式
         try {
             if ($this->getServer()->getConfig()->logKafkaOn && $this->withKafka()) {
                 return true;
             }
-            return $this->withFile();
         } catch(\Throwable $e) {
-            return false;
         }
+        // 2. File模式
+        return $this->withFile();
     }
 
     /**
@@ -109,10 +113,11 @@ class LogTask extends XTask
      */
     private function withKafka() : bool
     {
+        $parsed = $this->parseRows();
+        $url = $this->getServer()->getConfig()->logKafkaUrl;
+        $logger = $this->getServer()->getLogger();
         try {
-            $parsed = $this->parseRows();
             if ($parsed['count'] > 0) {
-                $url = $this->getServer()->getConfig()->logKafkaUrl;
                 /**
                  * @var Client $client
                  */
@@ -126,23 +131,28 @@ class LogTask extends XTask
                         'logs' => $parsed['logs']
                     ]
                 ]);
+                $logger->enableDebug() && $logger->debug("%s向{%s}提交了从{%s}到{%s}的Log{%d}条", $this->logPrefix, $url, $parsed['begin'], $parsed['end'], $parsed['count']);
                 return true;
             }
         } catch(\Throwable $e) {
-            $this->getServer()->getLogger()->warning("%s向{%s}提交Log失败 - %s", $this->logPrefix, $this->getServer()->getConfig()->logKafkaUrl, $e->getMessage());
+            $logger->error("%s向{%s}提交了从{%s}到{%s}的Log{%d}条失败 - %s", $this->logPrefix, $url, $parsed['begin'], $parsed['end'], $parsed['count'], $e->getMessage());
         }
         return false;
     }
 
     /**
-     * 日志数据逐条解析
+     * 日志解析
+     * 将Task入参的数据解析成结构体的日志数组
+     * @return array
      */
     private function parseRows()
     {
         $num = 0;
         $logs = [];
+        $begin = '';
+        $end = '';
         foreach ($this->data as $data) {
-            if (isset($data['message'])) {
+            if (isset($data['message']) && $data['message'] != '') {
                 $buffer = $this->logFields;
                 $message = $data['message'];
                 $this->collectDeploy($buffer, $message);
@@ -152,17 +162,21 @@ class LogTask extends XTask
                 $buffer['content'] = $message;
                 $logs[] = $buffer;
                 $num++;
+                $begin === '' && $begin = $buffer['time'];
+                $end = $buffer['time'];
             }
         }
         return [
             'count' => $num,
-            'logs' => $logs
+            'logs' => $logs,
+            'begin' => $begin,
+            'end' => $end
         ];
     }
 
     /**
-     * 收集/WHERE
-     * 从Log中收集当前记录由哪台机器产生
+     * 部署信息
+     * 从Log中收集当前记录的部署信息(由哪台机器、模块产生)
      * @param array  $data
      * @param string $text
      */
@@ -177,6 +191,8 @@ class LogTask extends XTask
     }
 
     /**
+     * 关键字段
+     * 从Log中提取关键字段的键值对信息
      * @param array  $data
      * @param string $text
      */
