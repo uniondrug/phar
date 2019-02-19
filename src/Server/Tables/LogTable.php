@@ -85,19 +85,23 @@ class LogTable extends XTable
         if ($len > self::MESSAGE_LENGTH) {
             $message = substr($message, 0, self::MESSAGE_LENGTH - 8).' ...';
         }
+        $full = false;
         $this->mutex->lock();
-        $this->set($key, [
-            'key' => $key,
-            'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
-            'level' => $level,
-            'message' => $message
-        ]);
-        if (error_get_last() !== null) {
-            error_clear_last();
+        try {
+            $this->set($key, [
+                'key' => $key,
+                'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
+                'level' => $level,
+                'message' => $message
+            ]);
+            if (error_get_last() !== null) {
+                error_clear_last();
+            }
+            $full = count($this) >= $this->limit;
+        } catch(\Throwable $e) {
         }
-        $count = count($this);
         $this->mutex->unlock();
-        return $count >= $this->limit;
+        return $full;
     }
 
     /**
@@ -108,10 +112,13 @@ class LogTable extends XTable
     {
         $this->mutex->lock();
         $logs = [];
-        foreach ($this as $key => $data) {
-            if ($this->del($key)){
-                $logs[$key] = $data;
+        try {
+            foreach ($this as $key => $data) {
+                if ($this->del($key)) {
+                    $logs[$key] = $data;
+                }
             }
+        } catch(\Throwable $e) {
         }
         $this->mutex->unlock();
         return $logs;
