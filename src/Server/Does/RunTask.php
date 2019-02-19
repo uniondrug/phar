@@ -30,10 +30,13 @@ trait RunTask
          */
         $server = $this;
         $logger = $server->getLogger();
+        $table = $server->getStatsTable();
+        $table->incrTaskRun();
         try {
             // 1. 入参检查
             if (!is_a($class, ITask::class, true)) {
                 $logger->fatal("Task{%s}未实现{%s}接口", $class, ITask::class);
+                $table->incrTaskRunFail();
                 return false;
             }
             // 2. 内容转换
@@ -44,7 +47,11 @@ trait RunTask
             // 3. Worker进程
             if ($server->worker_pid > 0) {
                 if (!$server->taskworker) {
-                    return $this->task($message, -1) !== false;
+                    if ($this->task($message, -1) !== false) {
+                        return true;
+                    }
+                    $table->incrTaskRunFail();
+                    return false;
                 }
             }
             // 4. 非Worker进程
@@ -52,6 +59,7 @@ trait RunTask
             if (error_get_last() !== null) {
                 error_clear_last();
             }
+            $send || $table->incrTaskRunFail();
             return $send;
         } catch(\Throwable $e) {
             // 5. 发送Task错误

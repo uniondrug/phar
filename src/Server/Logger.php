@@ -5,7 +5,6 @@
  */
 namespace Uniondrug\Phar\Server;
 
-use Uniondrug\Phar\Server\Tasks\Logs\AddTask;
 use Uniondrug\Phar\Server\Tasks\LogTask;
 
 /**
