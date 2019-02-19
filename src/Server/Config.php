@@ -13,6 +13,7 @@ use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
  * @property int    $logLevel             Log级别
  * @property bool   $logKafkaOn           Kafka/是否启用Kafak日志
  * @property string $logKafkaUrl          Kafka/Restful地址
+ * @property int    $logKafkaTimeout      提交Kafka超时时长
  * @property int    $logBatchLimit        Log保存数量
  * @property int    $logBatchSeconds      Log保存时长
  * @property string $name                 项目名
@@ -74,6 +75,12 @@ class Config
      * @var string
      */
     private $_logKafkaUrl = "";
+    /**
+     * Kafka超时
+     * 将Log提交到Kafka超时时长
+     * @var int
+     */
+    private $_logKafkaTimeout = 25;
     /**
      * 日志级别
      * @var int
@@ -356,6 +363,9 @@ class Config
         }
         if (isset($srv['logKafkaUrl']) && is_string($srv['logKafkaUrl'])) {
             $this->_logKafkaUrl = $srv['logKafkaUrl'];
+        }
+        if (isset($srv['logKafkaTimeout']) && is_numeric($srv['logKafkaTimeout']) && $srv['logKafkaTimeout'] > 0) {
+            $this->_logKafkaTimeout = (int) $srv['logKafkaTimeout'];
         }
         // 7. 完成
         return $this;
