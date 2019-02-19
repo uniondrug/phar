@@ -123,7 +123,7 @@ class LogTask extends XTask
                  */
                 $client = $this->getServer()->getContainer()->getShared('httpClient');
                 $client->post($url, [
-                    'timeout' => 3,
+                    'timeout' => $this->getServer()->getConfig()->logKafkaTimeout,
                     'headers' => [
                         'content-type' => 'application/json'
                     ],
