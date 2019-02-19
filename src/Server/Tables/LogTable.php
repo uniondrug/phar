@@ -16,6 +16,7 @@ use Uniondrug\Phar\Server\XHttp;
  */
 class LogTable extends XTable
 {
+    const MUTEX_TIMEOUT = 0.2;
     /**
      * 单条Log最大字符数
      */
@@ -86,7 +87,7 @@ class LogTable extends XTable
             $message = substr($message, 0, self::MESSAGE_LENGTH - 8).' ...';
         }
         $full = false;
-        $this->mutex->lock();
+        $this->mutex->lockwait(self::MUTEX_TIMEOUT);
         try {
             $this->set($key, [
                 'key' => $key,
@@ -110,7 +111,7 @@ class LogTable extends XTable
      */
     public function flush()
     {
-        $this->mutex->lock();
+        $this->mutex->lockwait(self::MUTEX_TIMEOUT);
         $logs = [];
         try {
             foreach ($this as $key => $data) {
