@@ -17,6 +17,13 @@ class StatsTable extends XTable
     const TABLE_NAME = 'statsTable';
     const TABLE_COUNT = 'count';
     /**
+     * 统计类型
+     */
+    const KEY_TASK_ON = 'onTask';
+    const KEY_TASK_ON_FAIL = 'onTaskFail';
+    const KEY_TASK_RUN = 'runTask';
+    const KEY_TASK_RUN_FAIL = 'runTaskFail';
+    /**
      * 列信息
      * @var array
      */
@@ -43,26 +50,6 @@ class StatsTable extends XTable
     }
 
     /**
-     * 追加Logs数量
-     * @return int
-     */
-    public function incrLogs()
-    {
-        $key = 'logTable';
-        $this->incrCount($key);
-        return $this->getCount($key);
-    }
-
-    /**
-     * 重置Logs统计
-     * @return bool
-     */
-    public function resetLogs()
-    {
-        return $this->resetCount('logTable');
-    }
-
-    /**
      * 读取统计值
      * @param string $key
      * @return int
@@ -82,7 +69,7 @@ class StatsTable extends XTable
      * 统计递加
      * @param string $key
      * @param int    $count
-     * @return int
+     * @return bool
      */
     public function incrCount(string $key, int $count = 1)
     {
@@ -90,6 +77,42 @@ class StatsTable extends XTable
             return $this->incr($key, self::TABLE_COUNT, $count);
         }
         return $this->resetCount($key);
+    }
+
+    /**
+     * 触发onTask()次数
+     * @return bool
+     */
+    public function incrTaskOn()
+    {
+        return $this->incrCount(self::KEY_TASK_ON);
+    }
+
+    /**
+     * 解发onTask()失败次数
+     * @return bool
+     */
+    public function incrTaskOnFail()
+    {
+        return $this->incrCount(self::KEY_TASK_ON_FAIL);
+    }
+
+    /**
+     * 调用runTask()次数
+     * @return bool
+     */
+    public function incrTaskRun()
+    {
+        return $this->incrCount(self::KEY_TASK_RUN);
+    }
+
+    /**
+     * 调用runTask()失败次数
+     * @return bool
+     */
+    public function incrTaskRunFail()
+    {
+        return $this->incrCount(self::KEY_TASK_RUN_FAIL);
     }
 
     /**

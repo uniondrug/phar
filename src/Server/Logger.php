@@ -5,7 +5,6 @@
  */
 namespace Uniondrug\Phar\Server;
 
-use Uniondrug\Phar\Server\Tasks\Logs\AddTask;
 use Uniondrug\Phar\Server\Tasks\LogTask;
 
 /**
@@ -330,7 +329,7 @@ class Logger
             $mode = file_exists($file) ? 'a+' : 'wb+';
             $text = "[".(new \DateTime())->format('Y-m-d H:i:s.u')."][{$label}]{$message}\n";
             // 2. 写入Log
-            if ($fp = @fopen($file, $mode)) {
+            if (false !== ($fp = @fopen($file, $mode))) {
                 @fwrite($fp, $text);
                 @fclose($fp);
                 return true;

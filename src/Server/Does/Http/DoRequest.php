@@ -44,7 +44,12 @@ trait DoRequest
         $handler->addResponseHeader('content-type', 'application/json');
         $handler->setStatusCode(200);
         if ($handler->getUri() === '/consul.health') {
+            $table = $server->getStatsTable();
             $stats = $server->stats();
+            $stats['statistic'] = [];
+            foreach ($table as $key => $data){
+                $stats['statistic'][$key] = $table->getCount($key);
+            }
             $handler->setContent(json_encode($stats));
         } else {
             $handler->setContent('{"status":"UP"}');

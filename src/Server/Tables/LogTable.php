@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Server\Tables;
 
+use Swoole\Lock;
 use Uniondrug\Phar\Server\XHttp;
 
 /**
@@ -55,6 +56,7 @@ class LogTable extends XTable
      * @var string
      */
     protected $name = self::TABLE_NAME;
+    private $mutex;
 
     /**
      * constructor.
@@ -66,6 +68,7 @@ class LogTable extends XTable
         $size < 1024 && $size = 1024;
         parent::__construct($server, $size);
         $this->limit = $size / 2;
+        $this->mutex = new Lock(SWOOLE_MUTEX);
     }
 
     /**
@@ -82,6 +85,7 @@ class LogTable extends XTable
         if ($len > self::MESSAGE_LENGTH) {
             $message = substr($message, 0, self::MESSAGE_LENGTH - 8).' ...';
         }
+        $this->mutex->lock();
         $this->set($key, [
             'key' => $key,
             'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
@@ -90,9 +94,9 @@ class LogTable extends XTable
         ]);
         if (error_get_last() !== null) {
             error_clear_last();
-            throw new \Exception("can not save memory table '".get_class($this)."'");
         }
         $count = count($this);
+        $this->mutex->unlock();
         return $count >= $this->limit;
     }
 
@@ -102,11 +106,14 @@ class LogTable extends XTable
      */
     public function flush()
     {
+        $this->mutex->lock();
         $logs = [];
         foreach ($this as $key => $data) {
-            $logs[$key] = $data;
-            $this->del($key);
+            if ($this->del($key)){
+                $logs[$key] = $data;
+            }
         }
+        $this->mutex->unlock();
         return $logs;
     }
 
