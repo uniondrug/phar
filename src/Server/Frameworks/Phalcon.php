@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Server\Frameworks;
 
+use App\Errors\Error;
 use Phalcon\Db\Adapter\Pdo\Mysql;
 use Phalcon\Di;
 use Phalcon\Http\Response as PhalconResponse;
@@ -58,7 +59,9 @@ trait Phalcon
      * 刷新Redis共享名称
      * @var array
      */
-    protected $connectionRedises = ['redis'];
+    protected $connectionRedises = [
+        'redis'
+    ];
 
     /**
      * 读取Phalcon应用
@@ -79,48 +82,64 @@ trait Phalcon
     }
 
     /**
-     * 运行Phalcon容器
+     * 运行容器
+     * 调用Phalcon容器, 由Application/Container触发Controller
+     * 路由, 并将Phalcon容器返回的Response转发给Swoole的Response
+     * 实现类似FPM的工作
      * @param HttpHandler $handler
      */
     public function runContainer(HttpHandler $handler)
     {
         /**
-         * 1. begin
-         * @var Bootstrap $b
+         * 1. 准备调用
+         * @var Bootstrap       $b
+         * @var ServiceServer   $service
+         * @var Request         $request
+         * @var PhalconResponse $response
          */
         $b = $this->boot;
-        /**
-         * 2. init container
-         * @var ServiceServer $service
-         */
         $this->phalconLoader();
-        // 3. init logger
-        $logger = $this->container->getShared('logger');
-        /**
-         * 4. assign phalcon request
-         * @var Request         $request
-         * @var PhalconResponse $result
-         */
+        $service = $this->container->getShared('serviceServer');
         $request = $this->container->getShared('request');
-        $handler->assignPhalcon($request);
+        $logger = $this->container->getShared('logger');
         $logger->setPrefix($b->getLogger()->getPrefix().$handler->getRequestHash());
-        // 5. run progress
         try {
+            /**
+             * 2. 执行容器
+             * @var mixed $result
+             */
+            $handler->assignPhalcon($request);
             $result = $this->application->handle($handler->getUri());
-            if (!($result instanceof PhalconResponse)) {
-                $result = $service->withSuccess();
+            if ($result instanceof PhalconResponse) {
+                // 3. 已是PhalconResponse对象
+                $response = $result;
+            } else {
+                // 4. 非PhalconResponse对象
+                //    结果转换
+                $handler->setContentType('text/plain');
+                $response = new PhalconResponse();
+                if (is_string($result)) {
+                    // 5. 返回了字符串
+                    $response->setContent($result);
+                } else {
+                    // 6. 其它类型
+                    $response->setContent(gettype($result));
+                }
             }
         } catch(\Throwable $e) {
-            if ($e instanceof \App\Errors\Error) {
-                $logger->enableDebug() && $logger->debug("Phalcon业务条件错误 - %s - 位于{%s}第{%d}行", $e->getMessage(), $e->getFile(), $e->getLine());
+            // 7. 返回错误
+            $response = $service->withError($e->getMessage(), $e->getCode());
+            if ($e instanceof Error) {
+                // 8. 过滤业务错误
+                $logger->enableDebug() && $logger->debug("Phalcon业务条件错误 - %s", $e->getMessage());
             } else {
-                $logger->fatal("Phalcon未捕获{%s}异常 - %s - 位于{%s}第{%d}行", get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
+                // 9. 加入报警
+                $logger->error("Phalcon未捕获{%s}异常 - %s - 位于{%s}第{%d}行", get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
             }
-            $service = $this->container->getShared('serviceServer');
-            $result = $service->withError($e->getMessage(), $e->getCode());
         }
-        $handler->setStatusCode($result->getStatusCode());
-        $handler->setContent((string) $result->getContent());
+        // 10. 转给Handler
+        $handler->setStatusCode((int) $response->getStatusCode());
+        $handler->setContent((string) $response->getContent());
     }
 
     /**
