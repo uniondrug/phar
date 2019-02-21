@@ -113,6 +113,19 @@ trait Phalcon
             if ($result instanceof PhalconResponse) {
                 // 3. 已是PhalconResponse对象
                 $response = $result;
+                setcookie('k', 'v', 0, '/');
+                // 3.1 转换Cookie
+                //     todo: cookies读不到对象
+                $cookies = $response->getCookies();
+                if ($cookies instanceof \Phalcon\Http\Response\CookiesInterface) {
+                }
+                // 3.2 转换Header
+                $headers = $response->getHeaders();
+                if ($headers instanceof \Phalcon\Http\Response\Headers) {
+                    foreach ($headers->toArray() as $key => $value) {
+                        $handler->addResponseHeader($key, $value);
+                    }
+                }
             } else {
                 // 4. 非PhalconResponse对象
                 //    结果转换

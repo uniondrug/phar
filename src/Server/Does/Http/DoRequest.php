@@ -41,13 +41,13 @@ trait DoRequest
     public function doHealthRequest($server, HttpHandler $handler)
     {
         // /sidecar.health
-        $handler->addResponseHeader('content-type', 'application/json');
+        $handler->setContentType('application/json');
         $handler->setStatusCode(200);
         if ($handler->getUri() === '/consul.health') {
             $table = $server->getStatsTable();
             $stats = $server->stats();
             $stats['statistic'] = [];
-            foreach ($table as $key => $data){
+            foreach ($table as $key => $data) {
                 $stats['statistic'][$key] = $table->getCount($key);
             }
             $handler->setContent(json_encode($stats));

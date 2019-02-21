@@ -10,6 +10,8 @@ use Uniondrug\Phar\Server\Exceptions\ConfigExeption;
 /**
  * Server/服务配置
  * @property string $environment          环境名
+ * @property int    $charset              编码
+ * @property int    $contentType          输出格式
  * @property int    $logLevel             Log级别
  * @property bool   $logKafkaOn           Kafka/是否启用Kafak日志
  * @property string $logKafkaUrl          Kafka/Restful地址
@@ -50,6 +52,8 @@ class Config
     private $memoryLimit = 134217728;
     private $memoryAllow = 0;
     private $memoryProtected = 8388608;
+    private $_charset = 'utf-8';
+    private $_contentType = 'application/json';
     /**
      * 日志落盘频率
      * 每512条Log保存一次
@@ -296,6 +300,12 @@ class Config
         // 5.2 应用版本
         if (isset($app['appVersion']) && is_string($app['appVersion']) && $app['appVersion'] !== '') {
             $this->_version = $app['appVersion'];
+        }
+        if (isset($app['charset']) && is_string($app['charset']) && $app['charset'] !== '') {
+            $this->_charset = $app['charset'];
+        }
+        if (isset($app['contentType']) && is_string($app['contentType']) && $app['contentType'] !== '') {
+            $this->_contentType = $app['contentType'];
         }
         // 6. 服务配置段
         //    config.server

@@ -30,9 +30,6 @@ trait OnRequest
         $server = $this;
         $handler = new HttpHandler($server, $request, $response);
         $stopWorker = $handler->memoryUsage >= $server->getConfig()->getAllowMemory();
-        $handler->addResponseContentType();
-        $handler->addResponseHeader(HttpHandler::REQID_KEY, $handler->getRequestId());
-        $handler->addResponseHeader('Server', $server->getConfig()->getServerSoft());
         try {
             // 2. 请求过程
             //    当请求过程返回FALSE时, 以无效请求
@@ -54,21 +51,10 @@ trait OnRequest
             $handler->setContent('{"errno":400,"error":"Bad Request","data":{},"dateType":"OBJECT"}');
             $server->getLogger()->error("请求HTTP出错 - %s - 位于{%s}的第{%d}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
         }
-        // 4. 返回结果
-        $response->status($handler->getStatusCode());
-        // 4.1 Header
-        foreach ($handler->getResponseHeader() as $key => $value) {
-            $response->header($key, $value);
-        }
-        // 4.2 Cookie
-        foreach ($handler->getResponseCookie() as $cookie) {
-            $response->cookie($cookie[0], $cookie[1], $cookie[2], $cookie[3], $cookie[4], $cookie[5], $cookie[6]);
-        }
-        // 5. 打印内容
-        $response->end($handler->getContent());
-        // 6. 释放资源
+        // 4. 释放资源
+        $handler->end();
         unset($handler);
-        // 7. 退出进程
+        // 5. 退出进程
         //    内存使用量过大时, 退出Worker进程, Manager
         //    进程将重新启动
         if ($stopWorker) {
