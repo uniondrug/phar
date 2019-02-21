@@ -113,7 +113,6 @@ trait Phalcon
             if ($result instanceof PhalconResponse) {
                 // 3. 已是PhalconResponse对象
                 $response = $result;
-                setcookie('k', 'v', 0, '/');
                 // 3.1 转换Cookie
                 //     todo: cookies读不到对象
                 $cookies = $response->getCookies();
