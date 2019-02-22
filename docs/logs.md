@@ -6,10 +6,8 @@
 
 1. `1.2.8`
     1. 调整HTTP请求响应过程
-    1. a
-    1. a
-    1. a
-    1. a
+    1. 调整Logger日志前缀兼容
+    1. Phalcon Response中的Header/Cookie转给Swoole Response
 1. `1.2.7`
     1. 向Kafka提交数据超时时长改为25秒
 1. `1.2.6`
