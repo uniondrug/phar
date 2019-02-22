@@ -160,7 +160,6 @@ abstract class Http extends swoole_http_server
             $log->enableDebug() && $log->debug("Process{%s}加入启动", $process);
         }
         // 6. manager
-        // todo: ignore manager listener
         //       swManager_check_status_exit
         //$managerHost = $cfg->getManagerHost();
         //if ($managerHost !== null) {
@@ -289,7 +288,7 @@ abstract class Http extends swoole_http_server
      */
     public function isTasker()
     {
-        if ($this->worker_pid > 0) {
+        if ($this->isWorker()) {
             return $this->taskworker;
         }
         return false;

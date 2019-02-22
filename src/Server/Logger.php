@@ -37,7 +37,7 @@ class Logger
      * 日志前缀
      * @var null
      */
-    private $logPrefix = null;
+    private $logPrefix = '';
     private $logStdout = false;
     /**
      * 日志级别与
@@ -391,9 +391,7 @@ class Logger
             error_clear_last();
             $message = implode("|", $args);
         }
-        if ($this->logPrefix !== null) {
-            $message = $this->logPrefix.$message;
-        }
+        $message = $this->logPrefix.$message;
         /**
          * 2. 日志处理
          *    a) 在Console打印
