@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Server\Events\Http;
 
+use App\Errors\Error as AppError;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Uniondrug\Phar\Server\Handlers\HttpHandler;
@@ -28,51 +29,55 @@ trait OnRequest
          * @var XHttp $server
          */
         $server = $this;
+        // 2. 计算请求ID
+        $reqKey = strtolower(HttpHandler::REQID_KEY);
+        $reqName = strtolower(HttpHandler::REQID_HTTP);
+        $requestId = isset($request->header[$reqKey]) ? $request->header[$reqKey] : null;
+        $requestId || $requestId = isset($request->header[$reqName]) ? $request->header[$reqName] : null;
+        $requestId || $requestId = 'r'.date('ymdHis').uniqid().mt_rand(100000, 999999);
+        // 3. 请求地址
+        $url = isset($request->server['request_uri']) ? $request->server['request_uri'] : '/';
+        // 4. 请求方式
+        $method = isset($request->server['request_method']) ? strtoupper($request->server['request_method']) : 'NULL';
+        // 5. Logger前缀
+        $prefix = $server->getLogger()->getPrefix();
+        $server->getLogger()->setPrefix("%s[r=%s][m=%s][u=%s]", $prefix, $requestId, $method, $url);
+        // 6. 请求Handler
         $handler = new HttpHandler($server, $request, $response);
-        $stopWorker = $handler->memoryUsage >= $server->getConfig()->getAllowMemory();
-        $handler->addResponseContentType();
-        $handler->addResponseHeader(HttpHandler::REQID_KEY, $handler->getRequestId());
-        $handler->addResponseHeader('Server', $server->getConfig()->getServerSoft());
+        $handler->setRequestId($requestId);
+        $handler->setUrl($url);
         try {
-            // 2. 请求过程
-            //    当请求过程返回FALSE时, 以无效请求
-            //    处理
             if ($handler->isHealthRequest()) {
-                // 2.1 检查检查
+                // 7. 检查检查
                 $server->doHealthRequest($server, $handler);
             } else if ($handler->isManagerRequest()) {
-                // 2.2 以127.0.0.1访问管理
+                // 8. 以127.0.0.1访问管理
                 $server->doManagerRequest($server, $handler);
             } else {
-                // 2.3 普通请求
+                // 9. 用户请求
                 $server->doRequest($server, $handler);
             }
         } catch(\Throwable $e) {
-            // 3. uncatch/运行异常
-            //    请求执行过程中, 出现uncatch异常时
-            //    以无效请求处理
-            $handler->setContent('{"errno":400,"error":"Bad Request","data":{},"dateType":"OBJECT"}');
-            $server->getLogger()->error("请求HTTP出错 - %s - 位于{%s}的第{%d}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
-        }
-        // 4. 返回结果
-        $response->status($handler->getStatusCode());
-        // 4.1 Header
-        foreach ($handler->getResponseHeader() as $key => $value) {
-            $response->header($key, $value);
-        }
-        // 4.2 Cookie
-        foreach ($handler->getResponseCookie() as $cookie) {
-            $response->cookie($cookie[0], $cookie[1], $cookie[2], $cookie[3], $cookie[4], $cookie[5], $cookie[6]);
-        }
-        // 5. 打印内容
-        $response->end($handler->getContent());
-        // 6. 释放资源
-        unset($handler);
-        // 7. 退出进程
-        //    内存使用量过大时, 退出Worker进程, Manager
-        //    进程将重新启动
-        if ($stopWorker) {
-            $server->stop($this->getWorkerId());
+            // m. 请求有异常
+            $handler->setContent($e->getMessage());
+            if ($e instanceof AppError) {
+                // m1. 业务异常
+                $server->getLogger()->enableDebug() && $server->getLogger()->debug("业务异常 - %s", $e->getMessage());
+            } else {
+                // m2. 发送报警
+                $server->getLogger()->error("严重异常 - %s", $e->getMessage());
+            }
+        } finally {
+            // n. 结束请求
+            $restart = $handler->end();
+            unset($handler);
+            // n1. 重设Logger前缀
+            // n2. 退出Worker进程/由Manager进程重启
+            if ($restart) {
+                $server->stop($this->getWorkerId());
+            } else {
+                $server->getLogger()->setPrefix($prefix);
+            }
         }
     }
 }

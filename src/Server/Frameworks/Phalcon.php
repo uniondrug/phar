@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Server\Frameworks;
 
+use App\Errors\Error;
 use Phalcon\Db\Adapter\Pdo\Mysql;
 use Phalcon\Di;
 use Phalcon\Http\Response as PhalconResponse;
@@ -34,15 +35,19 @@ trait Phalcon
      * @var Container
      */
     private $container;
+    private $containerLoggerPrefix = '';
     /**
      * 连接刷新时间
      * 最近一次MySQL/Redis连接刷新时间
      * @var int
      */
-    protected $connectionActived = 0;
+    private $connectionLastActived = 0;
     /**
      * 连接刷新频次
-     * 每隔5秒, 检查连接是否已断开
+     * 单位: 秒
+     * 默认: 5
+     * 当值为0时, 表示每次请求前主动检查, 反之由定时器
+     * 每隔5秒检查一次连接
      * @var int
      */
     protected $connectionFrequences = 5;
@@ -58,7 +63,61 @@ trait Phalcon
      * 刷新Redis共享名称
      * @var array
      */
-    protected $connectionRedises = ['redis'];
+    protected $connectionRedises = [
+        'redis'
+    ];
+
+    /**
+     * 注册框架
+     * 注册基于Phalcon框架的V2版本应用
+     * @return $this
+     */
+    public function frameworkRegister()
+    {
+        /**
+         * @var XHttp $server
+         * @var Args  $args
+         */
+        $server = $this;
+        $this->container = new Container($server->getArgs()->getBasePath());
+        $this->container->setShared('server', $server);
+        $this->containerLoggerPrefix = $server->getLogger()->getPrefix();
+        Di::setDefault($this->container);
+        $this->application = new Application($this->container);
+        $this->application->boot();
+        return $this;
+    }
+
+    /**
+     * 注册Logger
+     * 向Phalcon的Shared中注入Logger对象
+     * @param Logger $logger
+     * @return $this
+     */
+    public function frameworkLogger(Logger $logger, $prefix = null)
+    {
+        $prefix === null || $logger->setPrefix($prefix);
+        $this->container->setShared('logger', $logger);
+        return $this;
+    }
+
+    /**
+     * 刷新Connection
+     */
+    public function frameworkConnection()
+    {
+        $time = time();
+        // 1. 定时器模式
+        if ($this->connectionFrequences > 0) {
+            if (($this->connectionLastActived + $this->connectionFrequences) >= $time) {
+                return;
+            }
+        }
+        // 2. 主动检查
+        $this->connectionLastActived = $time;
+        $this->phalconLoaderMysql();
+        $this->phalconLoaderRedis();
+    }
 
     /**
      * 读取Phalcon应用
@@ -66,7 +125,7 @@ trait Phalcon
      */
     public function getApplication()
     {
-        return $this->phalconLoader()->application;
+        return $this->application;
     }
 
     /**
@@ -75,95 +134,77 @@ trait Phalcon
      */
     public function getContainer()
     {
-        return $this->phalconLoader()->container;
+        return $this->container;
     }
 
     /**
-     * 运行Phalcon容器
+     * 运行容器
+     * 调用Phalcon容器, 由Application/Container触发Controller
+     * 路由, 并将Phalcon容器返回的Response转发给Swoole的Response
+     * 实现类似FPM的工作
      * @param HttpHandler $handler
      */
     public function runContainer(HttpHandler $handler)
     {
         /**
-         * 1. begin
-         * @var Bootstrap $b
+         * 1. 准备调用
+         * @var Bootstrap       $b
+         * @var ServiceServer   $service
+         * @var Request         $request
+         * @var PhalconResponse $response
          */
         $b = $this->boot;
-        /**
-         * 2. init container
-         * @var ServiceServer $service
-         */
-        $this->phalconLoader();
-        // 3. init logger
-        $logger = $this->container->getShared('logger');
-        /**
-         * 4. assign phalcon request
-         * @var Request         $request
-         * @var PhalconResponse $result
-         */
+        $service = $this->container->getShared('serviceServer');
         $request = $this->container->getShared('request');
-        $handler->assignPhalcon($request);
-        $logger->setPrefix($b->getLogger()->getPrefix().$handler->getRequestHash());
-        // 5. run progress
+        $logger = $this->container->getShared('logger');
+        $logger->setPrefix($b->getLogger()->getPrefix());
         try {
+            // 2. 检查连接
+            //    MySQL/Redis
+            $this->frameworkConnection();
+            /**
+             * 3. 执行容器
+             * @var mixed $result
+             */
+            $handler->assignPhalcon($request);
             $result = $this->application->handle($handler->getUri());
-            if (!($result instanceof PhalconResponse)) {
-                $result = $service->withSuccess();
+            if ($result instanceof PhalconResponse) {
+                $response = $result;
+            } else {
+                $handler->setContentType('text/plain');
+                $response = new PhalconResponse();
+                if (is_string($result)) {
+                    $response->setContent($result);
+                } else {
+                    $response->setContent(gettype($result));
+                }
+            }
+            // 4. 转换Cookie
+            //     todo: cookies读不到对象
+            $cookies = $response->getCookies();
+            if ($cookies instanceof \Phalcon\Http\Response\CookiesInterface) {
+            }
+            // 5. 转换Header
+            $headers = $response->getHeaders();
+            if ($headers instanceof \Phalcon\Http\Response\Headers) {
+                foreach ($headers->toArray() as $key => $value) {
+                    $handler->addResponseHeader($key, $value);
+                }
             }
         } catch(\Throwable $e) {
-            if ($e instanceof \App\Errors\Error) {
-                $logger->enableDebug() && $logger->debug("Phalcon业务条件错误 - %s - 位于{%s}第{%d}行", $e->getMessage(), $e->getFile(), $e->getLine());
+            // 6. 返回错误
+            $response = $service->withError($e->getMessage(), $e->getCode());
+            if ($e instanceof Error) {
+                // 7. 过滤业务错误
+                $logger->enableDebug() && $logger->debug("Phalcon业务条件错误 - %s", $e->getMessage());
             } else {
-                $logger->fatal("Phalcon未捕获{%s}异常 - %s - 位于{%s}第{%d}行", get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
+                // 8. 加入报警
+                $logger->error("Phalcon{%s}异常 - %s - 位于{%s}第{%d}行", get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
             }
-            $service = $this->container->getShared('serviceServer');
-            $result = $service->withError($e->getMessage(), $e->getCode());
         }
-        $handler->setStatusCode($result->getStatusCode());
-        $handler->setContent((string) $result->getContent());
-    }
-
-    /**
-     * 加载Phalcon框架
-     * @return $this
-     */
-    private function phalconLoader()
-    {
-        /**
-         * 1. 创建实例
-         * @var XHttp $server
-         * @var Args  $args
-         */
-        $server = $this;
-        if ($this->application === null || $this->container === null) {
-            $cfg = $server->getConfig();
-            $args = $server->getArgs();
-            $server->getLogger()->enableDebug() && $server->getLogger()->debug("初始化Phalcon容器");
-            // 1.1 create object
-            $this->container = new Container($args->getBasePath());
-            // 1.2 set shared server
-            $this->container->setShared('server', $server);
-            // 1.3 remove/reset shared logger
-            $this->container->setShared('logger', function() use ($server, $cfg, $args){
-                $logger = new Logger($args);
-                $logger->setServer($server);
-                $logger->setLogLevel($cfg->logLevel);
-                return $logger;
-            });
-            Di::setDefault($this->container);
-            // 1.4 application boot
-            $this->application = new Application($this->container);
-            $this->application->boot();
-        }
-        // 2. 刷新连接
-        $limitTime = time() - $this->connectionFrequences;
-        if ($this->connectionActived < $limitTime) {
-            $this->connectionActived = time();
-            $this->phalconLoaderMysql();
-            $this->phalconLoaderRedis();
-        }
-        // 3. 返回实例
-        return $this;
+        // 9. 转给Handler
+        $handler->setStatusCode((int) $response->getStatusCode());
+        $handler->setContent((string) $response->getContent());
     }
 
     /**

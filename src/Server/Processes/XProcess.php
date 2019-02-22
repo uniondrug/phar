@@ -77,6 +77,12 @@ abstract class XProcess extends Process implements IProcess
         $name = $this->getServer()->setProcessName('process', get_class($this), $this->processName);
         $this->getServer()->getLogger()->setServer($this->getServer())->setPrefix("[%s:%d][%s][x=p:%d]", $this->getServer()->getConfig()->getDeployIp(), $this->getServer()->getConfig()->port, $this->getServer()->getConfig()->name, $this->pid);
         $this->getServer()->getLogger()->info("启动{%s}进程", $name);
+        if (method_exists($this->getServer(), 'frameworkRegister')) {
+            $this->getServer()->frameworkRegister();
+            if (method_exists($this->getServer(), 'frameworkLogger')) {
+                $this->getServer()->frameworkLogger($this->getServer()->getLogger());
+            }
+        }
         // 2. 每1秒进程一次健康检查
         swoole_timer_tick(1000, [
             $this,

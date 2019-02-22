@@ -157,6 +157,7 @@ class Args
 
     /**
      * 读取指定选项
+     * @param string $key
      * @return string|null
      */
     public function getOption(string $key)

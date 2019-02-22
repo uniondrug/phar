@@ -131,11 +131,11 @@ class LogTask extends XTask
                         'logs' => $parsed['logs']
                     ]
                 ]);
-                $logger->enableDebug() && $logger->debug("%s向{%s}提交了从{%s}到{%s}的Log{%d}条", $this->logPrefix, $url, $parsed['begin'], $parsed['end'], $parsed['count']);
+                $logger->enableDebug() && $logger->debug("向{%s}提交了从{%s}到{%s}的Log{%d}条", $url, $parsed['begin'], $parsed['end'], $parsed['count']);
                 return true;
             }
         } catch(\Throwable $e) {
-            $logger->error("%s向{%s}提交了从{%s}到{%s}的Log{%d}条失败 - %s", $this->logPrefix, $url, $parsed['begin'], $parsed['end'], $parsed['count'], $e->getMessage());
+            $logger->error("向{%s}提交了从{%s}到{%s}的Log{%d}条失败 - %s", $url, $parsed['begin'], $parsed['end'], $parsed['count'], $e->getMessage());
         }
         return false;
     }

@@ -26,11 +26,11 @@ trait DoRequest
     {
         // 1. 静态资源
         if ($handler->isAssetsRequest()) {
-            $server->getLogger()->enableDebug() && $server->getLogger()->debug("%s忽略静态资源", $handler->getRequestHash());
+            $server->getLogger()->enableDebug() && $server->getLogger()->debug("忽略静态资源");
             return;
         }
         // 2. 运行容器
-        $this->runContainer($handler);
+        $server->runContainer($handler);
     }
 
     /**
@@ -41,13 +41,14 @@ trait DoRequest
     public function doHealthRequest($server, HttpHandler $handler)
     {
         // /sidecar.health
-        $handler->addResponseHeader('content-type', 'application/json');
+        $handler->setContentType('application/json');
         $handler->setStatusCode(200);
         if ($handler->getUri() === '/consul.health') {
             $table = $server->getStatsTable();
             $stats = $server->stats();
+            $stats['start_time'] = date('r', $stats['start_time']);
             $stats['statistic'] = [];
-            foreach ($table as $key => $data){
+            foreach ($table as $key => $data) {
                 $stats['statistic'][$key] = $table->getCount($key);
             }
             $handler->setContent(json_encode($stats));
@@ -68,14 +69,14 @@ trait DoRequest
         if ($info === false) {
             $handler->setStatusCode(403);
             $handler->setContent("HTTP 403 FORBIDDEN");
-            $server->getLogger()->warning("%s读取ClientInfo返回false", $handler->getRequestHash());
+            $server->getLogger()->warning("读取ClientInfo返回false");
             return;
         }
         // 2. not allowed
         if ($info['host'] !== "127.0.0.1:{$server->getConfig()->port}") {
             $handler->setStatusCode(403);
             $handler->setContent("HTTP 403 FORBIDDEN");
-            $server->getLogger()->warning("%s限{127.0.0.1:%d}访问Manager", $handler->getRequestHash(), $server->getConfig()->port);
+            $server->getLogger()->warning("限{127.0.0.1:%d}访问Manager", $server->getConfig()->port);
             return;
         }
         // 3. manager check
@@ -88,7 +89,7 @@ trait DoRequest
             if (!is_a($class, IAgent::class, true)) {
                 $handler->setStatusCode(400);
                 $handler->setContent("HTTP 400 Bad Request");
-                $server->getLogger()->warning("%s无效的Manager - %s", $handler->getRequestHash(), $class);
+                $server->getLogger()->warning("无效的Manager - %s", $class);
                 return;
             }
             /**
@@ -101,6 +102,6 @@ trait DoRequest
         }
         $handler->setStatusCode(404);
         $handler->setContent("HTTP 404 Not Found");
-        $server->getLogger()->warning("%s未定义的Manager", $handler->getRequestHash());
+        $server->getLogger()->warning("未定义的Manager");
     }
 }

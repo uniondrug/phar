@@ -32,23 +32,30 @@ abstract class XTask implements ITask
      * Log前缀
      * @var string
      */
-    protected $logPrefix;
+    protected $logPrefix = '';
     protected $logUniqid;
 
     /**
-     * @param XHttp  $server
-     * @param array  $data
-     * @param string $logUniqid
-     * @param string $logPrefix
+     * @param XHttp $server
+     * @param       $server
+     * @param array $data
+     * @param int   $taskId
+     * @param       $logUniqid
      */
-    public function __construct($server, array $data, int $taskId, $logUniqid, $logPrefix = '')
+    public function __construct($server, array $data, int $taskId, $logUniqid)
     {
-        $server->getContainer();
+        // 1. 绑定Logger
+        if (method_exists($server, 'frameworkLogger')) {
+            $server->frameworkLogger($server->getLogger());
+            if (method_exists($server, 'frameworkConnection')) {
+                $server->frameworkConnection();
+            }
+        }
+        // 2. 初始参数
         $this->data = $data;
         $this->server = $server;
         $this->taskId = $taskId;
         $this->logUniqid = $logUniqid;
-        $this->logPrefix = $logPrefix;
     }
 
     /**

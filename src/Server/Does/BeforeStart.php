@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Server\Does;
 
+use Uniondrug\Phar\Server\Http;
 use Uniondrug\Phar\Server\XHttp;
 
 /**
@@ -15,7 +16,7 @@ trait BeforeStart
 {
     /**
      * 服务启动前触发
-     * @param XHttp $server
+     * @param Http|XHttp $server
      * @return bool
      */
     public function beforeStart($server)
