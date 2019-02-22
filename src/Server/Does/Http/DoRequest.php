@@ -30,7 +30,7 @@ trait DoRequest
             return;
         }
         // 2. 运行容器
-        $this->runContainer($handler);
+        $server->runContainer($handler);
     }
 
     /**
@@ -46,6 +46,7 @@ trait DoRequest
         if ($handler->getUri() === '/consul.health') {
             $table = $server->getStatsTable();
             $stats = $server->stats();
+            $stats['start_time'] = date('r', $stats['start_time']);
             $stats['statistic'] = [];
             foreach ($table as $key => $data) {
                 $stats['statistic'][$key] = $table->getCount($key);

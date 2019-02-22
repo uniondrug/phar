@@ -111,45 +111,40 @@ trait Phalcon
             $handler->assignPhalcon($request);
             $result = $this->application->handle($handler->getUri());
             if ($result instanceof PhalconResponse) {
-                // 3. 已是PhalconResponse对象
                 $response = $result;
-                // 3.1 转换Cookie
-                //     todo: cookies读不到对象
-                $cookies = $response->getCookies();
-                if ($cookies instanceof \Phalcon\Http\Response\CookiesInterface) {
-                }
-                // 3.2 转换Header
-                $headers = $response->getHeaders();
-                if ($headers instanceof \Phalcon\Http\Response\Headers) {
-                    foreach ($headers->toArray() as $key => $value) {
-                        $handler->addResponseHeader($key, $value);
-                    }
-                }
             } else {
-                // 4. 非PhalconResponse对象
-                //    结果转换
                 $handler->setContentType('text/plain');
                 $response = new PhalconResponse();
                 if (is_string($result)) {
-                    // 5. 返回了字符串
                     $response->setContent($result);
                 } else {
-                    // 6. 其它类型
                     $response->setContent(gettype($result));
                 }
             }
+            // 3. 转换Cookie
+            //     todo: cookies读不到对象
+            $cookies = $response->getCookies();
+            if ($cookies instanceof \Phalcon\Http\Response\CookiesInterface) {
+            }
+            // 4. 转换Header
+            $headers = $response->getHeaders();
+            if ($headers instanceof \Phalcon\Http\Response\Headers) {
+                foreach ($headers->toArray() as $key => $value) {
+                    $handler->addResponseHeader($key, $value);
+                }
+            }
         } catch(\Throwable $e) {
-            // 7. 返回错误
+            // 5. 返回错误
             $response = $service->withError($e->getMessage(), $e->getCode());
             if ($e instanceof Error) {
-                // 8. 过滤业务错误
+                // 6. 过滤业务错误
                 $logger->enableDebug() && $logger->debug("Phalcon业务条件错误 - %s", $e->getMessage());
             } else {
-                // 9. 加入报警
-                $logger->error("Phalcon未捕获{%s}异常 - %s - 位于{%s}第{%d}行", get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
+                // 7. 加入报警
+                $logger->error("Phalcon{%s}异常 - %s - 位于{%s}第{%d}行", get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
             }
         }
-        // 10. 转给Handler
+        // 8. 转给Handler
         $handler->setStatusCode((int) $response->getStatusCode());
         $handler->setContent((string) $response->getContent());
     }

@@ -29,7 +29,6 @@ trait OnRequest
          */
         $server = $this;
         $handler = new HttpHandler($server, $request, $response);
-        $stopWorker = $handler->memoryUsage >= $server->getConfig()->getAllowMemory();
         try {
             // 2. 请求过程
             //    当请求过程返回FALSE时, 以无效请求
@@ -52,7 +51,7 @@ trait OnRequest
             $server->getLogger()->error("请求HTTP出错 - %s - 位于{%s}的第{%d}行", $e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine());
         }
         // 4. 释放资源
-        $handler->end();
+        $stopWorker = $handler->end();
         unset($handler);
         // 5. 退出进程
         //    内存使用量过大时, 退出Worker进程, Manager
