@@ -33,24 +33,29 @@ abstract class XTask implements ITask
      * @var string
      */
     protected $logPrefix = '';
-    protected $logOriginPrefix = null;
     protected $logUniqid;
 
     /**
-     * @param XHttp  $server
-     * @param array  $data
-     * @param string $logUniqid
-     * @param string $logPrefix
+     * @param XHttp $server
+     * @param       $server
+     * @param array $data
+     * @param int   $taskId
+     * @param       $logUniqid
      */
-    public function __construct($server, array $data, int $taskId, $logUniqid, $logPrefix = '')
+    public function __construct($server, array $data, int $taskId, $logUniqid)
     {
-        $server->getContainer();
+        // 1. 绑定Logger
+        if (method_exists($server, 'frameworkLogger')) {
+            $server->frameworkLogger($server->getLogger());
+            if (method_exists($server, 'frameworkConnection')) {
+                $server->frameworkConnection();
+            }
+        }
+        // 2. 初始参数
         $this->data = $data;
         $this->server = $server;
         $this->taskId = $taskId;
         $this->logUniqid = $logUniqid;
-        $this->logOriginPrefix = $server->getLogger()->getPrefix();
-        $this->server->getLogger()->setPrefix($this->logOriginPrefix.$logPrefix);
     }
 
     /**
@@ -58,7 +63,6 @@ abstract class XTask implements ITask
      */
     public function __destruct()
     {
-        $this->server->getLogger()->setPrefix($this->logOriginPrefix);
         $this->data = null;
         $this->server = null;
         $this->taskId = null;

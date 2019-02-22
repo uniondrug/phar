@@ -14,10 +14,18 @@ use Uniondrug\Phar\Server\XHttp;
 trait DoWorkerStart
 {
     /**
+     * Worker进程启动
+     * 当Worker进程启动时, 注册Phalcon框架到进程中
      * @param XHttp $server
      * @param int   $workerId
      */
     public function doWorkerStart($server, int $workerId)
     {
+        if (method_exists($server, 'frameworkRegister')) {
+            $server->frameworkRegister();
+            if (method_exists($server, 'frameworkLogger')) {
+                $server->frameworkLogger($server->getLogger());
+            }
+        }
     }
 }

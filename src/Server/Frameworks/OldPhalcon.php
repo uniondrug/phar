@@ -100,7 +100,7 @@ trait OldPhalcon
          */
         $request = $this->container->getShared('request');
         $handler->assignPhalcon($request);
-        $logger->setPrefix($b->getLogger()->getPrefix().$handler->getRequestHash());
+        $logger->setPrefix($b->getLogger()->getPrefix());
         // 5. run progress
         try {
             $result = $this->application->handle($handler->getUri());
