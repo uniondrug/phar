@@ -414,6 +414,7 @@ class Logger
                     $data = $tbl->flush();
                     $this->server->runTask(LogTask::class, $data);
                 }
+                return true;
             } catch(\Throwable $e) {
             }
         }
