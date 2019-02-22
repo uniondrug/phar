@@ -32,7 +32,8 @@ abstract class XTask implements ITask
      * Log前缀
      * @var string
      */
-    protected $logPrefix;
+    protected $logPrefix = '';
+    protected $logOriginPrefix = null;
     protected $logUniqid;
 
     /**
@@ -48,7 +49,8 @@ abstract class XTask implements ITask
         $this->server = $server;
         $this->taskId = $taskId;
         $this->logUniqid = $logUniqid;
-        $this->logPrefix = $logPrefix;
+        $this->logOriginPrefix = $server->getLogger()->getPrefix();
+        $this->server->getLogger()->setPrefix($this->logOriginPrefix.$logPrefix);
     }
 
     /**
@@ -56,6 +58,7 @@ abstract class XTask implements ITask
      */
     public function __destruct()
     {
+        $this->server->getLogger()->setPrefix($this->logOriginPrefix);
         $this->data = null;
         $this->server = null;
         $this->taskId = null;

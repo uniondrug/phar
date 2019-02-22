@@ -22,7 +22,7 @@ trait DoTask
      * @param string $class
      * @param array  $data
      * @return mixed
-     * @throws \Exception
+     * @throws \Throwable
      */
     public function doTask($server, $taskId, string $logUniqid, string $logPrefix, string $class, array $data)
     {
@@ -30,11 +30,17 @@ trait DoTask
          * @var ITask $task
          */
         $task = new $class($server, $data, $taskId, $logUniqid, $logPrefix);
-        if ($task->beforeRun() !== true) {
-            return false;
+        try {
+            if ($task->beforeRun() !== true) {
+                return false;
+            }
+            $result = $task->run();
+            $task->afterRun($result);
+            return $result;
+        } catch(\Throwable $e) {
+            throw $e;
+        } finally {
+            unset($task);
         }
-        $result = $task->run();
-        $task->afterRun($result);
-        return $result;
     }
 }

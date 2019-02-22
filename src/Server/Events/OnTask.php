@@ -47,7 +47,7 @@ trait OnTask
             $logPrefix .= "[y=".$data['class']."]";
             $logger->enableDebug() && $logger->debug("%s任务开始,申请内存{%.01f}M内存", $logPrefix, $memory);
             $result = $this->doTask($server, $taskId, $logUniqid, $logPrefix, $data['class'], $data['params']);
-            $logger->info("%s[d=%.06f]任务完成", $logPrefix, microtime(true) - $begin);
+            $logger->debug("%s[d=%.06f]任务完成", $logPrefix, microtime(true) - $begin);
             $this->stopTaskerAfterOnTask($server, $usage);
             return $result != false;
         } catch(\Throwable $e) {

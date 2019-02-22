@@ -98,7 +98,7 @@ trait Phalcon
          * @var PhalconResponse $response
          */
         $b = $this->boot;
-        $this->phalconLoader();
+        $this->phalconLoader($handler->getRequestHash());
         $service = $this->container->getShared('serviceServer');
         $request = $this->container->getShared('request');
         $logger = $this->container->getShared('logger');
@@ -153,7 +153,7 @@ trait Phalcon
      * 加载Phalcon框架
      * @return $this
      */
-    private function phalconLoader()
+    private function phalconLoader($hash = '')
     {
         /**
          * 1. 创建实例
@@ -164,7 +164,7 @@ trait Phalcon
         if ($this->application === null || $this->container === null) {
             $cfg = $server->getConfig();
             $args = $server->getArgs();
-            $server->getLogger()->enableDebug() && $server->getLogger()->debug("初始化Phalcon容器");
+            $server->getLogger()->enableDebug() && $server->getLogger()->debug("{$hash}初始化Phalcon容器");
             // 1.1 create object
             $this->container = new Container($args->getBasePath());
             // 1.2 set shared server
