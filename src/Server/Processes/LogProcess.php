@@ -91,8 +91,6 @@ class LogProcess extends XProcess
         if ($seconds >= 3 && $seconds <= 300) {
             $this->seconds = (int) $seconds;
         }
-        $this->limit = 512;
-        $this->seconds = 60;
     }
 
     /**
