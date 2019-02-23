@@ -117,7 +117,7 @@ abstract class Http extends swoole_http_server
         }
         // 4.2 tables.log
         if (!isset($tables[LogTable::class])) {
-            $tables[LogTable::class] = $cfg->logBatchLimit;
+            $tables[LogTable::class] = LogTable::MESSAGE_SIZE;
         }
         $log->info("注册{%d}个内存表", count($tables));
         // 4.3 tables.*
@@ -222,7 +222,7 @@ abstract class Http extends swoole_http_server
      */
     public function getLogTable()
     {
-        return $this->getTable(LogTable::TABLE_NAME);
+        return $this->getTable(LogTable::NAME);
     }
 
     /**
@@ -276,9 +276,6 @@ abstract class Http extends swoole_http_server
      */
     public function getMutex()
     {
-        if ($this->_mutex === null) {
-            $this->_mutex = new Lock(SWOOLE_MUTEX);
-        }
         return $this->_mutex;
     }
 
@@ -314,6 +311,19 @@ abstract class Http extends swoole_http_server
             return parent::start();
         }
         return false;
+    }
+
+    /**
+     * 初始化锁
+     * 在Master进程(onStart)时注册
+     * @return $this
+     */
+    public function setMutex()
+    {
+        if ($this->_mutex === null) {
+            $this->_mutex = new Lock(SWOOLE_MUTEX);
+        }
+        return $this;
     }
 
     /**

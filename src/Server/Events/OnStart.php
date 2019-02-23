@@ -20,6 +20,7 @@ trait OnStart
      */
     final public function onStart($server)
     {
+        $server->setMutex();
         $name = $server->setProcessName('master');
         $server->getLogger()->setServer($server)->setPrefix("[%s:%d][%s][x=m:%d]", $server->getConfig()->getDeployIp(), $server->getConfig()->port, $server->getConfig()->name, $server->getMasterPid());
         $server->getLogger()->info("启动{%s}进程", $name);
