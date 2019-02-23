@@ -56,10 +56,10 @@ class Config
     private $_contentType = 'application/json';
     /**
      * 日志落盘频率
-     * 每512条Log保存一次
+     * 每100条Log保存一次
      * @var int
      */
-    private $_logBatchLimit = 2048;
+    private $_logBatchLimit = 100;
     /**
      * 日志落盘频率
      * 每隔60秒保存一次Log

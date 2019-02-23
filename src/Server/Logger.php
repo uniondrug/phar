@@ -407,14 +407,9 @@ class Logger
         if ($this->server !== null) {
             try {
                 // b) 加入内存表
-                //    当内存表数量满时
-                $tbl = $this->server->getLogTable();
-                $full = $tbl->add($label, $message);
-                if ($full) {
-                    $data = $tbl->flush();
-                    $this->server->runTask(LogTask::class, $data);
+                if ($this->server->getLogTable()->add($label, $message)) {
+                    return true;
                 }
-                return true;
             } catch(\Throwable $e) {
             }
         }

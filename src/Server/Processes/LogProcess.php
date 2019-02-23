@@ -5,6 +5,8 @@
  */
 namespace Uniondrug\Phar\Server\Processes;
 
+use Uniondrug\Phar\Server\Tables\LogTable;
+use Uniondrug\Phar\Server\Tables\StatsTable;
 use Uniondrug\Phar\Server\Tasks\LogTask;
 
 /**
@@ -14,33 +16,150 @@ use Uniondrug\Phar\Server\Tasks\LogTask;
 class LogProcess extends XProcess
 {
     /**
+     * 禁用状态
+     * @var bool
+     */
+    private $disabled;
+    /**
+     * 内存表对象
+     * @var LogTable
+     */
+    private $table;
+    /**
+     * 内存统计表
+     * @var StatsTable
+     */
+    private $statsTable;
+    /**
+     * 检查周期
+     * @var int
+     */
+    private $tickms = 10;
+    /**
+     * 上报数量
+     * 单位: 条
+     * 范围: 32-1024
+     * 说明: 当内存表中日志积累数量, 在此范围时
+     *      从内存表中提出Log, 上报到Kafka(或落盘)
+     * @var int
+     */
+    private $limit = 100;
+    /**
+     * 提交频次
+     * 单位: 秒
+     * 范围: 3-300
+     * 说明: 连续2次上报Log时间间隔
+     * @var int
+     */
+    private $seconds = 60;
+    /**
+     * 最近上报
+     * 最近一次上报Log的Unix时间戳
+     * @var int
+     */
+    private $timestamp = 0;
+    /**
+     * 上报总数
+     * 进程自动启动至今共上报数量
+     * @var int
+     */
+    private $saveCount = 0;
+    /**
+     * 上次次数
+     * @var int
+     */
+    private $saveTimes = 0;
+
+    /**
+     * 前置
+     */
+    public function beforeRun()
+    {
+        parent::beforeRun();
+        // 1. 基础参数
+        $this->disabled = $this->getServer()->getArgs()->hasOption('log-stdout');
+        $this->table = $this->getServer()->getLogTable();
+        $this->statsTable = $this->getServer()->getStatsTable();
+        $this->timestamp = time();
+        // 2. 单次提交数量
+        $limit = (int) $this->getServer()->getConfig()->logBatchLimit;
+        if ($limit >= 32 && $limit <= 1024) {
+            $this->limit = $limit;
+        }
+        // 3. 提交频次
+        $seconds = (int) $this->getServer()->getConfig()->logBatchSeconds;
+        if ($seconds >= 3 && $seconds <= 300) {
+            $this->seconds = (int) $seconds;
+        }
+        $this->limit = 512;
+        $this->seconds = 60;
+    }
+
+    /**
      * 注册定时器
      * 每隔N秒, 发送一次日志
      */
     public function run()
     {
-        // disable log storage.
-        if ($this->getServer()->getArgs()->hasOption('log-stdout')) {
+        // 1. 未启用
+        //    当启动应用时设置了`--log-stdout`选项, 则视为禁用了
+        if ($this->disabled) {
             return;
         }
-        // enable log process
-        $seconds = (int) $this->getServer()->getConfig()->logBatchSeconds;
-        $seconds > 1 || $seconds = 5;
-        $this->getServer()->getLogger()->enableDebug() && $this->getServer()->getLogger()->debug("设置每隔{%d}秒后,保存一次日志", $seconds);
-        $this->getServer()->tick($seconds * 1000, [
+        // 2. 定时执行
+        $this->getServer()->tick($this->tickms, [
             $this,
-            'publishLogs'
+            'timer'
         ]);
     }
 
     /**
-     * 保存日志
+     * 检查数量
+     * @return bool
      */
-    public function publishLogs()
+    public function timer()
     {
-        $data = $this->getServer()->getLogTable()->flush();
-        if ($data !== null) {
-            $this->getServer()->runTask(LogTask::class, $data);
+        $time = time();
+        // 1. 定时提交
+        if (($time - $this->timestamp) >= $this->seconds) {
+            $this->save();
+            return true;
         }
+        // 2. 检查数量
+        if ($this->table->count() >= $this->limit) {
+            $this->save();
+            return true;
+        }
+        // 3. 无需提交
+        return false;
+    }
+
+    /**
+     * 读取数量并提交
+     */
+    public function save()
+    {
+        // 1. 读取内容
+        $limit = 0;
+        $datas = [];
+        foreach ($this->table as $key => $data) {
+            if ($this->table->del($key)) {
+                $datas[$key] = $data;
+                $limit++;
+                if ($limit >= $this->limit) {
+                    break;
+                }
+            }
+        }
+        // 2. 更新记时
+        $this->timestamp = time();
+        if ($limit === 0) {
+            return false;
+        }
+        // 3. 执行Task
+        $this->statsTable->incrLogs();
+        $this->statsTable->incrLogsCount($limit);
+        $this->getServer()->runTask(LogTask::class, $datas);
+        return true;
     }
 }

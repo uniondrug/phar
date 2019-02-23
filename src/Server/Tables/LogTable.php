@@ -16,15 +16,15 @@ use Uniondrug\Phar\Server\XHttp;
  */
 class LogTable extends XTable
 {
-    const MUTEX_TIMEOUT = 0.2;
     /**
      * 单条Log最大字符数
      */
     const MESSAGE_LENGTH = 8192;
+    const MESSAGE_SIZE = 102400;
     /**
      * 内存表名称
      */
-    const TABLE_NAME = 'logTable';
+    const NAME = 'logTable';
     /**
      * 列信息
      * @var array
@@ -48,28 +48,21 @@ class LogTable extends XTable
         ]
     ];
     /**
-     * 防内存溢出阀值
-     * @var int
-     */
-    private $limit = 0;
-    /**
      * 内存表名称
      * @var string
      */
-    protected $name = self::TABLE_NAME;
-    private $mutex;
+    protected $name = self::NAME;
 
     /**
-     * constructor.
+     * 初始化内存
+     * 内存表最大条目数由常量指定, 参数$size设置批量提交频率
+     * 即每遇内存积累$size条记录时, 上报Log
      * @param XHttp $server
-     * @param int   $size
+     * @param int   $size 范围在32-1024间任意数字
      */
     public function __construct($server, $size)
     {
-        $size < 1024 && $size = 1024;
         parent::__construct($server, $size);
-        $this->limit = $size / 2;
-        $this->mutex = new Lock(SWOOLE_MUTEX);
     }
 
     /**
@@ -86,43 +79,16 @@ class LogTable extends XTable
         if ($len > self::MESSAGE_LENGTH) {
             $message = substr($message, 0, self::MESSAGE_LENGTH - 8).' ...';
         }
-        $full = false;
-        $this->mutex->lockwait(self::MUTEX_TIMEOUT);
-        try {
-            $this->set($key, [
-                'key' => $key,
-                'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
-                'level' => $level,
-                'message' => $message
-            ]);
-            if (error_get_last() !== null) {
-                error_clear_last();
-            }
-            $full = count($this) >= $this->limit;
-        } catch(\Throwable $e) {
+        $done = $this->set($key, [
+            'key' => $key,
+            'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
+            'level' => $level,
+            'message' => $message
+        ]);
+        if (error_get_last() !== null) {
+            error_clear_last();
         }
-        $this->mutex->unlock();
-        return $full;
-    }
-
-    /**
-     * 清空日志
-     * @return array
-     */
-    public function flush()
-    {
-        $this->mutex->lockwait(self::MUTEX_TIMEOUT);
-        $logs = [];
-        try {
-            foreach ($this as $key => $data) {
-                if ($this->del($key)) {
-                    $logs[$key] = $data;
-                }
-            }
-        } catch(\Throwable $e) {
-        }
-        $this->mutex->unlock();
-        return $logs;
+        return $done !== false;
     }
 
     /**

@@ -23,6 +23,8 @@ class StatsTable extends XTable
     const KEY_TASK_ON_FAIL = 'onTaskFail';
     const KEY_TASK_RUN = 'runTask';
     const KEY_TASK_RUN_FAIL = 'runTaskFail';
+    const KEY_LOGS_TIMES = 'logPublish';
+    const KEY_LOGS_COUNT = 'logPublishCount';
     /**
      * 列信息
      * @var array
@@ -77,6 +79,16 @@ class StatsTable extends XTable
             return $this->incr($key, self::TABLE_COUNT, $count);
         }
         return $this->resetCount($key);
+    }
+
+    public function incrLogs()
+    {
+        $this->incrCount(self::KEY_LOGS_TIMES, 1);
+    }
+
+    public function incrLogsCount(int $count)
+    {
+        $this->incrCount(self::KEY_LOGS_COUNT, $count);
     }
 
     /**

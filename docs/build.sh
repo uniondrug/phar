@@ -16,19 +16,22 @@ if [ -z ${branch} ]; then
 fi
 
 
+
 # 3. applications
-apps="backend.stagnation \
+apps="backend.notify \
+backend.stagnation \
 backend.wx \
 module.customer \
 module.data \
 module.equity \
 module.insure \
+module.mbx \
 module.product \
 module.project \
 module.rule \
+module.stagnation \
 module.user \
-module.wx \
-module.stagnation"
+module.wx"
 
 # 4. path
 cd ..
