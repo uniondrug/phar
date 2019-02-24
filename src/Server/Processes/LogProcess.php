@@ -34,7 +34,7 @@ class LogProcess extends XProcess
      * 检查周期
      * @var int
      */
-    private $tickms = 10;
+    private $delayms = 100;
     /**
      * 上报数量
      * 单位: 条
@@ -64,6 +64,7 @@ class LogProcess extends XProcess
      * @var int
      */
     private $saveCount = 0;
+    private $timerCount = 0;
     /**
      * 上次次数
      * @var int
@@ -105,10 +106,11 @@ class LogProcess extends XProcess
             return;
         }
         // 2. 定时执行
-        $this->getServer()->tick($this->tickms, [
-            $this,
-            'timer'
-        ]);
+        while (true) {
+            $this->timerCount++;
+            $this->timer();
+            usleep($this->delayms * 1000);
+        }
     }
 
     /**
@@ -157,6 +159,7 @@ class LogProcess extends XProcess
         // 3. 执行Task
         $this->statsTable->incrLogs();
         $this->statsTable->incrLogsCount($limit);
+        $this->statsTable->incrLogsStored($this->table->count());
         $this->getServer()->runTask(LogTask::class, $datas);
         return true;
     }

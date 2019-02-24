@@ -116,7 +116,7 @@ abstract class Http extends swoole_http_server
             $tables[StatsTable::class] = 2048;
         }
         // 4.2 tables.log
-        if (!isset($tables[LogTable::class])) {
+        if (!$boot->getArgs()->hasOption('log-stdout') && !isset($tables[LogTable::class])) {
             $tables[LogTable::class] = LogTable::MESSAGE_SIZE;
         }
         $log->info("注册{%d}个内存表", count($tables));
@@ -139,7 +139,7 @@ abstract class Http extends swoole_http_server
         // 5. processes
         $processes = $cfg->processes;
         // 5.1 log process
-        if (!in_array(LogProcess::class, $processes)) {
+        if (!$boot->getArgs()->hasOption('log-stdout') && !in_array(LogProcess::class, $processes)) {
             $processes[] = LogProcess::class;
         }
         // 5.2 cron(crontab) process
