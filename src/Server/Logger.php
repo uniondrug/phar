@@ -407,7 +407,14 @@ class Logger
         if ($this->server !== null) {
             try {
                 // b) 加入内存表
-                if ($this->server->getLogTable()->add($label, $message)) {
+                $added = $this->server->getLogTable()->add($label, $message);
+                if (is_bool($added)) {
+                    if ($added) {
+                        $poped = $this->server->getLogTable()->pop();
+                        if ($poped !== false) {
+                            $this->server->runTask(LogTask::class, $poped);
+                        }
+                    }
                     return true;
                 }
             } catch(\Throwable $e) {

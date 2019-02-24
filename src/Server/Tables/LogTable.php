@@ -5,7 +5,6 @@
  */
 namespace Uniondrug\Phar\Server\Tables;
 
-use Swoole\Lock;
 use Uniondrug\Phar\Server\XHttp;
 
 /**
@@ -52,6 +51,7 @@ class LogTable extends XTable
      * @var string
      */
     protected $name = self::NAME;
+    private $limit = 100;
 
     /**
      * 初始化内存
@@ -69,7 +69,7 @@ class LogTable extends XTable
      * 添加日志
      * @param string $level
      * @param string $message
-     * @return bool
+     * @return bool|null
      * @throws \Exception
      */
     public function add(string $level, string $message)
@@ -88,7 +88,40 @@ class LogTable extends XTable
         if (error_get_last() !== null) {
             error_clear_last();
         }
-        return $done !== false;
+        if ($done) {
+            return $this->count() >= $this->limit;
+        }
+        return null;
+    }
+
+    /**
+     * @return array|false
+     */
+    public function pop()
+    {
+        $i = 0;
+        $data = [];
+        foreach ($this as $key => $row) {
+            if ($this->del($key)) {
+                $i++;
+                $data[$key] = $row;
+                if ($i >= $this->limit) {
+                    break;
+                }
+            }
+        }
+        return $i > 0 ? $data : false;
+    }
+
+    /**
+     * 设置限额
+     * @param int $limit
+     * @return $this
+     */
+    public function setLimit(int $limit)
+    {
+        $this->limit = $limit;
+        return $this;
     }
 
     /**

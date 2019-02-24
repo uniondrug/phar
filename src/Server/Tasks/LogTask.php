@@ -47,6 +47,7 @@ class LogTask extends XTask
         'taskName' => '',
         'content' => ''
     ];
+    private $logCount = 0;
 
     /**
      * 前置检查
@@ -54,14 +55,19 @@ class LogTask extends XTask
      */
     public function beforeRun() : bool
     {
+        $this->logCount = count($this->data);
         // 1. 空数据不操作
-        if (count($this->data) === 0) {
+        if ($this->logCount === 0) {
             return false;
         }
         // 2. 数据排弃
         ksort($this->data);
         reset($this->data);
         // 3. 继续执行run()方法
+        $table = $this->getServer()->getStatsTable();
+        $table->incrLogs();
+        $table->incrLogsCount($this->logCount);
+        $table->incrLogsStored($this->getServer()->getLogTable()->count());
         return parent::beforeRun();
     }
 

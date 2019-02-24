@@ -358,10 +358,10 @@ class Config
             $this->setHost($m[1])->setPort($m[2]);
         }
         // 7. logger
-        if (isset($srv['logBatchLimit']) && is_numeric($srv['logBatchLimit']) && $srv['logBatchLimit'] >= 1) {
+        if (isset($srv['logBatchLimit']) && is_numeric($srv['logBatchLimit']) && $srv['logBatchLimit'] >= 32 && $srv['logBatchLimit'] <= 1024) {
             $this->_logBatchLimit = (int) $srv['logBatchLimit'];
         }
-        if (isset($srv['logBatchSeconds']) && is_numeric($srv['logBatchSeconds']) && $srv['logBatchSeconds'] >= 1) {
+        if (isset($srv['logBatchSeconds']) && is_numeric($srv['logBatchSeconds']) && $srv['logBatchSeconds'] >= 3 && $srv['logBatchSeconds'] <= 300) {
             $this->_logBatchSeconds = (int) $srv['logBatchSeconds'];
         }
         if (isset($srv['logKafkaOn'])) {
