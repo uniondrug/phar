@@ -25,6 +25,7 @@ class StatsTable extends XTable
     const KEY_TASK_RUN_FAIL = 'runTaskFail';
     const KEY_LOGS_TIMES = 'logPublish';
     const KEY_LOGS_COUNT = 'logPublishCount';
+    const KEY_LOGS_STORED = 'logStored';
     /**
      * 列信息
      * @var array
@@ -81,14 +82,35 @@ class StatsTable extends XTable
         return $this->resetCount($key);
     }
 
+    /**
+     * 上报次数
+     * @return bool
+     */
     public function incrLogs()
     {
-        $this->incrCount(self::KEY_LOGS_TIMES, 1);
+        return $this->incrCount(self::KEY_LOGS_TIMES, 1);
     }
 
+    /**
+     * 上报数量
+     * 共上报多少数据到Kafka/File中
+     * @param int $count
+     * @return bool
+     */
     public function incrLogsCount(int $count)
     {
-        $this->incrCount(self::KEY_LOGS_COUNT, $count);
+        return $this->incrCount(self::KEY_LOGS_COUNT, $count);
+    }
+
+    /**
+     * 积余统计
+     * 内存表积余Log数量
+     * @param int $count
+     * @return bool
+     */
+    public function incrLogsStored(int $count)
+    {
+        return $this->incrCount(self::KEY_LOGS_STORED, $count);
     }
 
     /**
