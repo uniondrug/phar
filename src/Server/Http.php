@@ -132,6 +132,9 @@ abstract class Http extends swoole_http_server
              * @var ITable $tbl
              */
             $tbl = new $table($this, $size);
+            if ($tbl instanceof LogTable){
+                $tbl->setLimit($boot->getConfig()->logBatchLimit);
+            }
             $name = $tbl->getName();
             $this->_tableLoads[$name] = $tbl;
             $log->enableDebug() && $log->debug("内存表{%s}注册到{%s}并初始化{%d}条记录", $name, $table, $size);

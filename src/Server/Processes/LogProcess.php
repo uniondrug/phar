@@ -77,14 +77,14 @@ class LogProcess extends XProcess
         $this->statsTable = $this->getServer()->getStatsTable();
         $this->timestamp = time();
         // 2. 单次提交数量
-        $limit = (int) $this->getServer()->getConfig()->logBatchLimit;
-        if ($limit >= 32 && $limit <= 1024) {
+        $limit = $this->getServer()->getConfig()->logBatchLimit;
+        if ($limit > 0) {
             $this->limit = $limit;
         }
         // 3. 提交频次
-        $seconds = (int) $this->getServer()->getConfig()->logBatchSeconds;
-        if ($seconds >= 3 && $seconds <= 300) {
-            $this->seconds = (int) $seconds;
+        $seconds = $this->getServer()->getConfig()->logBatchSeconds;
+        if ($seconds > 0) {
+            $this->seconds = $seconds;
         }
     }
 
@@ -100,11 +100,6 @@ class LogProcess extends XProcess
         }
         // 2. 循环执行
         while (true) {
-            // todo: 如此设置, CPU占用比较多
-            //       实现逻辑得优化, 本次暂设置
-            //       1秒检查一次内存表, 进行数据
-            //       上报, 不保证能解决问题
-            // date: 2019-02-24
             $this->timerCount++;
             $this->timer();
             usleep($this->delayms * 1000);
@@ -138,28 +133,13 @@ class LogProcess extends XProcess
      */
     public function save()
     {
-        // 1. 读取内容
-        $limit = 0;
-        $datas = [];
-        foreach ($this->table as $key => $data) {
-            if ($this->table->del($key)) {
-                $datas[$key] = $data;
-                $limit++;
-                if ($limit >= $this->limit) {
-                    break;
-                }
-            }
-        }
-        // 2. 更新记时
         $this->timestamp = time();
-        if ($limit === 0) {
-            return false;
+        // 1. 读取内容
+        $poped = $this->table->pop();
+        if ($poped !== false) {
+            $this->getServer()->runTask(LogTask::class, $datas);
+            return true;
         }
-        // 3. 执行Task
-        $this->statsTable->incrLogs();
-        $this->statsTable->incrLogsCount($limit);
-        $this->statsTable->incrLogsStored($this->table->count());
-        $this->getServer()->runTask(LogTask::class, $datas);
-        return true;
+        return false;
     }
 }
