@@ -34,7 +34,7 @@ class LogProcess extends XProcess
      * 检查周期
      * @var int
      */
-    private $delayms = 100;
+    private $delayms = 1000;
     /**
      * 上报数量
      * 单位: 条
@@ -63,13 +63,7 @@ class LogProcess extends XProcess
      * 进程自动启动至今共上报数量
      * @var int
      */
-    private $saveCount = 0;
     private $timerCount = 0;
-    /**
-     * 上次次数
-     * @var int
-     */
-    private $saveTimes = 0;
 
     /**
      * 前置
@@ -95,8 +89,7 @@ class LogProcess extends XProcess
     }
 
     /**
-     * 注册定时器
-     * 每隔N秒, 发送一次日志
+     * 执行过程
      */
     public function run()
     {
@@ -105,8 +98,13 @@ class LogProcess extends XProcess
         if ($this->disabled) {
             return;
         }
-        // 2. 定时执行
+        // 2. 循环执行
         while (true) {
+            // todo: 如此设置, CPU占用比较多
+            //       实现逻辑得优化, 本次暂设置
+            //       1秒检查一次内存表, 进行数据
+            //       上报, 不保证能解决问题
+            // date: 2019-02-24
             $this->timerCount++;
             $this->timer();
             usleep($this->delayms * 1000);
@@ -119,6 +117,7 @@ class LogProcess extends XProcess
      */
     public function timer()
     {
+        // echo "[".date('H:i:s')."] - Run({$this->timerCount})\n";
         $time = time();
         // 1. 定时提交
         if (($time - $this->timestamp) >= $this->seconds) {
