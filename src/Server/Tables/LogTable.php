@@ -20,7 +20,7 @@ class LogTable extends XTable
      * 单条Log最大字符数
      */
     const MESSAGE_LENGTH = 8192;
-    const MESSAGE_SIZE = 102400;
+    const MESSAGE_SIZE = 1024000;
     /**
      * 内存表名称
      */
