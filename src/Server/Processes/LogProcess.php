@@ -137,7 +137,7 @@ class LogProcess extends XProcess
         // 1. 读取内容
         $poped = $this->table->pop();
         if ($poped !== false) {
-            $this->getServer()->runTask(LogTask::class, $datas);
+            $this->getServer()->runTask(LogTask::class, $poped);
             return true;
         }
         return false;

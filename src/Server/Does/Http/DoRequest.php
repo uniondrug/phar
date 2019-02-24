@@ -46,7 +46,7 @@ trait DoRequest
         if ($handler->getUri() === '/consul.health') {
             $table = $server->getStatsTable();
             $stats = $server->stats();
-            $stats['start_time'] = date('r', $stats['start_time']);
+            $stats['start_time'] = date('Y-m-d H:i:s', $stats['start_time']);
             $stats['statistic'] = [];
             foreach ($table as $key => $data) {
                 $stats['statistic'][$key] = $table->getCount($key);
