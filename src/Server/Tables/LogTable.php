@@ -18,12 +18,12 @@ class LogTable extends XTable
     /**
      * 单条Log最大字符数
      */
-    const MESSAGE_LENGTH = 8192;
-    const MESSAGE_SIZE = 65536;
+    const LENGTH = 8192;
     /**
      * 内存表名称
      */
     const NAME = 'logTable';
+    const SIZE = 16384;
     /**
      * 列信息
      * @var array
@@ -43,7 +43,7 @@ class LogTable extends XTable
         ],
         'message' => [
             parent::TYPE_STRING,
-            self::MESSAGE_LENGTH
+            self::LENGTH
         ]
     ];
     /**
@@ -76,8 +76,8 @@ class LogTable extends XTable
     {
         $key = $this->makeKey();
         $len = strlen($message);
-        if ($len > self::MESSAGE_LENGTH) {
-            $message = substr($message, 0, self::MESSAGE_LENGTH - 8).' ...';
+        if ($len > self::LENGTH) {
+            $message = substr($message, 0, self::LENGTH - 8).' ...';
         }
         $mutex = $this->getServer()->getMutex();
         if ($mutex->lock()) {

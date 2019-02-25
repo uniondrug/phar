@@ -114,11 +114,11 @@ abstract class Http extends swoole_http_server
         $tables = $cfg->tables;
         // 4.1 tables.stats
         if (!isset($tables[StatsTable::class])) {
-            $tables[StatsTable::class] = 2048;
+            $tables[StatsTable::class] = StatsTable::SIZE;
         }
         // 4.2 tables.log
         if (!$boot->getArgs()->hasOption('log-stdout') && !isset($tables[LogTable::class])) {
-            $tables[LogTable::class] = LogTable::MESSAGE_SIZE;
+            $tables[LogTable::class] = LogTable::SIZE;
         }
         $log->info("注册{%d}个内存表", count($tables));
         // 4.3 tables.*
@@ -235,7 +235,7 @@ abstract class Http extends swoole_http_server
      */
     public function getStatsTable()
     {
-        return $this->getTable(StatsTable::TABLE_NAME);
+        return $this->getTable(StatsTable::NAME);
     }
 
     /**

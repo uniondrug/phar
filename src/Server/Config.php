@@ -613,9 +613,9 @@ class Config
     {
         if ($this->addr === null) {
             $names = [
-                'en0',
                 'eth0',
-                'eth1'
+                'eth1',
+                'en0'
             ];
             foreach ($names as $name) {
                 $ip = $this->ipFromAddr($name);
