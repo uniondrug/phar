@@ -7,6 +7,7 @@ namespace Uniondrug\Phar\Server\Does\Http;
 
 use Uniondrug\Phar\Server\Handlers\HttpHandler;
 use Uniondrug\Phar\Server\Managers\Agents\IAgent;
+use Uniondrug\Phar\Server\Tables\XTable;
 use Uniondrug\Phar\Server\XHttp;
 use Uniondrug\Phar\Server\XOld;
 
@@ -43,17 +44,20 @@ trait DoRequest
         // /sidecar.health
         $handler->setContentType('application/json');
         $handler->setStatusCode(200);
-        if ($handler->getUri() === '/consul.health') {
-            $table = $server->getStatsTable();
-            $stats = $server->stats();
-            $stats['start_time'] = date('Y-m-d H:i:s', $stats['start_time']);
-            $stats['statistic'] = [];
-            foreach ($table as $key => $data) {
-                $stats['statistic'][$key] = $table->getCount($key);
-            }
-            $handler->setContent(json_encode($stats));
-        } else {
-            $handler->setContent('{"status":"UP"}');
+        $url = $handler->getUri();
+        switch ($url) {
+            case '/consul.health' :
+                $this->healthForConsul($handler, $server);
+                break;
+            case '/sidecar.health' :
+                $this->healthForSidecar($handler);
+                break;
+            case '/table.health' :
+                $this->healthForTables($handler, $server);
+                break;
+            default :
+                $handler->setContent('{}');
+                break;
         }
     }
 
@@ -103,5 +107,65 @@ trait DoRequest
         $handler->setStatusCode(404);
         $handler->setContent("HTTP 404 Not Found");
         $server->getLogger()->warning("未定义的Manager");
+    }
+
+    /**
+     * @param HttpHandler $handler
+     * @param XHttp|XOld  $server
+     */
+    private function healthForConsul(HttpHandler $handler, $server)
+    {
+        $table = $server->getStatsTable();
+        $stats = $server->stats();
+        $stats['start_time'] = date('Y-m-d H:i:s', $stats['start_time']);
+        $stats['statistic'] = [];
+        foreach ($table as $key => $data) {
+            $stats['statistic'][$key] = $table->getCount($key);
+        }
+        $handler->setContent(json_encode($stats));
+    }
+
+    /**
+     * @param HttpHandler $handler
+     */
+    private function healthForSidecar(HttpHandler $handler)
+    {
+        $handler->setContent('{"status":"UP"}');
+    }
+
+    /**
+     * 读取内存表信息
+     * 遍历全部内存表, 并最多30条数据
+     * @param HttpHandler $handler
+     * @param XHttp|XOld  $server
+     * @param int         $limit
+     */
+    private function healthForTables(HttpHandler $handler, $server, $limit = 30)
+    {
+        /**
+         * @var array  $data
+         * @var array  $tables
+         * @var XTable $table
+         */
+        $data = [];
+        $tables = $server->getTables();
+        foreach ($tables as $table) {
+            $name = $table->getName();
+            $data[$name] = [
+                'count' => $table->count(),
+                'items' => []
+            ];
+            if ($data[$name] > 0) {
+                $i = 0;
+                foreach ($table as $key => $item) {
+                    $data[$name]['items'][$key] = $item;
+                    $i++;
+                    if ($i >= $limit) {
+                        break;
+                    }
+                }
+            }
+        }
+        $handler->setContent(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 }
