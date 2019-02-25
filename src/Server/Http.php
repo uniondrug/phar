@@ -85,6 +85,7 @@ abstract class Http extends swoole_http_server
         $log->setPrefix("[%s:%d][%s]", $cfg->getDeployIp(), $cfg->port, $cfg->name);
         $log->info("创建{%s}实例, 以{%s}Mode和{%s}Sock", get_class($this), $cfg->serverMode, $cfg->serverSockType);
         parent::__construct($cfg->host, $cfg->port, $cfg->serverMode, $cfg->serverSockType);
+        $this->_mutex = new Mutex();
         // 2. settings
         $settings = $cfg->settings;
         $log->info("配置{%d}项参数", count($settings));
@@ -132,7 +133,7 @@ abstract class Http extends swoole_http_server
              * @var ITable $tbl
              */
             $tbl = new $table($this, $size);
-            if ($tbl instanceof LogTable){
+            if ($tbl instanceof LogTable) {
                 $tbl->setLimit($boot->getConfig()->logBatchLimit);
             }
             $name = $tbl->getName();
@@ -314,19 +315,6 @@ abstract class Http extends swoole_http_server
             return parent::start();
         }
         return false;
-    }
-
-    /**
-     * 初始化锁
-     * 在Master进程(onStart)时注册
-     * @return $this
-     */
-    public function setMutex()
-    {
-        if ($this->_mutex === null) {
-            $this->_mutex = new Lock(SWOOLE_MUTEX);
-        }
-        return $this;
     }
 
     /**

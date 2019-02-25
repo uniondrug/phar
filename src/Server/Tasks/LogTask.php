@@ -137,7 +137,8 @@ class LogTask extends XTask
                         'logs' => $parsed['logs']
                     ]
                 ]);
-                $logger->enableDebug() && $logger->debug("向{%s}提交了从{%s}到{%s}的Log{%d}条", $url, $parsed['begin'], $parsed['end'], $parsed['count']);
+                $leaved = $this->getServer()->getLogTable()->count();
+                $logger->enableDebug() && $logger->debug("向{%s}提交了从{%s}到{%s}的Log{%d}条, 余{%d}条", $url, $parsed['begin'], $parsed['end'], $parsed['count'], $leaved);
                 return true;
             }
         } catch(\Throwable $e) {

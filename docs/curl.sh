@@ -117,17 +117,35 @@ done
 
 
 
+# consul health
+curl -s http://172.16.0.67:8086/consul.health | awk -F ',' '{print "8086-customer.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.67:8087/consul.health | awk -F ',' '{print "8087-project.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.67:8088/consul.health | awk -F ',' '{print "8088-product.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.67:8089/consul.health | awk -F ',' '{print "8089-user.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.67:8090/consul.health | awk -F ',' '{print "8090-equity.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.67:8093/consul.health | awk -F ',' '{print "8093-data.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.66:8095/consul.health | awk -F ',' '{print "8095-rule.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.67:8118/consul.health | awk -F ',' '{print "8118-insure.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.67:8119/consul.health | awk -F ',' '{print "8119-wx.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.65:8120/consul.health | awk -F ',' '{print "8120-stagnation.backend{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.64:8210/consul.health | awk -F ',' '{print "8210-notify.backend{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.65:8213/consul.health | awk -F ',' '{print "8213-wx.backend{"$5", "$8", "$9", "$10", "$11", "$12}' && \
+curl -s http://172.16.0.67:8215/consul.health | awk -F ',' '{print "8215-stagnation.module{"$5", "$8", "$9", "$10", "$11", "$12}'
 
-curl http://172.16.0.67:8086/consul.health | awk -F ',' '{print "8086-customer.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.67:8087/consul.health | awk -F ',' '{print "8087-project.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.67:8088/consul.health | awk -F ',' '{print "8088-product.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.67:8089/consul.health | awk -F ',' '{print "8089-user.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.67:8090/consul.health | awk -F ',' '{print "8090-equity.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.67:8093/consul.health | awk -F ',' '{print "8093-data.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.66:8095/consul.health | awk -F ',' '{print "8095-rule.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.67:8118/consul.health | awk -F ',' '{print "8118-insure.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.67:8119/consul.health | awk -F ',' '{print "8119-wx.module{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.65:8120/consul.health | awk -F ',' '{print "8120-stagnation.backend{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.64:8210/consul.health | awk -F ',' '{print "8210-notify.backend{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.65:8213/consul.health | awk -F ',' '{print "8213-wx.backend{"$5", "$8", "$9", "$10", "$11", "$12}' && \
-curl http://172.16.0.67:8215/consul.health | awk -F ',' '{print "8215-stagnation.module{"$5", "$8", "$9", "$10", "$11", "$12}'
+# table health
+echo '{' && \
+curl -s http://172.16.0.67:8086/table.health && \
+curl -s http://172.16.0.67:8087/table.health && \
+curl -s http://172.16.0.67:8088/table.health && \
+curl -s http://172.16.0.67:8089/table.health && \
+curl -s http://172.16.0.67:8090/table.health && \
+curl -s http://172.16.0.67:8093/table.health && \
+curl -s http://172.16.0.66:8095/table.health && \
+curl -s http://172.16.0.67:8118/table.health && \
+curl -s http://172.16.0.67:8119/table.health && \
+curl -s http://172.16.0.65:8120/table.health && \
+curl -s http://172.16.0.64:8210/table.health && \
+curl -s http://172.16.0.65:8213/table.health && \
+curl -s http://172.16.0.67:8215/table.health &&
+echo '}'
+

@@ -79,17 +79,25 @@ class LogTable extends XTable
         if ($len > self::MESSAGE_LENGTH) {
             $message = substr($message, 0, self::MESSAGE_LENGTH - 8).' ...';
         }
-        $done = $this->set($key, [
-            'key' => $key,
-            'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
-            'level' => $level,
-            'message' => $message
-        ]);
-        if (error_get_last() !== null) {
-            error_clear_last();
-        }
-        if ($done) {
-            return $this->count() >= $this->limit;
+        $mutex = $this->getServer()->getMutex();
+        if ($mutex->lock()) {
+            try {
+                $done = $this->set($key, [
+                    'key' => $key,
+                    'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
+                    'level' => $level,
+                    'message' => $message
+                ]);
+                if (error_get_last() !== null) {
+                    error_clear_last();
+                }
+                if ($done) {
+                    return $this->count() >= $this->limit;
+                }
+            } catch(\Throwable $e) {
+            } finally {
+                $mutex->unlock();
+            }
         }
         return null;
     }
@@ -100,14 +108,22 @@ class LogTable extends XTable
     public function pop()
     {
         $i = 0;
-        $data = [];
-        foreach ($this as $key => $row) {
-            if ($this->del($key)) {
-                $i++;
-                $data[$key] = $row;
-                if ($i >= $this->limit) {
-                    break;
+        $mutex = $this->getServer()->getMutex();
+        if ($mutex->lock()) {
+            try {
+                $data = [];
+                foreach ($this as $key => $row) {
+                    if ($this->del($key)) {
+                        $i++;
+                        $data[$key] = $row;
+                        if ($i >= $this->limit) {
+                            break;
+                        }
+                    }
                 }
+            } catch(\Throwable $e) {
+            } finally {
+                $mutex->unlock();
             }
         }
         return $i > 0 ? $data : false;
