@@ -52,6 +52,7 @@ class LogTable extends XTable
      */
     protected $name = self::NAME;
     private $limit = 100;
+    private $halfSize = 0;
 
     /**
      * 初始化内存
@@ -62,6 +63,7 @@ class LogTable extends XTable
      */
     public function __construct($server, $size)
     {
+        $this->halfSize = (int) ($size / 2);
         parent::__construct($server, $size);
     }
 
@@ -92,7 +94,7 @@ class LogTable extends XTable
                     error_clear_last();
                 }
                 if ($done) {
-                    return $this->count() >= $this->limit;
+                    return $this->count() >= $this->halfSize;
                 }
             } catch(\Throwable $e) {
             } finally {
