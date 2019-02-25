@@ -120,7 +120,7 @@ class LogProcess extends XProcess
             return true;
         }
         // 2. 检查数量
-        if ($this->table->count() >= $this->limit) {
+        if ($this->table->countLock() >= $this->limit) {
             $this->save();
             return true;
         }

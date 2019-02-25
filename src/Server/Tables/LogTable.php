@@ -105,13 +105,13 @@ class LogTable extends XTable
     /**
      * @return int
      */
-    public function count()
+    public function countLock()
     {
         $count = 0;
         $mutex = $this->getServer()->getMutex();
         if ($mutex->lock()) {
             try {
-                $count = parent::count();
+                $count = $this->count();
             } catch(\Throwable $e) {
             } finally {
                 $mutex->unlock();
@@ -131,7 +131,7 @@ class LogTable extends XTable
             try {
                 $data = [];
                 foreach ($this as $key => $row) {
-                    if ($this->del($key)) {
+                    if ($this->exist($key) && $this->del($key)) {
                         $i++;
                         $data[$key] = $row;
                         if ($i >= $this->limit) {

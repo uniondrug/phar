@@ -48,6 +48,7 @@ class LogTask extends XTask
         'content' => ''
     ];
     private $logCount = 0;
+    private $logLeaved = 0;
 
     /**
      * 前置检查
@@ -63,11 +64,12 @@ class LogTask extends XTask
         // 2. 数据排弃
         ksort($this->data);
         reset($this->data);
+        $this->logLeaved = $this->getServer()->getLogTable()->countLock();
         // 3. 继续执行run()方法
         $table = $this->getServer()->getStatsTable();
         $table->incrLogs();
         $table->incrLogsCount($this->logCount);
-        $table->incrLogsStored($this->getServer()->getLogTable()->count());
+        $table->incrLogsStored($this->logLeaved);
         return parent::beforeRun();
     }
 
@@ -137,8 +139,7 @@ class LogTask extends XTask
                         'logs' => $parsed['logs']
                     ]
                 ]);
-                $leaved = $this->getServer()->getLogTable()->count();
-                $logger->enableDebug() && $logger->debug("向{%s}提交了从{%s}到{%s}的Log{%d}条, 余{%d}条", $url, $parsed['begin'], $parsed['end'], $parsed['count'], $leaved);
+                $logger->enableDebug() && $logger->debug("向{%s}提交了从{%s}到{%s}的Log{%d}条, 余{%d}条", $url, $parsed['begin'], $parsed['end'], $parsed['count'], $this->logLeaved);
                 return true;
             }
         } catch(\Throwable $e) {
