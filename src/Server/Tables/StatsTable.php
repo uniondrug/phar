@@ -14,8 +14,9 @@ use Uniondrug\Phar\Server\XOld;
  */
 class StatsTable extends XTable
 {
-    const TABLE_NAME = 'statsTable';
-    const TABLE_COUNT = 'count';
+    const FIELD = 'count';
+    const NAME = 'statsTable';
+    const SIZE = 256;
     /**
      * 统计类型
      */
@@ -31,7 +32,7 @@ class StatsTable extends XTable
      * @var array
      */
     protected $columns = [
-        self::TABLE_COUNT => [
+        self::FIELD => [
             parent::TYPE_INT,
             4
         ]
@@ -40,7 +41,7 @@ class StatsTable extends XTable
      * 表名称
      * @var string
      */
-    protected $name = self::TABLE_NAME;
+    protected $name = self::NAME;
 
     /**
      * constructor.
@@ -61,8 +62,8 @@ class StatsTable extends XTable
     {
         if ($this->exist($key)) {
             $data = $this->get($key);
-            if (is_array($data) && isset($data[self::TABLE_COUNT])) {
-                return (int) $data[self::TABLE_COUNT];
+            if (is_array($data) && isset($data[self::FIELD])) {
+                return (int) $data[self::FIELD];
             }
         }
         return 0;
@@ -77,7 +78,7 @@ class StatsTable extends XTable
     public function incrCount(string $key, int $count = 1)
     {
         if ($this->exist($key)) {
-            return $this->incr($key, self::TABLE_COUNT, $count);
+            return $this->incr($key, self::FIELD, $count);
         }
         return $this->resetCount($key);
     }
@@ -157,6 +158,6 @@ class StatsTable extends XTable
      */
     public function resetCount(string $key, int $count = 0)
     {
-        return $this->set($key, [self::TABLE_COUNT => $count]);
+        return $this->set($key, [self::FIELD => $count]);
     }
 }

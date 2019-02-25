@@ -18,12 +18,13 @@ class LogTable extends XTable
     /**
      * 单条Log最大字符数
      */
-    const MESSAGE_LENGTH = 8192;
-    const MESSAGE_SIZE = 65536;
+    const LENGTH = 8192;
     /**
      * 内存表名称
      */
     const NAME = 'logTable';
+    const SIZE = 16384;
+    const LOCK_TIMEOUT = 0.05;
     /**
      * 列信息
      * @var array
@@ -43,7 +44,7 @@ class LogTable extends XTable
         ],
         'message' => [
             parent::TYPE_STRING,
-            self::MESSAGE_LENGTH
+            self::LENGTH
         ]
     ];
     /**
@@ -52,6 +53,7 @@ class LogTable extends XTable
      */
     protected $name = self::NAME;
     private $limit = 100;
+    private $halfSize = 0;
 
     /**
      * 初始化内存
@@ -62,6 +64,7 @@ class LogTable extends XTable
      */
     public function __construct($server, $size)
     {
+        $this->halfSize = (int) ($size / 2);
         parent::__construct($server, $size);
     }
 
@@ -76,22 +79,48 @@ class LogTable extends XTable
     {
         $key = $this->makeKey();
         $len = strlen($message);
-        if ($len > self::MESSAGE_LENGTH) {
-            $message = substr($message, 0, self::MESSAGE_LENGTH - 8).' ...';
+        if ($len > self::LENGTH) {
+            $message = substr($message, 0, self::LENGTH - 8).' ...';
         }
-        $done = $this->set($key, [
-            'key' => $key,
-            'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
-            'level' => $level,
-            'message' => $message
-        ]);
-        if (error_get_last() !== null) {
-            error_clear_last();
-        }
-        if ($done) {
-            return $this->count() >= $this->limit;
+        $mutex = $this->getServer()->getMutex();
+        if ($mutex->lockwait(self::LOCK_TIMEOUT)) {
+            try {
+                $done = $this->set($key, [
+                    'key' => $key,
+                    'time' => (new \DateTime())->format('Y-m-d H:i:s.u'),
+                    'level' => $level,
+                    'message' => $message
+                ]);
+                if (error_get_last() !== null) {
+                    error_clear_last();
+                }
+                if ($done) {
+                    return $this->count() >= $this->halfSize;
+                }
+            } catch(\Throwable $e) {
+            } finally {
+                $mutex->unlock();
+            }
         }
         return null;
+    }
+
+    /**
+     * @return int
+     */
+    public function countLock()
+    {
+        $count = 0;
+        $mutex = $this->getServer()->getMutex();
+        if ($mutex->lockwait(self::LOCK_TIMEOUT)) {
+            try {
+                $count = $this->count();
+            } catch(\Throwable $e) {
+            } finally {
+                $mutex->unlock();
+            }
+        }
+        return $count;
     }
 
     /**
@@ -100,14 +129,22 @@ class LogTable extends XTable
     public function pop()
     {
         $i = 0;
-        $data = [];
-        foreach ($this as $key => $row) {
-            if ($this->del($key)) {
-                $i++;
-                $data[$key] = $row;
-                if ($i >= $this->limit) {
-                    break;
+        $mutex = $this->getServer()->getMutex();
+        if ($mutex->lockwait(self::LOCK_TIMEOUT)) {
+            try {
+                $data = [];
+                foreach ($this as $key => $row) {
+                    if ($this->exist($key) && $this->del($key)) {
+                        $i++;
+                        $data[$key] = $row;
+                        if ($i >= $this->limit) {
+                            break;
+                        }
+                    }
                 }
+            } catch(\Throwable $e) {
+            } finally {
+                $mutex->unlock();
             }
         }
         return $i > 0 ? $data : false;

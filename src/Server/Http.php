@@ -5,7 +5,6 @@
  */
 namespace Uniondrug\Phar\Server;
 
-use Swoole\Lock;
 use swoole_http_server;
 use Uniondrug\Phar\Server\Does\BeforeStart;
 use Uniondrug\Phar\Server\Does\DoFinish;
@@ -48,6 +47,9 @@ abstract class Http extends swoole_http_server
      * @var Bootstrap
      */
     public $boot;
+    /**
+     * @var Mutex
+     */
     private $_mutex;
     private $_tableLoads = [];
     /**
@@ -85,6 +87,7 @@ abstract class Http extends swoole_http_server
         $log->setPrefix("[%s:%d][%s]", $cfg->getDeployIp(), $cfg->port, $cfg->name);
         $log->info("创建{%s}实例, 以{%s}Mode和{%s}Sock", get_class($this), $cfg->serverMode, $cfg->serverSockType);
         parent::__construct($cfg->host, $cfg->port, $cfg->serverMode, $cfg->serverSockType);
+        $this->_mutex = new Mutex();
         // 2. settings
         $settings = $cfg->settings;
         $log->info("配置{%d}项参数", count($settings));
@@ -113,11 +116,11 @@ abstract class Http extends swoole_http_server
         $tables = $cfg->tables;
         // 4.1 tables.stats
         if (!isset($tables[StatsTable::class])) {
-            $tables[StatsTable::class] = 2048;
+            $tables[StatsTable::class] = StatsTable::SIZE;
         }
         // 4.2 tables.log
         if (!$boot->getArgs()->hasOption('log-stdout') && !isset($tables[LogTable::class])) {
-            $tables[LogTable::class] = LogTable::MESSAGE_SIZE;
+            $tables[LogTable::class] = LogTable::SIZE;
         }
         $log->info("注册{%d}个内存表", count($tables));
         // 4.3 tables.*
@@ -132,7 +135,7 @@ abstract class Http extends swoole_http_server
              * @var ITable $tbl
              */
             $tbl = new $table($this, $size);
-            if ($tbl instanceof LogTable){
+            if ($tbl instanceof LogTable) {
                 $tbl->setLimit($boot->getConfig()->logBatchLimit);
             }
             $name = $tbl->getName();
@@ -234,7 +237,7 @@ abstract class Http extends swoole_http_server
      */
     public function getStatsTable()
     {
-        return $this->getTable(StatsTable::TABLE_NAME);
+        return $this->getTable(StatsTable::NAME);
     }
 
     /**
@@ -275,7 +278,7 @@ abstract class Http extends swoole_http_server
 
     /**
      * 读取全局锁
-     * @return Lock
+     * @return Mutex
      */
     public function getMutex()
     {
@@ -314,19 +317,6 @@ abstract class Http extends swoole_http_server
             return parent::start();
         }
         return false;
-    }
-
-    /**
-     * 初始化锁
-     * 在Master进程(onStart)时注册
-     * @return $this
-     */
-    public function setMutex()
-    {
-        if ($this->_mutex === null) {
-            $this->_mutex = new Lock(SWOOLE_MUTEX);
-        }
-        return $this;
     }
 
     /**
