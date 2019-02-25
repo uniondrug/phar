@@ -103,6 +103,24 @@ class LogTable extends XTable
     }
 
     /**
+     * @return int
+     */
+    public function count()
+    {
+        $count = 0;
+        $mutex = $this->getServer()->getMutex();
+        if ($mutex->lock()) {
+            try {
+                $count = parent::count();
+            } catch(\Throwable $e) {
+            } finally {
+                $mutex->unlock();
+            }
+        }
+        return $count;
+    }
+
+    /**
      * @return array|false
      */
     public function pop()

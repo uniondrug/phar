@@ -142,30 +142,38 @@ trait DoRequest
      */
     private function healthForTables(HttpHandler $handler, $server, $limit = 30)
     {
-        /**
-         * @var array  $data
-         * @var array  $tables
-         * @var XTable $table
-         */
-        $data = [];
-        $tables = $server->getTables();
-        foreach ($tables as $table) {
-            $name = $table->getName();
-            $data[$name] = [
-                'count' => $table->count(),
-                'items' => []
-            ];
-            if ($data[$name] > 0) {
-                $i = 0;
-                foreach ($table as $key => $item) {
-                    $data[$name]['items'][$key] = $item;
-                    $i++;
-                    if ($i >= $limit) {
-                        break;
+        $mutex = $server->getMutex();
+        if ($mutex->lock()) {
+            try {
+                /**
+                 * @var array  $data
+                 * @var array  $tables
+                 * @var XTable $table
+                 */
+                $data = [];
+                $tables = $server->getTables();
+                foreach ($tables as $table) {
+                    $name = $table->getName();
+                    $data[$name] = [
+                        'count' => $table->count(),
+                        'items' => []
+                    ];
+                    if ($data[$name] > 0) {
+                        $i = 0;
+                        foreach ($table as $key => $item) {
+                            $data[$name]['items'][$key] = $item;
+                            $i++;
+                            if ($i >= $limit) {
+                                break;
+                            }
+                        }
                     }
                 }
+                $handler->setContent(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            } catch(\Throwable $e) {
+            } finally {
+                $mutex->unlock();
             }
         }
-        $handler->setContent(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 }
