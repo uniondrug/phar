@@ -15,7 +15,6 @@ class Mutex extends Lock
 {
     private $_lockCallTimes = 0;
     private $_lockCallSuccesses = 0;
-    private $_lockReleased = true;
 
     /**
      * Mutex constructor.
@@ -47,32 +46,9 @@ class Mutex extends Lock
      */
     public function lock()
     {
-        return $this->lockwait();
-    }
-
-    /**
-     * 获取锁
-     * 获取锁时限制超时
-     * @param float $timeout
-     * @return bool
-     */
-    public function lockwait($timeout = 1.0)
-    {
         $this->_lockCallTimes++;
-        if ($this->_lockReleased && parent::lockwait($timeout) === true) {
+        if (true === parent::lock()) {
             $this->_lockCallSuccesses++;
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * @return bool
-     */
-    public function unlock()
-    {
-        if (!$this->_lockReleased && parent::unlock()) {
-            $this->_lockReleased = true;
             return true;
         }
         return false;
