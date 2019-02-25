@@ -5,7 +5,6 @@
  */
 namespace Uniondrug\Phar\Server;
 
-use Swoole\Lock;
 use swoole_http_server;
 use Uniondrug\Phar\Server\Does\BeforeStart;
 use Uniondrug\Phar\Server\Does\DoFinish;
@@ -48,6 +47,9 @@ abstract class Http extends swoole_http_server
      * @var Bootstrap
      */
     public $boot;
+    /**
+     * @var Mutex
+     */
     private $_mutex;
     private $_tableLoads = [];
     /**
@@ -276,7 +278,7 @@ abstract class Http extends swoole_http_server
 
     /**
      * 读取全局锁
-     * @return Lock
+     * @return Mutex
      */
     public function getMutex()
     {

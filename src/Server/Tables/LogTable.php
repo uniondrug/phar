@@ -24,6 +24,7 @@ class LogTable extends XTable
      */
     const NAME = 'logTable';
     const SIZE = 16384;
+    const LOCK_TIMEOUT = 0.05;
     /**
      * 列信息
      * @var array
@@ -82,7 +83,7 @@ class LogTable extends XTable
             $message = substr($message, 0, self::LENGTH - 8).' ...';
         }
         $mutex = $this->getServer()->getMutex();
-        if ($mutex->lock()) {
+        if ($mutex->lockwait(self::LOCK_TIMEOUT)) {
             try {
                 $done = $this->set($key, [
                     'key' => $key,
@@ -111,7 +112,7 @@ class LogTable extends XTable
     {
         $count = 0;
         $mutex = $this->getServer()->getMutex();
-        if ($mutex->lock()) {
+        if ($mutex->lockwait(self::LOCK_TIMEOUT)) {
             try {
                 $count = $this->count();
             } catch(\Throwable $e) {
@@ -129,7 +130,7 @@ class LogTable extends XTable
     {
         $i = 0;
         $mutex = $this->getServer()->getMutex();
-        if ($mutex->lock()) {
+        if ($mutex->lockwait(self::LOCK_TIMEOUT)) {
             try {
                 $data = [];
                 foreach ($this as $key => $row) {
