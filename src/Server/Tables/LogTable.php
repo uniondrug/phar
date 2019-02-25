@@ -83,7 +83,7 @@ class LogTable extends XTable
             $message = substr($message, 0, self::LENGTH - 8).' ...';
         }
         $mutex = $this->getServer()->getMutex();
-        if ($mutex->lockwait(self::LOCK_TIMEOUT)) {
+        if ($mutex->lock()) {
             try {
                 $done = $this->set($key, [
                     'key' => $key,
@@ -112,7 +112,7 @@ class LogTable extends XTable
     {
         $count = 0;
         $mutex = $this->getServer()->getMutex();
-        if ($mutex->lockwait(self::LOCK_TIMEOUT)) {
+        if ($mutex->lock()) {
             try {
                 $count = $this->count();
             } catch(\Throwable $e) {
@@ -130,7 +130,7 @@ class LogTable extends XTable
     {
         $i = 0;
         $mutex = $this->getServer()->getMutex();
-        if ($mutex->lockwait(self::LOCK_TIMEOUT)) {
+        if ($mutex->lock()) {
             try {
                 $data = [];
                 foreach ($this as $key => $row) {
