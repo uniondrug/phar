@@ -1,6 +1,6 @@
 # 支持PHAR
 
-> 当使用使用了Lib框架时, 需做如下修改, 已修改的文件在`lib.zip`文件中
+> 当项目使用了`Lotus`框架时, 若需要支持`PHAR`打包部署, 需做如下修改, 已修改的文件在`lib.gz`文件中
 
 1. `lib/SDK_PHP/AopSdk.php`
     1. Line:18
