@@ -26,9 +26,7 @@ abstract class PharCommand extends Command
     protected $signature = 'phar
         {--name= : 包名称}
         {--tag= : 包标签/版本号名称}
-        {--path= : 项目根目录}
-        {--compress=false : 是否以GZIP压缩PHAR包}
-        {--consul= : Consul服务地址}';
+        {--ignore : 包标签/版本号名称}';
     /**
      * 命令描述
      * @var string
@@ -48,25 +46,23 @@ abstract class PharCommand extends Command
          * @var Container $container
          */
         $container = Di::getDefault();
-        // 0. path
-        $path = $this->input->getOption('path');
         // 1. name
         $name = $this->input->getOption('name');
         $name || $name = $container->getConfig()->path('app.appName');
         // 2. tag
         $tag = $this->input->getOption('tag');
         $tag || $tag = $container->getConfig()->path('app.appVersion');
-        // 3. compress
-        $compress = $this->input->hasOption('compress');
-        // 4. consul
-        $consul = (string) $this->input->getOption('consul');
+        // 3. ignore/override
+        $override = $this->input->hasOption('ignore');
+        // 4. environment
+        $env = $this->option('env');
+        $env || $env = 'development';
         // n. builder
-        $builder = new Builder($container, $this->output);
-        $path && $builder->setBasePath($path);
+        $builder = new Builder();
         $builder->setName($name);
         $builder->setTag($tag);
-        $builder->setCompress($compress === true);
-        $builder->setConsul($consul);
+        $builder->setOverride($override);
+        $builder->setEnvironment($env);
         $builder->run();
     }
 }

@@ -41,22 +41,20 @@ mkdir -p ${tagPath}
 
 # 5. loop
 
-for name in ${apps}; do
-    cd "${path}/${name}" && \
-    echo "${name} : ${path}" && \
-    echo "    remove " && rm -rf *.phar && rm -rf vendor/uniondrug/phar &>/dev/null && \
-    echo "    composer update " && ln -s ~/SourceCodes/cn.uniondrug/com.github/phar vendor/uniondrug/phar &>/dev/null && \
-    echo "    building... " && php console phar -e production --tag=${tag} &>/dev/null && \
-    echo "    completed " && mv *.phar ${tagPath} &>/dev/null
-done
-
 #for name in ${apps}; do
 #    cd "${path}/${name}" && \
 #    echo "${name} : ${path}" && \
-#    echo "    remove " && rm -rf *.phar &>/dev/null && \
-#    echo "    git checkout ${branch}" && git checkout ${branch} &>/dev/null && \
-#    echo "    git pull " && git pull &>/dev/null && \
-#    echo "    composer update " && composer update &>/dev/null && \
+#    echo "    remove " && rm -rf *.phar && rm -rf vendor/uniondrug/phar &>/dev/null && \
+#    echo "    composer update " && ln -s ~/SourceCodes/cn.uniondrug/com.github/phar vendor/uniondrug/phar &>/dev/null && \
 #    echo "    building... " && php console phar -e production --tag=${tag} &>/dev/null && \
 #    echo "    completed " && mv *.phar ${tagPath} &>/dev/null
 #done
+
+for name in ${apps}; do
+    cd "${path}/${name}" && \
+    echo "${name} : ${path}" && \
+    echo "    remove " && rm -rf *.phar &>/dev/null && \
+    echo "    composer update " && rm -rf vendor/uniondrug/phar && ln -s ~/SourceCodes/cn.uniondrug/com.github/phar vendor/uniondrug/phar &>/dev/null && \
+    echo "    building... " && php console phar -e production --tag=${tag} &>/dev/null && \
+    echo "    completed " && mv *.phar ${tagPath} &>/dev/null
+done

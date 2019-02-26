@@ -56,8 +56,12 @@ for name in $(ls /data/apps); do \
     count=$(ll /data/apps/${name} | grep '/data/phar/' | grep server | wc -l); \
     if [ ${count} -eq 1 ]; then \
         echo "restart ${name}" && cd /data/apps/${name} && \
-            php server kv --consul udsdk.uniondrug.net &>/dev/null && \
             php server stop --force-kill &>/dev/null && \
+            \rm -rf /data/apps/${name}/tmp/config.* && \
+            \rm -rf /data/apps/${name}/tmp/server.* && \
+            php server kv --consul udsdk.uniondrug.net &>/dev/null && \
+            \rm -rf /data/apps/${name}/log/2019-02/*.log && \
+            echo '' > /data/apps/${name}/log/server.log && \
             php server start -e release --log-level=DEBUG --consul-register 172.16.0.67:8500 -d &>/dev/null && \
             tree /data/apps/${name};
     fi \

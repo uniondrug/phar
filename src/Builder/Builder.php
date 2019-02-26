@@ -5,104 +5,72 @@
  */
 namespace Uniondrug\Phar\Builder;
 
-use GuzzleHttp\Client as GuzzleHttpClient;
-use Symfony\Component\Console\Output\OutputInterface;
-use Uniondrug\Framework\Container;
-
 /**
  * 构建PHAR包
  * @package Uniondrug\Phar
  */
 class Builder
 {
+    private $_basePath;
     /**
-     * 项目根目录
+     * Consul地址
+     * 构建镜像时, 从Consul拉取配置信息
      * @var string
      */
-    private $basePath;
+    private $_environment = 'development';
     /**
-     * 是否压缩
-     * @var bool
-     */
-    private $compress = false;
-    /**
-     * DI容器
-     * @var Container
-     */
-    private $container;
-    /**
-     * 导出包名称
-     * @var string
-     */
-    private $name = "phar";
-    /**
-     * 控制台输出对象
-     * @var OutputInterface
-     */
-    private $output;
-    /**
-     * 标签/版本号名称
-     * @var string
-     */
-    private $tag = "latest";
-    /**
-     * PHAR文件名
-     * @var string
-     */
-    private $pharName;
-    /**
-     * PHAR文件路径
-     * @var string
-     */
-    private $pharFile;
-    private $pharWithSourceCode = false;
-    /**
-     * 扫描目录
+     * 文件扩展名
      * @var array
      */
-    private $folders = [
+    private $_exts = [
+        'php',
+        'xml',
+        'yml'
+    ];
+    /**
+     * 扫描文件夹
+     * @var array
+     */
+    private $_folders = [
         'app',
         'config',
         'lib',
         'vendor'
     ];
     /**
-     * 忽略子目录
+     * 忽略规则
      * @var array
      */
-    private $ignoreFolders = [
+    private $_folderIgnores = [
         "/^\./",
         "/^tests$/i",
         "/^examples$/i",
-        "/^samples$/i",
+        "/^samples$/i"
     ];
+    private $_name = 'sketch';
+    private $_tag = '0.0.0';
+    private $_override = false;
+    private $_scanFiles = 0;
+    private $_scanAllFiles = 0;
+    private $_scanTotalFiles = 0;
+    private $_scanFolders = 0;
     /**
-     * 扫描文件格式
-     * @var array
+     * @var \Phar
      */
-    private $files = [
-        "/\.(php|yml|xml)$/i"
-    ];
-    /**
-     * 合计扫描文件数
-     * @var int
-     */
-    private $countFiles = 0;
-    /**
-     * Consul地址
-     * @var string
-     */
-    private $consulApi = null;
+    private $phar = null;
+    private $pharBegin = 0.0;
+    private $pharFilename = '';
+    private $pharFilepath = '';
 
     /**
-     * BuildTask constructor.
-     * @param OutputInterface $output
+     * 设置基础目录
+     * @param string|null $basePath
      */
-    public function __construct(Container $container, OutputInterface $output)
+    public function __construct(string $basePath = null)
     {
-        $this->container = $container;
-        $this->basePath = realpath($this->container->tmpPath().'/../');
-        $this->output = $output;
+        $this->_basePath = $basePath === null ? getcwd() : $basePath;
+        $this->_name = 'sketch';
+        $this->_tag = date('ymd');
     }
 
     /**
@@ -110,53 +78,90 @@ class Builder
      */
     public function run()
     {
-        // 1. before run
-        $this->pharName = sprintf("%s-%s.phar", $this->name, $this->tag);
-        $this->pharFile = $this->basePath.'/'.$this->pharName;
-        // 2. begin build
-        $appName = $this->container->getConfig()->path('app.appName');
-        $appVersion = $this->container->getConfig()->path('app.appVersion');
-        $this->output->writeln("开始构建: 【{$appName}/{$appVersion}】项目PHP Archive包【{$this->pharName}】文件");
-        $phar = new \Phar($this->pharFile, 0, $this->pharName);
-        // 3. signature
-        $this->output->writeln("设置签名: 【SHA1】格式");
-        $phar->setSignatureAlgorithm(\Phar::SHA1);
-        // 4. 构建信息
-        $this->runInfo($phar);
-        // 5. 导入consul配置
-        if ($this->consulApi !== null) {
-            if (!$this->runConsul($phar)) {
-                return;
+        // 1. init phar basic
+        $this->pharBegin = microtime(true);
+        $this->pharFilename = sprintf("%s-%s.phar", $this->_name, $this->_tag);
+        $this->pharFilepath = $this->_basePath.'/'.$this->pharFilename;
+        // 2. is exists or not
+        if (file_exists($this->pharFilepath)) {
+            if ($this->_override) {
+                unlink($this->pharFilepath);
+            } else {
+                throw new \Exception("包文件[{$this->pharFilename}]已存在, 若重新构建请先删除.");
             }
         }
-        // 6. 扫描文件
-        $this->output->writeln("开始打包: 【".count($this->folders)."】个目录");
-        $lastOffset = 0;
-        foreach ($this->folders as $folder) {
-            $this->runScanner($phar, $folder);
-            $countOffset = $this->countFiles - $lastOffset;
-            $lastOffset = $this->countFiles;
-            $this->output->writeln("          【{$folder}】发现{$countOffset}个文件");
+        // 3. build progress
+        $this->println("PHAR: package {%s} building...", $this->pharFilename);
+        $this->phar = new \Phar($this->pharFilepath, 0, $this->pharFilename);
+        $this->phar->setSignatureAlgorithm(\Phar::SHA1);
+        $this->runInfo();
+        foreach ($this->_folders as $i => $folder) {
+            $this->_scanFiles = 0;
+            $this->_scanFolders = 0;
+            $this->_scanTotalFiles = 0;
+            $this->runScan($folder);
+            $this->_scanAllFiles += $this->_scanFiles;
+            $this->println("      add %4d files, found {%4d} files in {%3d} directories under {%s} folder.", $this->_scanFiles, $this->_scanTotalFiles, $this->_scanFolders, $folder);
         }
-        // 7. 启动脚本
-        $this->runBootstrap($phar);
-        // 8. 完成构建
-        if (file_exists($this->pharFile)) {
-            $size = sprintf("%.02f", filesize($this->pharFile) / 1024 / 1024);
-            $this->output->writeln("构建完成: 【{$this->countFiles}】个文件共占用【{$size}】MB空间");
-        } else {
-            $this->output->writeln("构建失败: 导出文件失败");
-        }
+        $this->runBootstrap();
+        $this->runEnded();
     }
 
     /**
-     * 读取项目信息
+     * 加入文件到PHAR包
+     * @param string $path
      */
-    private function runInfo(\Phar $phar)
+    private function runAdd(string $path)
     {
+        $this->_scanFiles++;
+        $this->phar->addFile($path);
+    }
+
+    /**
+     * 添加入口
+     */
+    private function runBootstrap()
+    {
+        $this->println("      set bootstrap for phar.");
+        $path = 'vendor/uniondrug/phar/src/server.php';
+        $appDebug = strtolower($this->_environment) === 'production' ? 'true' : 'false';
+        $stub = <<<STUB
+#!/usr/bin/env php
+<?php
+define("PHAR_WORKING_DIR", getcwd());
+define("PHAR_WORKING_TAG", "{$this->_tag}");
+define("PHAR_WORKING_NAME", "{$this->pharFilename}");
+define("PHAR_WORKING_FILE", __FILE__);
+define("APP_DEBUG", {$appDebug});
+define("BasePath", __FILE__);
+Phar::mapPhar('{$this->pharFilename}');
+include('phar://{$this->pharFilename}/{$path}');
+__HALT_COMPILER();
+STUB;
+        $this->phar->setStub($stub);
+    }
+
+    /**
+     * 完成创建
+     */
+    private function runEnded()
+    {
+        if (file_exists($this->pharFilepath)) {
+            $this->println("      successed added {%.02f}M of {%d} files, with {%.02f} seconds.", (filesize($this->pharFilepath) / 1024 / 1024), $this->_scanAllFiles, microtime(true) - $this->pharBegin);
+            return true;
+        }
+        throw new \Exception("      build failure, file {".$this->pharFilepath."} not found. ");
+    }
+
+    /**
+     * 记录包信息
+     */
+    private function runInfo()
+    {
+        $this->println("      add php archive information.");
         $data = [];
         $data['time'] = date('r');
-        $data['environment'] = $this->container->environment();
+        $data['environment'] = $this->_environment;
         $data['repository'] = 'null';
         $data['branch'] = 'null';
         $data['commit'] = 'null';
@@ -183,221 +188,140 @@ class Builder
             $data['machine'] = $buffer;
         }
         // 写入Phar
-        $phar->addFromString('info.json', json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $this->phar->addFromString('info.json', json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
     /**
-     * 添加入口脚本
+     * 扫描目录
+     * @param string $folder
+     * @param string $sub
      */
-    private function runBootstrap(\Phar $phar)
+    private function runScan(string $folder, string $sub = '')
     {
-        $path = 'vendor/uniondrug/phar/src/server.php';
-        $this->output->writeln("设置入口: 【phar://{$this->pharName}/{$path}】启动脚本");
-        $stub = <<<STUB
-#!/usr/bin/env php
-<?php
-define("PHAR_WORKING_DIR", getcwd());
-define("PHAR_WORKING_TAG", "{$this->tag}");
-define("PHAR_WORKING_NAME", "{$this->pharName}");
-define("PHAR_WORKING_FILE", __FILE__);
-Phar::mapPhar('{$this->pharName}');
-include('phar://{$this->pharName}/{$path}');
-__HALT_COMPILER();
-STUB;
-        $phar->setStub($stub);
-    }
-
-    /**
-     * 覆盖Config
-     * @param \Phar $phar
-     * @return bool
-     */
-    private function runConsul(\Phar $phar)
-    {
-        $this->output->writeln("读取配置: 从Consul的KV配置中读取");
-        $main = $this->runConsulApi($this->container->getConfig()->path('app.appName'));
-        $data = json_decode($main, true);
-        if (is_array($data)) {
-            $data = $this->runConsulParse($data);
-            $data = array_replace_recursive($this->container->getConfig()->toArray(), $data);
-            $phar->addFromString('config.php', "<?php\nreturn unserialize('".serialize($data)."');");
-            return true;
-        }
-        $this->output->writeln("读取失败: 连接Consul失败");
-        return false;
-    }
-
-    /**
-     * 读取Consul/KV配置
-     * 按key名称从Consul/KV读取配置信息, 源信息为
-     * base64格式, 需转码
-     * @return false|array
-     */
-    private function runConsulApi(string $key)
-    {
-        $url = $this->consulApi.'/'.$key;
-        $this->output->writeln("          {$url}");
-        try {
-            $client = new GuzzleHttpClient();
-            $content = $client->get($url)->getBody()->getContents();
-            $data = \GuzzleHttp\json_decode($content, true);
-            if (count($data) > 0) {
-                return base64_decode($data[0]['Value']);
-            }
-            throw new \Exception("empty value");
-        } catch(\Throwable $e) {
-            $this->output->writeln("          Error={$e->getMessage()}");
-        }
-        return false;
-    }
-
-    /**
-     * 递归Consul/KV
-     * 从Consul/KV中拉取到的配置信息, 遍历kv://前缀, 递归
-     * 加载子项配置, 最终合入统一config.php文件中
-     * @param array $data
-     * @return array
-     */
-    private function runConsulParse(array $data)
-    {
-        foreach ($data as & $value) {
-            if (is_array($value)) {
-                $value = $this->runConsulParse($value);
-                continue;
-            }
-            if (!is_string($value)) {
-                continue;
-            }
-            if (preg_match("/^kv:[\/]+(\S+)/i", $value, $m) > 0) {
-                $buffer = $this->runConsulApi($m[1]);
-                if ($buffer === false) {
-                    $value = $buffer;
-                    continue;
-                }
-                try {
-                    $bufferArray = \GuzzleHttp\json_decode($buffer, true);
-                    $value = $this->runConsulParse($bufferArray);
-                } catch(\Throwable $e) {
-                    $value = $buffer;
-                }
-            }
-        }
-        return $data;
-    }
-
-    /**
-     * 合并文件
-     * 将指定路径下的文件, 合并入Phar包中
-     * @param \Phar  $phar
-     * @param string $path
-     */
-    private function runCollector(\Phar $phar, $path)
-    {
-        $this->countFiles++;
-        if ($this->pharWithSourceCode) {
-            // 慢
-            $phar->addFromString($path, file_get_contents($this->basePath.'/'.$path));
-        } else {
-            // 快
-            $phar->addFile($path);
-        }
-    }
-
-    /**
-     * 扫描文件
-     * @param \Phar  $phar
-     * @param string $path
-     */
-    private function runScanner(\Phar $phar, string $path)
-    {
-        $p = $this->basePath.'/'.$path;
-        if (!is_dir($p)) {
-            return;
-        }
-        $d = dir($p);
+        $this->_scanFolders++;
+        $p = $folder.($sub === '' ? '' : '/'.$sub);
+        $d = dir($this->_basePath.'/'.$p);
         while (false !== ($e = $d->read())) {
-            if ($e == '.' || $e == '..') {
+            // 1. ignore system, first char with '.'
+            if (preg_match("/^\./", $e)) {
                 continue;
             }
-            $x = $p.'/'.$e;
-            if (is_dir($x)) {
-                $nest = true;
-                foreach ($this->ignoreFolders as $rexp) {
-                    if (preg_match($rexp, $e) > 0) {
-                        $nest = false;
+            // 2. found file
+            $f = $p.'/'.$e;
+            if (is_file($this->_basePath.'/'.$f)) {
+                $this->_scanTotalFiles++;
+                // 2.1
+                $fx = explode('.', $e);
+                $fi = count($fx);
+                if ($fi > 0) {
+                    $ext = $fx[$fi - 1];
+                    if (in_array($ext, $this->_exts)) {
+                        $this->runAdd($f);
+                    }
+                }
+                continue;
+            }
+            // 3. sub directory
+            if (is_dir($this->_basePath.'/'.$f)) {
+                // 3.1 ignored or not
+                $folderIgnored = false;
+                foreach ($this->_folderIgnores as $rexp) {
+                    if (preg_match($rexp, $e)) {
+                        $folderIgnored = true;
                         break;
                     }
                 }
-                $nest && $this->runScanner($phar, $path.'/'.$e);
-                continue;
-            }
-            foreach ($this->files as $rexp) {
-                if (preg_match($rexp, $e) > 0) {
-                    $this->runCollector($phar, $path.'/'.$e);
-                    break;
+                if ($folderIgnored) {
+                    continue;
                 }
+                // 3.2 subdirectory
+                $se = ($sub === '' ? '' : $sub.'/').$e;
+                $this->runScan($folder, $se);
+                continue;
             }
         }
         $d->close();
     }
 
-    public function setBasePath(string $basePath)
-    {
-        $this->basePath = $basePath;
-        $this->pharWithSourceCode = true;
-        return $this;
-    }
-
     /**
-     * 设置压缩开关
-     * @param bool $compress
-     * @return $this
+     * 打印内容
+     * @param string $text
+     * @param array  ...$args
      */
-    public function setCompress(bool $compress)
+    private function println(string $text, ... $args)
     {
-        // todo: 经测试, 压缩后的GZ包在运行时有些问题
-        //       暂不启用
-        $this->compress = $compress;
-        return $this;
-    }
-
-    /**
-     * 设置Consul地址
-     * 构建PHAR时, 通过该服务地址拉取KV配置, 并写入到
-     * PHAR包中
-     * @param string $host
-     * @return $this
-     */
-    public function setConsul(string $host)
-    {
-        if ($host) {
-            preg_match("/^(http|https):\/\/\S+/i", $host) > 0 || $host = "http://{$host}";
-            $this->consulApi = $host.'/v1/kv';
+        $args = is_array($args) ? $args : [];
+        array_unshift($args, $text);
+        $format = @call_user_func_array('sprintf', $args);
+        if ($format === false) {
+            $format = implode('/', $args);
         }
+        file_put_contents('php://stdout', "{$format}\n");
+    }
+
+    /**
+     * 指定环境
+     * @param string $environment
+     * @return $this
+     */
+    public function setEnvironment(string $environment)
+    {
+        $this->_environment = $environment;
         return $this;
     }
 
     /**
-     * 设置导出包名
-     * 构建PHAR包时的版本标识, 默认为{config/app.php}{appName}
-     * @param string $name
+     * 指定目录
+     * @param array $folders
      * @return $this
+     */
+    public function setFolders(array $folders)
+    {
+        $this->_folders = $folders;
+        return $this;
+    }
+
+    /**
+     * 忽略目录
+     * @param array $ignores
+     * @return $this
+     */
+    public function setFolderIgnores(array $ignores)
+    {
+        $this->_folderIgnores = $ignores;
+        return $this;
+    }
+
+    /**
+     * 设置包名
+     * @param string $name
+     * @return string
      */
     public function setName(string $name)
     {
-        $this->name = $name;
-        return $this;
+        return $this->_name = $name;
     }
 
     /**
-     * 标签/版本号
-     * 构建PHAR包时的版本标识, 默认为{config/app.php}{appVersion}
+     * 设置标签
      * @param string $tag
      * @return $this
      */
     public function setTag(string $tag)
     {
-        $this->tag = $tag;
+        $this->_tag = $tag;
+        return $this;
+    }
+
+    /**
+     * 重复构建
+     * 覆盖/即构建PHAR包时, 若目标文件已存在则删除原文件
+     * @param bool $override
+     * @return $this
+     */
+    public function setOverride($override = true)
+    {
+        $this->_override = $override === true;
         return $this;
     }
 }
