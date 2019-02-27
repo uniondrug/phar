@@ -183,7 +183,6 @@ trait OldPhalcon
             $headers = $response->getHeaders();
             if ($headers instanceof \Phalcon\Http\Response\Headers) {
                 foreach ($headers->toArray() as $key => $value) {
-                    // ignore cross domain
                     if (preg_match("/access\-control/i", $key)) {
                         continue;
                     }
