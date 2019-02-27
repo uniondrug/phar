@@ -128,6 +128,7 @@ class Builder
         $stub = <<<STUB
 #!/usr/bin/env php
 <?php
+define("PHAR_WORKING", true);
 define("PHAR_WORKING_DIR", getcwd());
 define("PHAR_WORKING_TAG", "{$this->_tag}");
 define("PHAR_WORKING_NAME", "{$this->pharFilename}");
