@@ -126,7 +126,7 @@ class KvClient extends Abstracts\Client
      */
     private function scanConfig(string $x)
     {
-        if (defined('PHAR_WORKING_NAME')) {
+        if (defined('PHAR_WORKING')) {
             $path = __DIR__.'/../../../../../../../config';
         } else {
             $path = $this->boot->getArgs()->getBasePath().'/config';
@@ -144,9 +144,14 @@ class KvClient extends Abstracts\Client
             }
             $this->printLine("          发现【{$e}】文件");
             $data = include($path.'/'.$e);
-            $buff = isset($data['default']) && is_array($data['default']) ? $data['default'] : [];
-            $temp = isset($data[$x]) && is_array($data[$x]) ? $data[$x] : [];
-            $r[$m[1]] = array_replace_recursive($buff, $temp);
+            $data = is_array($data) ? $data : [];
+            if (isset($data['default']) || isset($data['development']) || isset($data['testing']) || isset($data['release']) || isset($data['production'])) {
+                $buff = isset($data['default']) && is_array($data['default']) ? $data['default'] : [];
+                $temp = isset($data[$x]) && is_array($data[$x]) ? $data[$x] : [];
+                $r[$m[1]] = array_replace_recursive($buff, $temp);
+            } else {
+                $r[$m[1]] = $data;
+            }
         }
         $d->close();
         return $r;

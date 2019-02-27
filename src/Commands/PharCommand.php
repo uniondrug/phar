@@ -48,7 +48,7 @@ abstract class PharCommand extends Command
      */
     public function canBuilder()
     {
-        if (defined("PHAR_WORKING_NAME")) {
+        if (defined("PHAR_WORKING")) {
             throw new \Exception("can not work in phar.");
         }
         return true;
