@@ -226,7 +226,7 @@ STUB;
                 // 3.1 ignored or not
                 $folderIgnored = false;
                 foreach ($this->_folderIgnores as $rexp) {
-                    if (preg_match($rexp, $e)) {
+                    if (preg_match($rexp, $e) > 0 || preg_match($rexp, $f) > 0) {
                         $folderIgnored = true;
                         break;
                     }
@@ -257,6 +257,24 @@ STUB;
             $format = implode('/', $args);
         }
         file_put_contents('php://stdout', "{$format}\n");
+    }
+
+    public function addExts(string $folder)
+    {
+        in_array($folder, $this->_exts) || $this->_exts[] = $folder;
+        return $this;
+    }
+
+    public function addFolder(string $folder)
+    {
+        in_array($folder, $this->_folders) || $this->_folders[] = $folder;
+        return $this;
+    }
+
+    public function addFolderIgnore(string $regexp)
+    {
+        in_array($regexp, $this->_folderIgnores) || $this->_folderIgnores[] = $regexp;
+        return $this;
     }
 
     /**

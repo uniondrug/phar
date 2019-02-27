@@ -73,7 +73,6 @@ class RegisterTask extends XTask
                 //'phalcon/'.\Phalcon\Version::get(),
                 'framework/'.\Uniondrug\Framework\Container::VERSION
             ],
-            'Tag' => [],
             'check' => [
                 "HTTP" => sprintf("http://%s:%d/consul.health", $healthHost, $healthPort),
                 "Interval" => "5s"
