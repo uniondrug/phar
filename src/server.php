@@ -66,7 +66,7 @@ register_shutdown_function(function() use ($logger, $errorReportingCode){
     }
     // 2. 忽略错误
     error_clear_last();
-    if ($e['type'] > $errorReportingCode){
+    if ($e['type'] > $errorReportingCode) {
         return;
     }
     // 3.
@@ -76,7 +76,7 @@ register_shutdown_function(function() use ($logger, $errorReportingCode){
         case E_CORE_ERROR :
         case E_COMPILE_ERROR :
             $logger->fatal("[errno=%d]%s", $e['type'], $e['message']);
-            $logger->enableDebug() && $logger->debug("错误位于{%s}的第{%d}行", $e['file'], $e['line']);
+            $logger->enableDebug() && $logger->debug("SD错误位于{%s}的第{%d}行", $e['file'], $e['line']);
             break;
         case E_WARNING :
         case E_USER_WARNING :
@@ -85,7 +85,7 @@ register_shutdown_function(function() use ($logger, $errorReportingCode){
         case E_USER_NOTICE :
         case E_DEPRECATED :
             $logger->warning("[errno=%d]%s", $e['type'], $e['message']);
-            $logger->enableDebug() && $logger->debug("报警位于{%s}的第{%d}行", $e['file'], $e['line']);
+            $logger->enableDebug() && $logger->debug("SD报警位于{%s}的第{%d}行", $e['file'], $e['line']);
             break;
     }
 });
@@ -93,14 +93,17 @@ register_shutdown_function(function() use ($logger, $errorReportingCode){
  * RuntimeError Handler
  * 在运行过程中, 产生的错误回调
  */
-set_error_handler(function($errno, $error, $file, $line) use ($logger){
+set_error_handler(function($errno, $error, $file, $line) use ($logger, $errorReportingCode){
+    if ($errno > $errorReportingCode) {
+        return;
+    }
     switch ($errno) {
         case E_ERROR :
         case E_USER_ERROR :
         case E_CORE_ERROR :
         case E_COMPILE_ERROR :
             $logger->fatal("[errno=%d]%s", $errno, $error);
-            $logger->enableDebug() && $logger->debug("错误位于{%s}的第{%d}行", $file, $line);
+            $logger->enableDebug() && $logger->debug("EH错误位于{%s}的第{%d}行", $file, $line);
             break;
         case E_DEPRECATED :
         case E_WARNING :
@@ -109,7 +112,7 @@ set_error_handler(function($errno, $error, $file, $line) use ($logger){
         case E_NOTICE :
         case E_USER_NOTICE :
             $logger->warning("[errno=%d]%s", $errno, $error);
-            $logger->enableDebug() && $logger->debug("报警位于{%s}的第{%d}行", $file, $line);
+            $logger->enableDebug() && $logger->debug("EH报警位于{%s}的第{%d}行", $file, $line);
             break;
     }
 });
@@ -119,7 +122,7 @@ set_error_handler(function($errno, $error, $file, $line) use ($logger){
  */
 set_exception_handler(function(\Throwable $e) use ($logger){
     $logger->fatal("[exception=%s]%s", get_class($e), $e->getMessage());
-    $logger->enableDebug() && $logger->debug("异常位于{%s}的第{%d}行", $e->getFile(), $e->getLine());
+    $logger->enableDebug() && $logger->debug("EX异常位于{%s}的第{%d}行", $e->getFile(), $e->getLine());
 });
 /**
  * 导入配置文件
