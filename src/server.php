@@ -21,6 +21,8 @@ if ($vendorBoot === null || !file_exists($vendorFile)) {
     exit(1);
 }
 include($vendorFile);
+defined("PHAR_WORKING_DIR") || define("PHAR_WORKING_DIR", getcwd());
+defined("PHAR_WORKING_FILE") || define("PHAR_WORKING_FILE", getcwd());
 /**
  * 初始化前设置实例
  * 1). 命令行Arguments
@@ -29,17 +31,45 @@ include($vendorFile);
 $args = new \Uniondrug\Phar\Server\Args();
 $logger = new \Uniondrug\Phar\Server\Logger($args);
 /**
+ * 错误报警级别
+ */
+$errorReporting = (string) $args->getOption('error');
+$errorReporting = $errorReporting === '' ? '' : strtoupper($errorReporting);
+$errorReportingCode = E_ALL;
+switch ($errorReporting) {
+    case 'ERROR' :
+        $errorReportingCode = E_ERROR;
+        break;
+    case 'PARSE' :
+        $errorReportingCode = E_ERROR | E_PARSE;
+        break;
+    case 'WARNING' :
+        $errorReportingCode = E_ERROR | E_PARSE | E_WARNING;
+        break;
+    case 'OFF' :
+        $errorReportingCode = 0;
+        break;
+    default :
+        break;
+}
+error_reporting($errorReportingCode);
+/**
  * Fatal/Shutdown Handler
  * 在异步模式下, 当前脚本中止或Fatal错误时
  * 由本回调收集, 并做统一的日志处理
  */
-register_shutdown_function(function() use ($logger){
+register_shutdown_function(function() use ($logger, $errorReportingCode){
     // 1. 读取最近Fatal错误
     $e = error_get_last();
     if ($e === null) {
         return;
     }
-    // 2. 按Level进程业务转发
+    // 2. 忽略错误
+    error_clear_last();
+    if ($e['type'] > $errorReportingCode){
+        return;
+    }
+    // 3.
     switch ($e['type']) {
         case E_ERROR :
         case E_USER_ERROR :
@@ -116,11 +146,6 @@ if ($args->getCommand() === 'console') {
     $console->run();
 } else {
     // 2. BootStrap
-    if (strtoupper($config->environment) === "PRODUCTION") {
-        error_reporting(E_ERROR | E_WARNING | E_PARSE);
-    } else {
-        error_reporting(E_ALL);
-    }
     $booter = new \Uniondrug\Phar\Server\Bootstrap($args, $config, $logger);
     $booter->run();
 }

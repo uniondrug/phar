@@ -42,6 +42,7 @@ class Args
      * @var array
      */
     private $options = [];
+    private $errorReportingCode = E_ALL;
 
     /**
      * 从命令行解析入参
@@ -233,5 +234,16 @@ class Args
     {
         $path = $this->getTmpDir().'/tasks';
         return is_dir($path) ? true : $this->makeDir($path);
+    }
+
+    public function getErrorReportingCode()
+    {
+        return $this->errorReportingCode;
+    }
+
+    public function setErrorReportingCode(int $code)
+    {
+        $this->errorReportingCode = $code;
+        return $this;
     }
 }

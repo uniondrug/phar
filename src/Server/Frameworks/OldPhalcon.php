@@ -76,6 +76,7 @@ trait OldPhalcon
          * @var Args  $args
          */
         $server = $this;
+        error_reporting($server->getArgs()->getErrorReportingCode());
         $this->container = new Container($server->getArgs()->getBasePath());
         $this->container->setShared('server', $server);
         $this->containerLoggerPrefix = $server->getLogger()->getPrefix();
