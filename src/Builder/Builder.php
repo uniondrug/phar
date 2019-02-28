@@ -96,6 +96,10 @@ class Builder
         $this->phar->setSignatureAlgorithm(\Phar::SHA1);
         $this->runInfo();
         foreach ($this->_folders as $i => $folder) {
+            if (!is_dir($this->_basePath.'/'.$folder)) {
+                $this->println("      ignore not exists folder, {%s}", $folder);
+                continue;
+            }
             $this->_scanFiles = 0;
             $this->_scanFolders = 0;
             $this->_scanTotalFiles = 0;
