@@ -96,6 +96,10 @@ class Builder
         $this->phar->setSignatureAlgorithm(\Phar::SHA1);
         $this->runInfo();
         foreach ($this->_folders as $i => $folder) {
+            if (!is_dir($this->_basePath.'/'.$folder)) {
+                $this->println("      ignore not exists folder, {%s}", $folder);
+                continue;
+            }
             $this->_scanFiles = 0;
             $this->_scanFolders = 0;
             $this->_scanTotalFiles = 0;
@@ -128,6 +132,7 @@ class Builder
         $stub = <<<STUB
 #!/usr/bin/env php
 <?php
+define("PHAR_WORKING", true);
 define("PHAR_WORKING_DIR", getcwd());
 define("PHAR_WORKING_TAG", "{$this->_tag}");
 define("PHAR_WORKING_NAME", "{$this->pharFilename}");
@@ -226,7 +231,7 @@ STUB;
                 // 3.1 ignored or not
                 $folderIgnored = false;
                 foreach ($this->_folderIgnores as $rexp) {
-                    if (preg_match($rexp, $e)) {
+                    if (preg_match($rexp, $e) > 0 || preg_match($rexp, $f) > 0) {
                         $folderIgnored = true;
                         break;
                     }
@@ -257,6 +262,24 @@ STUB;
             $format = implode('/', $args);
         }
         file_put_contents('php://stdout', "{$format}\n");
+    }
+
+    public function addExts(string $folder)
+    {
+        in_array($folder, $this->_exts) || $this->_exts[] = $folder;
+        return $this;
+    }
+
+    public function addFolder(string $folder)
+    {
+        in_array($folder, $this->_folders) || $this->_folders[] = $folder;
+        return $this;
+    }
+
+    public function addFolderIgnore(string $regexp)
+    {
+        in_array($regexp, $this->_folderIgnores) || $this->_folderIgnores[] = $regexp;
+        return $this;
     }
 
     /**

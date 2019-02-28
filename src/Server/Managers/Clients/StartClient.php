@@ -40,6 +40,11 @@ class StartClient extends Abstracts\Client
             'desc' => '指定环境名, 可选: {yellow=development}、{yellow=testing}、{yellow=release}、{yellow=production}, 默认: {yellow=development}'
         ],
         [
+            'name' => 'error',
+            'value' => 'ALL',
+            'desc' => 'PHP错误级别是, 默认: {yellow=ALL}, 可选: {yellow=ALL}、{yellow=ERROR}、{yellow=PARSE}、{yellow=WARNING}、{yellow=OFF}'
+        ],
+        [
             'name' => 'host',
             'value' => 'ip|eth',
             'desc' => '指定IP地址, 默认: 从配置文件{yellow=config/server.php}中读取'

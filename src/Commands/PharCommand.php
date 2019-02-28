@@ -38,10 +38,28 @@ abstract class PharCommand extends Command
      */
     public function handle()
     {
-        if (defined("PHAR_WORKING_NAME")) {
-            $this->getOutput()->writeln("ERROR - can not worker in ".PHAR_WORKING_NAME." file.");
-            return;
+        $this->canBuilder();
+        $this->getBuilder()->run();
+    }
+
+    /**
+     * @return bool
+     * @throws \Exception
+     */
+    public function canBuilder()
+    {
+        if (defined("PHAR_WORKING")) {
+            throw new \Exception("can not work in phar.");
         }
+        return true;
+    }
+
+    /**
+     * @return Builder
+     * @throws \Throwable
+     */
+    public function getBuilder()
+    {
         /**
          * @var Container $container
          */
@@ -63,6 +81,6 @@ abstract class PharCommand extends Command
         $builder->setTag($tag);
         $builder->setOverride($override);
         $builder->setEnvironment($env);
-        $builder->run();
+        return $builder;
     }
 }

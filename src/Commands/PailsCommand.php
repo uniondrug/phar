@@ -38,10 +38,28 @@ abstract class PailsCommand extends Command
      */
     public function handle()
     {
-        if (defined("PHAR_WORKING_NAME")) {
-            $this->getOutput()->writeln("ERROR - can not worker in ".PHAR_WORKING_NAME." file.");
-            return;
+        $this->canBuilder();
+        $this->getBuilder()->run();
+    }
+
+    /**
+     * @return bool
+     * @throws \Exception
+     */
+    public function canBuilder()
+    {
+        if (defined("PHAR_WORKING")) {
+            throw new \Exception("can not work in phar.");
         }
+        return true;
+    }
+
+    /**
+     * @return Builder
+     * @throws \Throwable
+     */
+    public function getBuilder()
+    {
         // 1. phar name
         $name = $this->option('name');
         $name || $name = $this->pharName;
@@ -54,15 +72,11 @@ abstract class PailsCommand extends Command
         $env = $this->option('env');
         $env || $env = 'development';
         // 6. runtime
-        try {
-            $builder = new Builder();
-            $builder->setName($name);
-            $builder->setTag($tag);
-            $builder->setOverride($override === true);
-            $builder->setEnvironment($env);
-            $builder->run();
-        } catch(\Throwable $e) {
-            $this->error($e->getMessage());
-        }
+        $builder = new Builder();
+        $builder->setName($name);
+        $builder->setTag($tag);
+        $builder->setOverride($override === true);
+        $builder->setEnvironment($env);
+        return $builder;
     }
 }

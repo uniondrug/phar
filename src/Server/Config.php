@@ -265,7 +265,7 @@ class Config
         } else {
             // 1. 扫描配置文件目录
             $env = $this->_environment;
-            if (defined('PHAR_WORKING_NAME')) {
+            if (defined('PHAR_WORKING')) {
                 $path = __DIR__.'/../../../../../config';
             } else {
                 $path = $this->args->getBasePath().'/config';
