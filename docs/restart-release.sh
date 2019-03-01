@@ -1,7 +1,8 @@
 #!/bin/sh
 
 
-apps="backend.notify \
+apps="backend.app \
+backend.notify \
 backend.stagnation \
 backend.wx \
 module.customer \
@@ -14,7 +15,10 @@ module.project \
 module.rule \
 module.stagnation \
 module.user \
-module.wx"
+module.wx \
+tm-appbackend \
+tm-service \
+uniondrug"
 
 
 for name in ${apps}; do
@@ -23,7 +27,7 @@ for name in ${apps}; do
         echo "${path}" && cd ${path} && \
         echo "    force kill" && php server stop --force-kill &>/dev/null && \
         echo "    sync consul kv" && php server kv --consul udsdk.uniondrug.net &>/dev/null && \
-        echo "    remote logs" && rm -rf log/2019-02/*.log && echo '' > log/server.log &>/dev/null && \
+        echo "    remote logs" && rm -rf log/2019-02/*.log && rm -rf log/2019-03/*.log && echo '' > log/server.log &>/dev/null && \
         echo "    start server" && php server start -e release --log-level=DEBUG --consul-register 172.16.0.67:8500 -d &>/dev/null
     fi
 done
