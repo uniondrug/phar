@@ -87,7 +87,7 @@ class KvClient extends Abstracts\Client
         }
         // 3. 读取远程
         preg_match("/^(http|https):\/\//", $host) > 0 || $host = "http://{$host}";
-        $this->consulApi = "{$host}/v1/kv";
+        $this->consulApi = "{$host}/v1/kv/apps";
         $remote = $this->scanConsul("{$key}/config");
         $remote === false || $remote = $this->scanConsulParse($remote);
         // 4. 合并结果
