@@ -78,8 +78,8 @@ class KvClient extends Abstracts\Client
         }
         // 2. Key名称
         $key = null;
-        if (isset($data['app'], $data['app']['appName'])) {
-            $key = preg_replace("/^\/+/", "", $data['app']['appName']);
+        if (isset($data['app'], $data['app']['value'], $data['app']['value']['appName'])) {
+            $key = preg_replace("/^\/+/", "", $data['app']['value']['appName']);
         }
         if ($key === null) {
             $this->printLine("同步出错: 【Config】项目未配置app.appName参数");
@@ -148,9 +148,15 @@ class KvClient extends Abstracts\Client
             if (isset($data['default']) || isset($data['development']) || isset($data['testing']) || isset($data['release']) || isset($data['production'])) {
                 $buff = isset($data['default']) && is_array($data['default']) ? $data['default'] : [];
                 $temp = isset($data[$x]) && is_array($data[$x]) ? $data[$x] : [];
-                $r[$m[1]] = array_replace_recursive($buff, $temp);
+                $r[$m[1]] = [
+                    'env' => $x,
+                    'value' => array_replace_recursive($buff, $temp)
+                ];
             } else {
-                $r[$m[1]] = $data;
+                $r[$m[1]] = [
+                    'env' => '',
+                    'value' => $data
+                ];
             }
         }
         $d->close();
