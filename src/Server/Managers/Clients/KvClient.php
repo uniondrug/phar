@@ -149,12 +149,12 @@ class KvClient extends Abstracts\Client
                 $buff = isset($data['default']) && is_array($data['default']) ? $data['default'] : [];
                 $temp = isset($data[$x]) && is_array($data[$x]) ? $data[$x] : [];
                 $r[$m[1]] = [
-                    'env' => $x,
+                    'key' => $x,
                     'value' => array_replace_recursive($buff, $temp)
                 ];
             } else {
                 $r[$m[1]] = [
-                    'env' => '',
+                    'key' => '',
                     'value' => $data
                 ];
             }
