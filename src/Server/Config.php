@@ -261,7 +261,13 @@ class Config
         $conf = [];
         $file = $this->args->getTmpDir().'/config.php';
         if (file_exists($file)) {
-            $conf = include($file);
+            $temp = include($file);
+            foreach ($temp as $key => $value){
+                if (!in_array($key, ['app', 'server'])){
+                    continue;
+                }
+                $conf[$key] = $value['value'];
+            }
         } else {
             // 1. 扫描配置文件目录
             $env = $this->_environment;
@@ -275,6 +281,13 @@ class Config
                 while (false !== ($name = $scan->read())) {
                     // 2. not php file
                     if (preg_match("/^(\S+)\.php$/i", $name, $m) === 0) {
+                        continue;
+                    }
+                    if (!in_array($m[1], [
+                        'app',
+                        'server'
+                    ])
+                    ) {
                         continue;
                     }
                     // 3. include temp

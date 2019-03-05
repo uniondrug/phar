@@ -206,6 +206,26 @@ trait OldPhalcon
      */
     private function phalconLoaderMysql()
     {
+        foreach ($this->connectionMysqls as $name) {
+            // 1. not shared
+            if (!$this->container->hasSharedInstance($name)) {
+                continue;
+            }
+            /**
+             * 2. shared
+             * @var Mysql $db
+             */
+            try {
+                $db = $this->container->getShared($name);
+                $db->query("SELECT 1");
+            } catch(\Throwable $e) {
+                // 3. 执行失败
+                if (preg_match("/gone\s+away/i", $e->getMessage()) > 0) {
+                    $this->container->removeSharedInstance($name);
+                    $this->getLogger()->warning("移除断开的{%s}连接 - %s", $name, $e->getMessage());
+                }
+            }
+        }
     }
 
     /**
@@ -213,5 +233,25 @@ trait OldPhalcon
      */
     private function phalconLoaderRedis()
     {
+        foreach ($this->connectionRedises as $name) {
+            // 1. not shared
+            if (!$this->container->hasSharedInstance($name)) {
+                continue;
+            }
+            /**
+             * 2. shared
+             * @var \Redis $db
+             */
+            try {
+                $db = $this->container->getShared($name);
+                $db->exists("test");
+            } catch(\Throwable $e) {
+                // 3. 执行失败
+                if (preg_match("/went\s+away/i", $e->getMessage()) > 0) {
+                    $this->container->removeSharedInstance($name);
+                    $this->getLogger()->warning("移除断开的{%s}连接 - %s", $name, $e->getMessage());
+                }
+            }
+        }
     }
 }
