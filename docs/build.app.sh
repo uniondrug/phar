@@ -18,8 +18,8 @@ fi
 
 
 # 3. applications
-apps="backend.app app.backend console \
-uniondrug uniondrug pails \
+# backend.app app.backend console \
+apps="uniondrug uniondrug pails \
 tm-service service pails \
 tm-appbackend appbackend pails"
 
