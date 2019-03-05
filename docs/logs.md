@@ -2,6 +2,13 @@
 
 > PHAR Change lists
 
+### 1.3
+
+1. `1.3.1`
+    1. 兼容uniondrug版的phalcon - [明细](./logs.uniondrug.md)
+1. `1.3.0`
+    1. stable, LogTable可能还有问题
+
 ### 1.2
 
 1. `1.2.14`

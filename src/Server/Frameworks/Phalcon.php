@@ -50,7 +50,7 @@ trait Phalcon
      * 每隔5秒检查一次连接
      * @var int
      */
-    protected $connectionFrequences = 5;
+    protected $connectionFrequences = 0;
     /**
      * 刷新MySQL共享名称
      * @var array
