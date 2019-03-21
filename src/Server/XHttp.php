@@ -1,186 +1,230 @@
 <?php
 /**
  * @author wsfuyibing <websearch@163.com>
- * @date   2018-12-30
+ * @date   2019-03-16
  */
 namespace Uniondrug\Phar\Server;
 
-use swoole_http_server;
-use Uniondrug\Phar\Server\Does\BeforeStart;
-use Uniondrug\Phar\Server\Does\DoStart;
-use Uniondrug\Phar\Server\Does\DoTask;
-use Uniondrug\Phar\Server\Does\Http\DoRequest;
-use Uniondrug\Phar\Server\Does\RunTask;
-use Uniondrug\Phar\Server\Events\Http\OnRequest;
-use Uniondrug\Phar\Server\Events\OnFinish;
-use Uniondrug\Phar\Server\Events\OnPipeMessage;
-use Uniondrug\Phar\Server\Events\OnStart;
-use Uniondrug\Phar\Server\Events\OnTask;
-use Uniondrug\Phar\Server\Frameworks\Phalcon;
+use App\Errors\Error;
+use Phalcon\Db\Adapter\Pdo\Mysql;
+use Phalcon\Di;
+use Phalcon\Http\Response;
+use Uniondrug\Framework\Application;
+use Uniondrug\Framework\Container;
+use Uniondrug\Framework\Request;
+use Uniondrug\Phar\Server\Logs\Logger;
+use Uniondrug\Phar\Server\Services\HttpDispatcher;
+use Uniondrug\Service\Server as ServiceServer;
+use Uniondrug\Structs\Exception;
 
 /**
- * HttpServer
+ * HTTP服务
+ * 基于uniondrug/framework的HTTP服务
  * @package Uniondrug\Phar\Server
  */
-class XHttp extends swoole_http_server
+class XHttp extends Services\Http
 {
     /**
-     * Server入口
-     * @var Bootstrap
+     * @var Application
      */
-    public $boot;
+    private $_application;
     /**
-     * does: callbacks
+     * @var Container
      */
-    use BeforeStart, DoStart, DoTask;
-    use DoRequest;
+    private $_container;
+    private $_connectionActived = 0;
     /**
-     * events: server
+     * 连接刷新频次
+     * 单位: 秒
+     * 默认: 5
+     * 当值为0时, 表示每次请求前主动检查, 反之由定时器
+     * 每隔5秒检查一次连接
+     * @var int
      */
-    use RunTask, OnFinish, OnTask, OnPipeMessage, OnStart;
+    protected $connectionFrequences = 5;
     /**
-     * events: http
+     * 刷新MySQL共享名称
+     * @var array
      */
-    use OnRequest;
+    protected $connectionMysqls = [
+        'db',
+        'dbSlave'
+    ];
     /**
-     * frameworks: Phalcon
+     * 刷新Redis共享名称
+     * @var array
      */
-    use Phalcon;
+    protected $connectionRedises = [
+        'redis'
+    ];
 
     /**
-     * XHttp constructor.
-     * @param Bootstrap $boot
+     * 连接检查
+     * @param XHttp|XSocket|XOld $server
      */
-    public function __construct(Bootstrap $boot)
+    public function frameworkReConnect($server)
     {
-        $cfg = $boot->getConfig();
-        $log = $boot->getLogger();
-        $this->boot = $boot;
-        // 1. construct
-        $log->setPrefix("[%s:%d]", $cfg->host, $cfg->port);
-        $log->info("创建{%s}服务/Server", $cfg->name);
-        parent::__construct($cfg->host, $cfg->port, $cfg->serverMode, $cfg->serverSockType);
-        // 2. settings
-        $this->set($cfg->settings);
-        // 3. events
-        $log->info("绑定事件监听");
-        $events = $cfg->events;
-        foreach ($events as $event) {
-            $call = 'on'.ucfirst($event);
-            if (method_exists($this, $call)) {
-                $log->debug("绑定{%s}事件到{%s}回调方法", $event, $call);
-                $this->on($event, [
-                    $this,
-                    'on'.ucfirst($event)
-                ]);
+        $timestamp = time();
+        if ($this->connectionFrequences > 0) {
+            if (($timestamp - $this->_connectionActived) <= $this->connectionFrequences) {
+                return;
+            }
+        }
+        $this->_connectionActived = $timestamp;
+        $this->_connectionCheckMysql($server);
+        $this->_connectionCheckRedis($server);
+    }
+
+    /**
+     * 初始化Phalcon框架
+     * @param XHttp|XSocket|XOld $server
+     */
+    public function frameworkInitialize($server)
+    {
+        // 1. container
+        $container = new Container($server->getArgs()->basePath());
+        $container->setShared('server', $server);
+        $container->setShared('logger', $server->getLogger());
+        $container->setShared('request', new Request());
+        // 2. application
+        $application = new Application($container);
+        $application->boot();
+        // 3. reset shared
+        // 4. override DI
+        Di::setDefault($container);
+        // 5. set globals
+        $this->_application = $application;
+        $this->_container = $container;
+    }
+
+    /**
+     * 转发请求给Phalcon框架
+     * @param XHttp|XSocket|XOld $server
+     * @param HttpDispatcher     $dispatcher
+     */
+    public function frameworkRequest($server, HttpDispatcher $dispatcher)
+    {
+        $this->frameworkReConnect($server);
+        /**
+         * 1. 入参
+         * @var Request $request
+         */
+        $request = $this->_container->getShared('request');
+        $request->setRawBody($dispatcher->getRawBody());
+        /**
+         * 2. 请求过程
+         * @var ServiceServer $service
+         * @var Response      $response
+         */
+        try {
+            $response = $this->_application->handle($dispatcher->getUrl());
+            if (!($response instanceof Response)) {
+                throw new Error(0, "unknown framework response");
+            }
+        } catch(\Throwable $e) {
+            if (($e instanceof Error) || ($e instanceof Exception)) {
+                $server->getLogger()->warning($e->getMessage());
             } else {
-                $log->warning("方法{%s}未定, {$event}事件被忽略", $call, $event);
+                $server->getLogger()->error($e->getMessage());
+            }
+            $server->getLogger()->log(Logger::LEVEL_DEBUG, "%s at %s(%d)", get_class($e), $e->getFile(), $e->getLine());
+            $service = $this->_container->getShared('serviceServer');
+            $response = $service->withError($e->getMessage(), $e->getCode());
+        }
+        // 3. 转换Cookie
+        //     todo: cookies读不到对象
+        $cookies = $response->getCookies();
+        if ($cookies instanceof \Phalcon\Http\Response\CookiesInterface) {
+        }
+        // 4. 转发Header
+        $headers = $response->getHeaders();
+        if ($headers instanceof \Phalcon\Http\Response\Headers) {
+            foreach ($headers->toArray() as $key => $value) {
+                if (preg_match("/access\-control/i", $key)) {
+                    continue;
+                }
+                $dispatcher->setHeader($key, $value);
             }
         }
-        // 4. tables
-        if ($cfg->enableTables) {
-            $tables = $cfg->tables;
-            $log->info("设置内存表{%d}个", count($tables));
-            foreach ($tables as $table => $size) {
+        // n. 写入返回数据
+        //    a). 内容
+        //    b). Status
+        $statusCode = (int) $response->getStatusCode();
+        $content = $response->getContent();
+        if (preg_match("/^\s*\<[a-z]+ml/i", $content) > 0) {
+            $dispatcher->setContentType('text/html');
+        } else if (preg_match("/^\s*\{/", $content) === 0) {
+            $dispatcher->setContentType('text/plain');
+        }
+        $dispatcher->setStatus($statusCode);
+        $dispatcher->setContent($content);
+    }
+
+    /**
+     * 读取应用
+     * @return Application
+     */
+    public function getApplication()
+    {
+        return $this->_application;
+    }
+
+    /**
+     * 读取容器
+     * @return Container
+     */
+    public function getContainer()
+    {
+        return $this->_container;
+    }
+
+    /**
+     * 检查MySQL连接
+     * @param XHttp|XSocket|XOld $server
+     */
+    private function _connectionCheckMysql($server)
+    {
+        foreach ($this->connectionMysqls as $name) {
+            // 1. not shared
+            if (!$this->_container->hasSharedInstance($name)) {
+                continue;
+            }
+            /**
+             * 2. check
+             * @var Mysql $mysql
+             */
+            $mysql = $this->_container->getShared($name);
+            try {
+                $mysql->query("SELECT 1");
+            } catch(\Throwable $e) {
+                $this->_container->removeSharedInstance($name);
+                $server->getLogger()->log(Logger::LEVEL_WARNING, "移除共享的MySQL-{%s}实例 - %s", $name, $e->getMessage());
             }
         }
-        // 5. processes
-        if ($cfg->enableProcesses) {
-            $processes = $cfg->processes;
-            $log->info("加入Process进程{%d}个", count($processes));
+    }
+
+    /**
+     * 检查Redis连接
+     * @param XHttp|XSocket|XOld $server
+     */
+    private function _connectionCheckRedis($server)
+    {
+        foreach ($this->connectionRedises as $name) {
+            // 1. not shared
+            if (!$this->_container->hasSharedInstance($name)) {
+                continue;
+            }
+            /**
+             * 2. check
+             * @var \Redis $redis
+             */
+            $redis = $this->_container->getShared($name);
+            try {
+                $redis->ping();
+            } catch(\Throwable $e) {
+                $this->_container->removeSharedInstance($name);
+                $server->getLogger()->log(Logger::LEVEL_WARNING, "移除共享的Redis-{%s}实例 - %s", $name, $e->getMessage());
+            }
         }
-    }
-
-    /**
-     * @return Args
-     */
-    public function getArgs()
-    {
-        return $this->boot->getArgs();
-    }
-
-    /**
-     * @return Config
-     */
-    public function getConfig()
-    {
-        return $this->boot->getConfig();
-    }
-
-    /**
-     * @return Logger
-     */
-    public function getLogger()
-    {
-        return $this->boot->getLogger();
-    }
-
-    /**
-     * Master进程ID
-     * @return int
-     */
-    public function getMasterPid()
-    {
-        return $this->master_pid;
-    }
-
-    /**
-     * Manager进程ID
-     * @return int
-     */
-    public function getManagerPid()
-    {
-        return $this->manager_pid;
-    }
-
-    /**
-     * Worker进程ID
-     * @return int
-     */
-    public function getWorkerPid()
-    {
-        return $this->worker_pid;
-    }
-
-    /**
-     * Worker编号
-     * @return int
-     */
-    public function getWorkerId()
-    {
-        return $this->worker_id;
-    }
-
-    /**
-     * 是否为Worker进程
-     */
-    public function isTasker()
-    {
-        if ($this->worker_pid > 0) {
-            return $this->taskworker;
-        }
-        return false;
-    }
-
-    /**
-     * 是否为Worker进程
-     * 1. Worker
-     * 2. Tasker
-     * @return bool
-     */
-    public function isWorker()
-    {
-        return $this->worker_pid > 0;
-    }
-
-    /**
-     * 启动Server
-     */
-    final public function start()
-    {
-        if ($this->beforeStart($this) === true) {
-            return parent::start();
-        }
-        return false;
     }
 }

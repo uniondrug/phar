@@ -1,71 +1,76 @@
 <?php
 /**
  * @author wsfuyibing <websearch@163.com>
- * @date   2018-12-29
+ * @date   2019-03-21
  */
 namespace Uniondrug\Phar\Builder;
 
-use Symfony\Component\Console\Output\OutputInterface;
-use Uniondrug\Framework\Container;
-
 /**
- * Builder PHAR
+ * 构建PHAR包
  * @package Uniondrug\Phar
  */
 class Builder
 {
-    private $basePath;
+    private $_basePath;
     /**
-     * 是否压缩
-     * @var bool
-     */
-    private $compress = false;
-    /**
-     * @var Container
-     */
-    private $container;
-    /**
-     * 导出包名称
+     * Consul地址
+     * 构建镜像时, 从Consul拉取配置信息
      * @var string
      */
-    private $name = "phar";
+    private $_environment = 'development';
     /**
-     * 控制台输出对象
-     * @var OutputInterface
+     * 文件扩展名
+     * @var array
      */
-    private $output;
+    private $_exts = [
+        'php',
+        'xml',
+        'yml'
+    ];
     /**
-     * 标签/版本号名称
-     * @var string
+     * 扫描文件夹
+     * @var array
      */
-    private $tag = "latest";
-    private $pharName;
-    private $pharFile;
-    private $folders = [
+    private $_folders = [
         'app',
         'config',
+        'lib',
         'vendor'
     ];
-    private $ignoreFolders = [
+    /**
+     * 忽略规则
+     * @var array
+     */
+    private $_folderIgnores = [
         "/^\./",
         "/^tests$/i",
         "/^examples$/i",
-        "/^samples$/i",
+        "/^samples$/i"
     ];
-    private $files = [
-        "/\.php$/i"
-    ];
-    private $countFiles = 0;
+    private $_name = 'sketch';
+    private $_tag = '0.0.0';
+    private $_override = false;
+    private $_scanFiles = 0;
+    private $_scanAllFiles = 0;
+    private $_scanTotalFiles = 0;
+    private $_scanFolders = 0;
+    /**
+     * @var \Phar
+     */
+    private $phar = null;
+    private $pharBegin = 0.0;
+    private $pharFilename = '';
+    private $pharFilepath = '';
 
     /**
-     * Builder constructor.
-     * @param OutputInterface $output
+     * 设置基础目录
+     * @param string|null $basePath
      */
-    public function __construct(Container $container, OutputInterface $output)
+    public function __construct(string $basePath = null)
     {
-        $this->container = $container;
-        $this->basePath = realpath($this->container->tmpPath().'/../');
-        $this->output = $output;
+        $this->_basePath = $basePath === null ? getcwd() : $basePath;
+        $this->_name = 'sketch';
+        $this->_tag = date('ymd');
     }
 
     /**
@@ -73,127 +78,273 @@ class Builder
      */
     public function run()
     {
-        // 1. before run
-        $this->pharName = sprintf("%s-%s.phar", $this->name, $this->tag);
-        $this->pharFile = $this->basePath.'/'.$this->pharName;
-        // 2. begin build
-        $this->output->writeln("开始构建: 【{$this->name}/{$this->tag}】项目PHP Archive包【{$this->pharName}】文件");
-        $phar = new \Phar($this->pharFile, 0, $this->pharName);
-        // 3. signature
-        $this->output->writeln("设置签名: 【SHA1】格式");
-        $phar->setSignatureAlgorithm(\Phar::SHA1);
-        // 4. 扫描文件
-        foreach ($this->folders as $folder) {
-            $this->runScanner($phar, $folder);
+        // 1. init phar basic
+        $this->pharBegin = microtime(true);
+        $this->pharFilename = sprintf("%s-%s.phar", $this->_name, $this->_tag);
+        $this->pharFilepath = $this->_basePath.'/'.$this->pharFilename;
+        // 2. is exists or not
+        if (file_exists($this->pharFilepath)) {
+            if ($this->_override) {
+                unlink($this->pharFilepath);
+            } else {
+                throw new \Exception("包文件[{$this->pharFilename}]已存在, 若重新构建请先删除.");
+            }
         }
-        // 5. 启动脚本
-        $this->runBootstrap($phar);
-        // 6. 完成构建
-        if (file_exists($this->pharFile)) {
-            $size = sprintf("%.02f", filesize($this->pharFile) / 1024 / 1024);
-            $this->output->writeln("构建完成: 【{$this->countFiles}】个文件共占用【{$size}】MB空间");
-        } else {
-            $this->output->writeln("构建失败: 导出文件失败");
+        // 3. build progress
+        $this->println("PHAR: package {%s} building...", $this->pharFilename);
+        $this->phar = new \Phar($this->pharFilepath, 0, $this->pharFilename);
+        $this->phar->setSignatureAlgorithm(\Phar::SHA1);
+        $this->runInfo();
+        foreach ($this->_folders as $i => $folder) {
+            if (!is_dir($this->_basePath.'/'.$folder)) {
+                $this->println("      ignore not exists folder, {%s}", $folder);
+                continue;
+            }
+            $this->_scanFiles = 0;
+            $this->_scanFolders = 0;
+            $this->_scanTotalFiles = 0;
+            $this->runScan($folder);
+            $this->_scanAllFiles += $this->_scanFiles;
+            $this->println("      add %4d files, found {%4d} files in {%3d} directories under {%s} folder.", $this->_scanFiles, $this->_scanTotalFiles, $this->_scanFolders, $folder);
         }
+        $this->runBootstrap();
+        $this->runEnded();
     }
 
     /**
-     * 添加入口脚本
+     * 加入文件到PHAR包
+     * @param string $path
      */
-    private function runBootstrap(\Phar $phar)
+    private function runAdd(string $path)
     {
+        $this->_scanFiles++;
+        $this->phar->addFile($path);
+    }
+
+    /**
+     * 添加入口
+     */
+    private function runBootstrap()
+    {
+        $this->println("      set bootstrap for phar.");
         $path = 'vendor/uniondrug/phar/src/server.php';
-        $this->output->writeln("设置入口: 【phar://{$this->pharName}/{$path}】启动脚本");
+        $appDebug = strtolower($this->_environment) === 'production' ? 'true' : 'false';
         $stub = <<<STUB
 #!/usr/bin/env php
 <?php
+define("PHAR_WORKING", true);
 define("PHAR_WORKING_DIR", getcwd());
-define("PHAR_WORKING_NAME", "{$this->pharName}");
+define("PHAR_WORKING_TAG", "{$this->_tag}");
+define("PHAR_WORKING_NAME", "{$this->pharFilename}");
 define("PHAR_WORKING_FILE", __FILE__);
-Phar::mapPhar('{$this->pharName}');
-require 'phar://{$this->pharName}/{$path}';
+define("APP_DEBUG", {$appDebug});
+define("BasePath", __FILE__);
+Phar::mapPhar('{$this->pharFilename}');
+include('phar://{$this->pharFilename}/{$path}');
 __HALT_COMPILER();
 STUB;
-        $phar->setStub($stub);
+        $this->phar->setStub($stub);
     }
 
     /**
-     * 采集文件内容
-     * @param \Phar $phar
-     * @param       $path
+     * 完成创建
      */
-    private function runCollector(\Phar $phar, $path)
+    private function runEnded()
     {
-        $n = sprintf("【%3s】", ++$this->countFiles);
-        $this->output->writeln("          {$n}: {$path}");
-        $phar->addFile($path);
+        if (file_exists($this->pharFilepath)) {
+            $this->println("      successed added {%.02f}M of {%d} files, with {%.02f} seconds.", (filesize($this->pharFilepath) / 1024 / 1024), $this->_scanAllFiles, microtime(true) - $this->pharBegin);
+            return true;
+        }
+        throw new \Exception("      build failure, file {".$this->pharFilepath."} not found. ");
     }
 
     /**
-     * 扫描项目目录
-     * @param        $phar
-     * @param string $path
+     * 记录包信息
      */
-    private function runScanner($phar, string $path)
+    private function runInfo()
     {
-        $p = $this->basePath.'/'.$path;
-        $d = dir($p);
+        $this->println("      add php archive information.");
+        $data = [];
+        $data['time'] = date('r');
+        $data['environment'] = $this->_environment;
+        $data['repository'] = 'null';
+        $data['branch'] = 'null';
+        $data['commit'] = 'null';
+        $data['machine'] = 'null';
+        // GIT地址
+        $buffer = shell_exec("cd '".getcwd()."' && git remote -v");
+        if (preg_match("/origin\s+(\S+)/i", $buffer, $m) > 0) {
+            $data['repository'] = $m[1];
+        }
+        // GIT分支
+        $buffer = shell_exec("cd '".getcwd()."' && git branch -a | grep '\*'");
+        if (preg_match("/\*\s+([^\n]+)/i", $buffer, $m) > 0) {
+            $data['branch'] = $m[1];
+        }
+        // GIT Commit
+        $buffer = shell_exec("cd '".getcwd()."' && git log -1");
+        if (preg_match("/commit\s+([^\n]+)/i", $buffer, $m) > 0) {
+            $data['commit'] = $m[1];
+        }
+        // Machine
+        $buffer = shell_exec('echo ${HOSTNAME}');
+        $buffer = trim($buffer);
+        if ($buffer !== '') {
+            $data['machine'] = $buffer;
+        }
+        // 写入Phar
+        $this->phar->addFromString('info.json', json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    /**
+     * 扫描目录
+     * @param string $folder
+     * @param string $sub
+     */
+    private function runScan(string $folder, string $sub = '')
+    {
+        $this->_scanFolders++;
+        $p = $folder.($sub === '' ? '' : '/'.$sub);
+        $d = dir($this->_basePath.'/'.$p);
         while (false !== ($e = $d->read())) {
-            if ($e == '.' || $e == '..') {
+            // 1. ignore system, first char with '.'
+            if (preg_match("/^\./", $e)) {
                 continue;
             }
-            $x = $p.'/'.$e;
-            if (is_dir($x)) {
-                $nest = true;
-                foreach ($this->ignoreFolders as $rexp) {
-                    if (preg_match($rexp, $e) > 0) {
-                        $nest = false;
+            // 2. found file
+            $f = $p.'/'.$e;
+            if (is_file($this->_basePath.'/'.$f)) {
+                $this->_scanTotalFiles++;
+                // 2.1
+                $fx = explode('.', $e);
+                $fi = count($fx);
+                if ($fi > 0) {
+                    $ext = $fx[$fi - 1];
+                    if (in_array($ext, $this->_exts)) {
+                        $this->runAdd($f);
+                    }
+                }
+                continue;
+            }
+            // 3. sub directory
+            if (is_dir($this->_basePath.'/'.$f)) {
+                // 3.1 ignored or not
+                $folderIgnored = false;
+                foreach ($this->_folderIgnores as $rexp) {
+                    if (preg_match($rexp, $e) > 0 || preg_match($rexp, $f) > 0) {
+                        $folderIgnored = true;
                         break;
                     }
                 }
-                $nest && $this->runScanner($phar, $path.'/'.$e);
-                continue;
-            }
-            foreach ($this->files as $rexp) {
-                if (preg_match($rexp, $e) > 0) {
-                    $this->runCollector($phar, $path.'/'.$e);
-                    break;
+                if ($folderIgnored) {
+                    continue;
                 }
+                // 3.2 subdirectory
+                $se = ($sub === '' ? '' : $sub.'/').$e;
+                $this->runScan($folder, $se);
+                continue;
             }
         }
         $d->close();
     }
 
     /**
-     * 设置包压缩状态
-     * @param bool $compress
-     * @return $this
+     * 打印内容
+     * @param string $text
+     * @param array  ...$args
      */
-    public function setCompress(bool $compress)
+    private function println(string $text, ... $args)
     {
-        $this->compress = $compress;
+        $args = is_array($args) ? $args : [];
+        array_unshift($args, $text);
+        $format = @call_user_func_array('sprintf', $args);
+        if ($format === false) {
+            $format = implode('/', $args);
+        }
+        file_put_contents('php://stdout', "{$format}\n");
+    }
+
+    public function addExts(string $folder)
+    {
+        in_array($folder, $this->_exts) || $this->_exts[] = $folder;
+        return $this;
+    }
+
+    public function addFolder(string $folder)
+    {
+        in_array($folder, $this->_folders) || $this->_folders[] = $folder;
+        return $this;
+    }
+
+    public function addFolderIgnore(string $regexp)
+    {
+        in_array($regexp, $this->_folderIgnores) || $this->_folderIgnores[] = $regexp;
         return $this;
     }
 
     /**
-     * 设置导出包名
-     * @param string $name
+     * 指定环境
+     * @param string $environment
      * @return $this
+     */
+    public function setEnvironment(string $environment)
+    {
+        $this->_environment = $environment;
+        return $this;
+    }
+
+    /**
+     * 指定目录
+     * @param array $folders
+     * @return $this
+     */
+    public function setFolders(array $folders)
+    {
+        $this->_folders = $folders;
+        return $this;
+    }
+
+    /**
+     * 忽略目录
+     * @param array $ignores
+     * @return $this
+     */
+    public function setFolderIgnores(array $ignores)
+    {
+        $this->_folderIgnores = $ignores;
+        return $this;
+    }
+
+    /**
+     * 设置包名
+     * @param string $name
+     * @return string
      */
     public function setName(string $name)
     {
-        $this->name = $name;
-        return $this;
+        return $this->_name = $name;
     }
 
     /**
-     * 设置导出包标签/版本号
+     * 设置标签
      * @param string $tag
      * @return $this
      */
     public function setTag(string $tag)
     {
-        $this->tag = $tag;
+        $this->_tag = $tag;
+        return $this;
+    }
+
+    /**
+     * 重复构建
+     * 覆盖/即构建PHAR包时, 若目标文件已存在则删除原文件
+     * @param bool $override
+     * @return $this
+     */
+    public function setOverride($override = true)
+    {
+        $this->_override = $override === true;
         return $this;
     }
 }

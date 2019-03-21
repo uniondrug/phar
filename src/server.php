@@ -1,56 +1,36 @@
 <?php
 /**
- * @author wsfuyibing <websearch@163.com>
- * @date   2018-12-29
+ * Server入口
  */
-// 1. load autoload
-$vendorFile = null;
-if (defined("PHAR_WORKING_DIR")) {
-    // 1.1. in phar
-    $vendorFile = __DIR__."/../../../autoload.php";
+use Uniondrug\Phar\Server\Bases\Args;
+use Uniondrug\Phar\Server\Bases\Config;
+use Uniondrug\Phar\Server\Bases\Runner;
+use Uniondrug\Phar\Server\Logs\Logger;
+
+date_default_timezone_set("Asia/Shanghai");
+ini_set("display_errors", false);
+/**
+ * 入口路径
+ */
+$vendorBoot = null;
+if (defined("PHAR_WORKING_FILE")) {
+    $vendorBoot = __DIR__."/../../../../";
 } else {
-    // 1.2. in phar
-    $vendorFile = getcwd().'/vendor/autoload.php';
+    $vendorBoot = getcwd();
 }
-if (!$vendorFile || !file_exists($vendorFile)) {
-    echo "composer install|update not executed.";
+define("PHAR_ROOT", $vendorBoot);
+$composerVendor = PHAR_ROOT.'/vendor/autoload.php';
+if (file_exists($composerVendor)) {
+    include($composerVendor);
+} else {
+    echo "composer required, please run `composer install`";
     exit(1);
 }
-include($vendorFile);
-// 2. server manager
-$args = new \Uniondrug\Phar\Server\Args();
-$logger = new \Uniondrug\Phar\Server\Logger($args);
-// 2.1 exception
-set_exception_handler(function(\Throwable $e) use ($logger){
-    $logger->error("%s: %s", get_class($e), $e->getMessage());
-});
-// 2.2 error
-set_error_handler(function($errno, $error, $file, $line) use ($logger){
-    $error .= " at {$file} on line {$line}";
-    switch ($errno) {
-        case E_ERROR :
-        case E_USER_ERROR :
-        case E_CORE_ERROR :
-        case E_COMPILE_ERROR :
-            $logger->error($error);
-            throw new \Uniondrug\Phar\Server\Exceptions\ErrorExeption($error, $errno);
-            break;
-        case E_DEPRECATED :
-            $logger->emergency($error);
-            throw new \Uniondrug\Phar\Server\Exceptions\ErrorExeption($error, $errno);
-            break;
-        case E_WARNING :
-        case E_USER_WARNING :
-        case E_CORE_WARNING :
-            $logger->warning($error);
-            break;
-        case E_NOTICE :
-        case E_USER_NOTICE :
-            $logger->notice($error);
-            break;
-    }
-});
-// 2.3 bootstrap
-$config = new \Uniondrug\Phar\Server\Config($args);
-$booter = new \Uniondrug\Phar\Server\Bootstrap($args, $config, $logger);
-$booter->run();
+/**
+ * 全局实例
+ */
+$args = new Args();
+$config = new Config($args);
+$logger = new Logger($config);
+$runner = new Runner($config, $logger);
+$runner->run();

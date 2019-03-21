@@ -1,7 +1,7 @@
 <?php
 /**
  * @author wsfuyibing <websearch@163.com>
- * @date   2018-10-30
+ * @date   2019-03-21
  */
 namespace Uniondrug\Phar\Commands;
 
@@ -26,7 +26,7 @@ abstract class PharCommand extends Command
     protected $signature = 'phar
         {--name= : 包名称}
         {--tag= : 包标签/版本号名称}
-        {--compress=false : 是否以GZIP压缩PHAR包}';
+        {--ignore : 忽略已构建的Phar包}';
     /**
      * 命令描述
      * @var string
@@ -38,6 +38,28 @@ abstract class PharCommand extends Command
      */
     public function handle()
     {
+        $this->canBuilder();
+        $this->getBuilder()->run();
+    }
+
+    /**
+     * @return bool
+     * @throws \Exception
+     */
+    public function canBuilder()
+    {
+        if (defined("PHAR_WORKING_FILE")) {
+            throw new \Exception("can not work in phar.");
+        }
+        return true;
+    }
+
+    /**
+     * @return Builder
+     * @throws \Throwable
+     */
+    public function getBuilder()
+    {
         /**
          * @var Container $container
          */
@@ -48,13 +70,18 @@ abstract class PharCommand extends Command
         // 2. tag
         $tag = $this->input->getOption('tag');
         $tag || $tag = $container->getConfig()->path('app.appVersion');
-        // 3. compress
-        $compress = $this->input->hasOption('compress');
+        // 3. ignore/override
+        $override = $this->input->hasOption('ignore');
+        // 4. environment
+        $env = $this->option('env');
+        $env || $env = 'development';
         // n. builder
-        $builder = new Builder($container, $this->output);
+        $builder = new Builder();
         $builder->setName($name);
         $builder->setTag($tag);
-        $builder->setCompress($compress === true);
-        $builder->run();
+        $builder->setOverride($override);
+        $builder->setEnvironment($env);
+        return $builder;
     }
 }
+
