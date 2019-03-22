@@ -17,6 +17,16 @@ use Uniondrug\Phar\Server\XSocket;
 abstract class XTask implements ITask
 {
     /**
+     * @var string
+     * @deprecated
+     */
+    protected $logPrefix = '';
+    /**
+     * @var string
+     * @deprecated
+     */
+    protected $logUniqid = '';
+    /**
      * 任务ID
      * @var int
      */
@@ -56,12 +66,18 @@ abstract class XTask implements ITask
         return $this->_server->getContainer()->get($name);
     }
 
+    /**
+     * 处理结果
+     * 当run()方法执行完成后, 本方法可依据结果再处理
+     * @param mixed $data
+     */
     public function afterRun(& $data)
     {
     }
 
     /**
      * 前置任务
+     * 仅当返回true时, 继续调用run()方法
      * @return bool
      */
     public function beforeRun()
@@ -70,10 +86,29 @@ abstract class XTask implements ITask
     }
 
     /**
+     * 读取任务入参
+     * @return array
+     */
+    public function getData()
+    {
+        return $this->data;
+    }
+
+    /**
+     * 读取Server对象
      * @return XHttp|XSocket|XOld
      */
     public function getServer()
     {
         return $this->_server;
+    }
+
+    /**
+     * 读取任务ID
+     * @return int
+     */
+    public function getTaskId()
+    {
+        return $this->taskId;
     }
 }

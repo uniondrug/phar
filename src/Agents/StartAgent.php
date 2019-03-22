@@ -35,11 +35,6 @@ class StartAgent extends Abstracts\Agent
             'desc' => '指定环境名, 可选: {yellow=development}、{yellow=testing}、{yellow=release}、{yellow=production}, 默认: {yellow=development}'
         ],
         [
-            'name' => 'error',
-            'value' => 'ALL',
-            'desc' => 'PHP错误级别是, 默认: {yellow=ALL}, 可选: {yellow=ALL}、{yellow=ERROR}、{yellow=PARSE}、{yellow=WARNING}、{yellow=OFF}'
-        ],
-        [
             'name' => 'host',
             'value' => 'ip|eth',
             'desc' => '指定IP地址, 默认: 从配置文件{yellow=config/server.php}中读取'
@@ -71,22 +66,32 @@ class StartAgent extends Abstracts\Agent
         ],
         [
             'name' => 'log-stdout',
-            'desc' => '在标准输出打印日志内容, 禁用文件/Kafka日志'
+            'desc' => '在控制台打印日志, 当启用时不再上报Log、同时也不能写入文件'
         ],
         [
             'name' => 'consul-register',
             'value' => 'URL',
-            'desc' => '服务注册, 项目启动时请求Consul注册服务'
+            'desc' => '服务注册, 例如: 172.16.0.100:8500'
         ],
         [
             'name' => 'consul-name',
             'value' => 'str',
-            'desc' => '服务名称, 默认: 域名前缀'
+            'desc' => '服务名称, 例如: rule.module'
         ],
         [
             'name' => 'consul-address',
             'value' => 'str',
-            'desc' => '服务地址, 默认: 项目域名加80端口'
+            'desc' => '服务地址, 例如: rule.module.uniondrug.cn'
+        ],
+        [
+            'name' => 'consul-health',
+            'value' => 'str',
+            'desc' => '健康检查地址, 例如: 172.16.0.100:8095'
+        ],
+        [
+            'name' => 'consul-heartbeat',
+            'value' => 'int',
+            'desc' => '健康心跳时长, 例如: 5, 表示5秒检查一次'
         ]
     ];
 

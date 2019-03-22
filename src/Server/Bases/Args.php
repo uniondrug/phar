@@ -26,6 +26,16 @@ class Args
      */
     private $_command = '';
     /**
+     * 预定义域名
+     * @var array
+     */
+    private $_domains = [
+        'development' => 'dev.dovecot.cn',
+        'testing' => 'turboradio.cn',
+        'release' => 'uniondrug.net',
+        'production' => 'uniondrug.cn'
+    ];
+    /**
      * 环境名
      * @var string
      */
@@ -193,6 +203,24 @@ class Args
             return strtoupper($a[1]);
         }, $this->_command);
         return ucfirst($command);
+    }
+
+    /**
+     * 读域名后缀
+     * @return string
+     */
+    public function getDomainSuffix()
+    {
+        $env = $this->getEnvironment();
+        if (isset($this->_domains[$env])) {
+            return $this->_domains[$env];
+        }
+        return $this->_domains['development'];
+    }
+
+    public function getDomainSuffixes()
+    {
+        return $this->_domains;
     }
 
     /**

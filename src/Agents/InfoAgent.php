@@ -44,11 +44,16 @@ class InfoAgent extends Abstracts\Agent
         $data['commit'] = isset($data['commit']) ? $data['commit'] : '';
         $data['environment'] = isset($data['environment']) ? $data['environment'] : '';
         $data['machine'] = isset($data['machine']) ? $data['machine'] : '';
+        $data['logs'] = isset($data['logs']) ? $data['logs'] : [];
         // 5. print info
         $this->printLine("          包名: {blue=%s}", PHAR_WORKING_NAME);
         $this->printLine("          仓库: git pull {blue=%s} {yellow=%s}", $data['repository'], $data['branch']);
         $this->printLine("          源码: {blue=%s}/{yellow=%s}", $data['environment'], $data['commit']);
         $this->printLine("          时间: {blue=%s}于{yellow=%s}主机", $data['time'], $data['machine']);
+
+        foreach ($data['logs'] as $log){
+            $this->printLine("                {$log}");
+        }
     }
 
     public function runHelp()

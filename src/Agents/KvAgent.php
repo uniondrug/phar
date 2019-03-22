@@ -37,6 +37,10 @@ class KvAgent extends Abstracts\Agent
         [
             'name' => 'consul-key',
             'desc' => '服务名称, 默认: 空/自动检测'
+        ],
+        [
+            'name' => 'upload',
+            'desc' => '上传配置, 当项目为空项目时, 使用此参数上传初始的Consul配置'
         ]
     ];
 
@@ -45,6 +49,10 @@ class KvAgent extends Abstracts\Agent
      */
     public function run()
     {
+        if ($this->getRunner()->getConfig()->getArgs()->hasOption('upload')) {
+            $this->uploadKv();
+            return;
+        }
         $this->printLine("同步配置: 从ConsulKV同步项目配置");
         // 1. generate host
         $host = (string) $this->getRunner()->getConfig()->getArgs()->getOption('consul');
@@ -112,6 +120,44 @@ class KvAgent extends Abstracts\Agent
             }
             $txt = isset($option['desc']) ? $option['desc'] : '';
             $this->printLine("          {yellow=%s} %s", sprintf("%-28s", $opt), $txt);
+        }
+    }
+
+    /**
+     * 上传初始配置
+     */
+    public function uploadKv()
+    {
+        $this->printLine("上传配置: 上传初始配置到Consul-KV");
+        // 1. create instance
+        if ($this->http === null) {
+            $this->http = new GuzzleHttp();
+        }
+        // 2. Key地址
+        $key = (string) $this->getRunner()->getConfig()->getArgs()->getOption('consul-key');
+        $key === '' && $key = $this->getRunner()->getConfig()->appName;
+        try {
+            // 3. 扫描本地配置
+            $data = $this->getRunner()->getConfig()->getScanned();
+            foreach ($data as & $section) {
+                if (is_array($section) && isset($section['key'])) {
+                    unset($section['key']);
+                }
+            }
+            // 4. 域名指替换
+            $body = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $suffix = $this->getRunner()->getConfig()->getArgs()->getDomainSuffix();
+            $suffixes = $this->getRunner()->getConfig()->getArgs()->getDomainSuffixes();
+            foreach ($suffixes as $domain) {
+                $body = str_replace($domain, $suffix, $body);
+            }
+            // 5. 提交配置
+            $this->http->put("http://{$this->getRunner()->getConfig()->getArgs()->getOption('consul')}/v1/kv/apps/{$key}/config?cas=0", [
+                'body' => $body
+            ]);
+            $this->printLine("          %s", "apps/{$key}/config");
+        } catch(\Throwable $e) {
+            $this->printLine("          %s", $e->getMessage());
         }
     }
 

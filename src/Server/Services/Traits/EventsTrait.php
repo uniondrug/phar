@@ -9,9 +9,11 @@ use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Swoole\Process;
 use Uniondrug\Phar\Exceptions\ServiceException;
+use Uniondrug\Phar\Server\Logs\Logger;
 use Uniondrug\Phar\Server\Services\Http;
 use Uniondrug\Phar\Server\Services\HttpDispatcher;
 use Uniondrug\Phar\Server\Services\Socket;
+use Uniondrug\Phar\Server\Tasks\Consul\RegisterTask;
 use Uniondrug\Phar\Server\Tasks\ITask;
 use Uniondrug\Phar\Server\XHttp;
 use Uniondrug\Phar\Server\XOld;
@@ -212,7 +214,8 @@ trait EventsTrait
                 $tasker->afterRun($result);
             }
         } catch(\Throwable $e) {
-            $server->getLogger()->error("执行失败出错 - %s");
+            $server->getLogger()->error("执行任务出错 - %s", $e->getMessage());
+            $server->getLogger()->log(Logger::LEVEL_DEBUG, get_class($e).": {$e->getFile()}({$e->getLine()})");
             $server->getStatsTable()->incrTaskFailure();
         } finally {
             $duration = microtime(true) - $begin;
@@ -235,6 +238,18 @@ trait EventsTrait
         $server->getLogger()->info("进程号{%d}启动为{%s}.", $server->getPid(), $server->getPidName());
         $server->getLogger()->setServer($server);
         $server->frameworkInitialize($server);
+        // 1. 注册服务
+        if ($workerId === 0){
+            $consul = 'consul-register';
+            if ($server->getArgs()->hasOption($consul)){
+                $consulUrl = (string) $server->getArgs()->getOption($consul);
+                if ($consulUrl !== ''){
+                    $server->runTask(RegisterTask::class, [
+                        'url' => $consulUrl
+                    ]);
+                }
+            }
+        }
     }
 
     /**

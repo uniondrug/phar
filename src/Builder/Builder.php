@@ -171,6 +171,7 @@ STUB;
         $data['branch'] = 'null';
         $data['commit'] = 'null';
         $data['machine'] = 'null';
+        $data['logs'] = [];
         // GIT地址
         $buffer = shell_exec("cd '".getcwd()."' && git remote -v");
         if (preg_match("/origin\s+(\S+)/i", $buffer, $m) > 0) {
@@ -191,6 +192,14 @@ STUB;
         $buffer = trim($buffer);
         if ($buffer !== '') {
             $data['machine'] = $buffer;
+        }
+        // Logs
+        $showlogs = shell_exec("cd '".getcwd()."' && git log -5 --pretty=format:\"%ad|%h|%an|%s\" --date=iso");
+        foreach (explode("\n", $showlogs) as $showlog) {
+            $showlog = trim($showlog);
+            if ($showlog !== '') {
+                $data['logs'][] = $showlog;
+            }
         }
         // 写入Phar
         $this->phar->addFromString('info.json', json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
