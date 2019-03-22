@@ -412,7 +412,6 @@ class Config
         $this->_swooleSettings['request_slowlog_file'] = $this->_args->logPath().'/slow.log';
         $this->_swooleSettings['task_tmpdir'] = $this->_args->tmpPath().'/tasks';
         $this->_swooleSettings['upload_tmp_dir'] = $this->_args->tmpPath().'/uploads';
-        $this->_swooleSettings['document_root'] = $this->_args->assetsPath();
         // 6. Logger/Kafka
         if (isset($serv['logKafkaOn']) && isset($serv['logKafkaUrl']) && $serv['logKafkaUrl'] !== '') {
             if (is_bool($serv['logKafkaOn'])) {
@@ -441,6 +440,21 @@ class Config
                 }
                 if (isset($serv['logRedisDeadline']) && is_numeric($serv['logRedisDeadline']) && $serv['logRedisDeadline'] > 0) {
                     $this->_logRedisDeadline = (int) $serv['logRedisDeadline'];
+                }
+            }
+        }
+        // 8. static support
+        if (isset($serv['enable_static_handler'])) {
+            if (is_bool($serv['enable_static_handler'])) {
+                $this->_swooleSettings['enable_static_handler'] = $serv['enable_static_handler'];
+            } else if (is_string($serv['enable_static_handler'])) {
+                $this->_swooleSettings['enable_static_handler'] = 'true' === strtolower($serv['enable_static_handler']);
+            }
+            if ($this->_swooleSettings['enable_static_handler']) {
+                if (isset($serv['document_root']) && is_string($serv['document_root']) && $serv['document_root'] !== '') {
+                    $this->_swooleSettings['document_root'] = $this->_args->workingPath().'/'.$serv['document_root'];
+                } else {
+                    $this->_swooleSettings['document_root'] = $this->_args->assetsPath();
                 }
             }
         }

@@ -136,6 +136,7 @@ class Args
     {
         is_dir($this->logPath()) || mkdir($this->logPath(), 0777, true);
         is_dir($this->tmpPath().'/tasks') || mkdir($this->tmpPath()."/tasks", 0777, true);
+        is_dir($this->tmpPath().'/uploads') || mkdir($this->tmpPath()."/uploads", 0777, true);
     }
 
     /**
