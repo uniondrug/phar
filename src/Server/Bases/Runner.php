@@ -105,17 +105,31 @@ class Runner
         /**
          * Log级别
          */
-        switch ($this->_config->getLogLevel()) {
-            case Logger::LEVEL_FATAL :
-            case Logger::LEVEL_ERROR :
-                error_reporting(E_ERROR);
-                break;
-            case Logger::LEVEL_WARNING :
-                error_reporting(E_ERROR | E_WARNING | E_NOTICE | E_DEPRECATED);
-                break;
-            default :
-                error_reporting(E_ALL);
-                break;
+        $errorLevel = (string) $this->_config->getArgs()->getOption('error');
+        if ($errorLevel === '') {
+            switch ($this->_config->getArgs()->getEnvironment()) {
+                case 'production' :
+                    error_reporting(E_ALL ^ E_NOTICE | E_WARNING);
+                    break;
+                default :
+                    error_reporting(E_ALL);
+                    break;
+            }
+        } else {
+            switch (strtoupper($errorLevel)) {
+                case "ERROR" :
+                    error_reporting(E_ERROR);
+                    break;
+                case "WARNING" :
+                    error_reporting(E_ERROR | E_WARNING);
+                    break;
+                case "NOTICE" :
+                    error_reporting(E_ERROR | E_WARNING | E_NOTICE);
+                    break;
+                default :
+                    error_reporting(E_ALL);
+                    break;
+            }
         }
         /**
          * 异常处理

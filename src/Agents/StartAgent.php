@@ -60,6 +60,11 @@ class StartAgent extends Abstracts\Agent
             'desc' => 'Tasker进程数, 默认: {red=8}个'
         ],
         [
+            'name' => 'error',
+            'value' => 'str',
+            'desc' => '错误级别, 可选: {yellow=ERROR}、{yellow=WARNING}、{yellow=ALL}, 默认按启动变量设置'
+        ],
+        [
             'name' => 'log-level',
             'value' => 'str',
             'desc' => '日志级别, 可选: {yellow=DEBUG}、{yellow=INFO}、{yellow=WARNING}、{yellow=ERROR}, 默认: {yellow=DEBUG}'
