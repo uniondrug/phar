@@ -20,7 +20,7 @@ class ConsoleAgent extends Abstracts\Agent
     public function run()
     {
         array_shift($_SERVER['argv']);
-        $container = new Container($this->getRunner()->getConfig()->getArgs()->basePath());
+        $container = new Container($this->getRunner()->getArgs()->basePath());
         $console = new Console($container);
         $console->run();
     }

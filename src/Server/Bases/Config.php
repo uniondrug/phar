@@ -37,6 +37,10 @@ class Config
      * @var Args
      */
     private $_args;
+    /**
+     * 扫描config目录结果
+     * @var array
+     */
     private $_configurations = [];
     /**
      * 全局Phar配置
@@ -63,7 +67,7 @@ class Config
     private $_logRedis = false;
     private $_logRedisCfg = [];
     private $_logRedisKey = 'logger';
-    private $_logRedisDeadline = 259200;
+    private $_logRedisDeadline = 86400;
     private $_logKafka = false;
     private $_logKafkaUrl = '';
     private $_logKafkaTimeout = 30;
@@ -318,11 +322,19 @@ class Config
         return $this->_swooleTables;
     }
 
+    /**
+     * KafkaLooger状态
+     * @return bool
+     */
     public function isKafkaLogger()
     {
         return $this->_logKafka;
     }
 
+    /**
+     * RedisLooger状态
+     * @return bool
+     */
     public function isRedisLogger()
     {
         return $this->_logRedis;
@@ -330,6 +342,10 @@ class Config
 
     /**
      * 加载文件
+     * 当配置变量时, 通过向Master进程发送SIGUSR1信号, Master
+     * 进程将通知Manager进程重载加载配置信息, 并重启子进程
+     * 1. Process
+     * 2. Worker/Tasker
      */
     public function reload()
     {

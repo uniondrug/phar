@@ -17,6 +17,7 @@ use Uniondrug\Phar\Server\Tasks\Consul\RegisterTask;
 use Uniondrug\Phar\Server\Tasks\ITask;
 use Uniondrug\Phar\Server\XHttp;
 use Uniondrug\Phar\Server\XOld;
+use Uniondrug\Phar\Server\XSocket;
 
 /**
  * 事件定义
@@ -185,8 +186,6 @@ trait EventsTrait
         $requestId .= mt_rand(10000000, 99999999);
         // 1. logger
         $server->getStatsTable()->incrTaskOn();
-        $server->getLogger()->setPrefix("[r=%s][z=%d]", $requestId, $taskId)->startProfile();
-        $server->getLogger()->info("开始Task任务");
         // 2. parser
         try {
             // 2.1 invalid json string
@@ -200,13 +199,13 @@ trait EventsTrait
             if (!is_a($data['class'], ITask::class, true)) {
                 throw new ServiceException("Task{%s}未实现{%s}类", $data['class'], ITask::class);
             }
+            // 2.3 开始执行
+            $server->getLogger()->setPrefix("[r=%s][z=%d][y=%s]", $requestId, $taskId, $data['class'])->startProfile();
+            $server->getLogger()->info("开始Task任务");
             /**
-             * 2.3 执行任务
+             * 2.4 执行任务
              * @var ITask $tasker
              */
-            if ($server->getLogger()->isStdout()) {
-                $server->getLogger()->debug("运行{%s}任务", $data['class']);
-            }
             $tasker = new $data['class']($server, $taskId, $data['params']);
             if ($tasker->beforeRun() === true) {
                 $result = $tasker->run();
@@ -214,10 +213,12 @@ trait EventsTrait
                 $tasker->afterRun($result);
             }
         } catch(\Throwable $e) {
+            // 3. 执行任务出错
             $server->getLogger()->error("执行任务出错 - %s", $e->getMessage());
-            $server->getLogger()->log(Logger::LEVEL_DEBUG, get_class($e).": {$e->getFile()}({$e->getLine()})");
+            $server->getLogger()->log(Logger::LEVEL_DEBUG, "{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
             $server->getStatsTable()->incrTaskFailure();
         } finally {
+            // 4. 完成任务
             $duration = microtime(true) - $begin;
             $server->getLogger()->info("[d=%.06f]完成Task任务", $duration);
             $server->getLogger()->endProfile();
@@ -228,8 +229,8 @@ trait EventsTrait
     /**
      * 管理进程启动
      * @link https://wiki.swoole.com/wiki/page/190.html
-     * @param Http|Socket $server   Server对象
-     * @param int         $workerId Worker进程编号
+     * @param XHttp|XOld|XSocket $server   Server对象
+     * @param int                $workerId Worker进程编号
      */
     public function onWorkerStart($server, $workerId)
     {
@@ -239,11 +240,11 @@ trait EventsTrait
         $server->getLogger()->setServer($server);
         $server->frameworkInitialize($server);
         // 1. 注册服务
-        if ($workerId === 0){
+        if ($workerId === 0) {
             $consul = 'consul-register';
-            if ($server->getArgs()->hasOption($consul)){
+            if ($server->getArgs()->hasOption($consul)) {
                 $consulUrl = (string) $server->getArgs()->getOption($consul);
-                if ($consulUrl !== ''){
+                if ($consulUrl !== '') {
                     $server->runTask(RegisterTask::class, [
                         'url' => $consulUrl
                     ]);
@@ -253,10 +254,10 @@ trait EventsTrait
     }
 
     /**
-     * 管理进程退出
+     * Worker/Tasker进程退出
      * @link https://wiki.swoole.com/wiki/page/191.html
-     * @param Http|Socket $server   Server对象
-     * @param int         $workerId Worker进程编号
+     * @param XHttp|XOld|XSocket $server   Server对象
+     * @param int                $workerId Worker进程编号
      */
     public function onWorkerStop($server, $workerId)
     {

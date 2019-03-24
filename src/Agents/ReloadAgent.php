@@ -29,7 +29,7 @@ class ReloadAgent extends Abstracts\Agent
 
     public function run()
     {
-        $pid = $this->getRunner()->getConfig()->getArgs()->getOption('pid');
+        $pid = $this->getRunner()->getArgs()->getOption('pid');
         $pid || $pid = $this->callMasterPid();
         // 1. pid not found
         if ($pid === false) {
@@ -53,9 +53,9 @@ class ReloadAgent extends Abstracts\Agent
      */
     public function runHelp() : void
     {
-        $script = $this->getRunner()->getConfig()->getArgs()->getScript();
+        $script = $this->getRunner()->getArgs()->getScript();
         substr($script, 0, 2) === './' || $script = "php {$script}";
-        $this->printLine("重启选项: %s %s [{yellow=选项}]", $script, $this->getRunner()->getConfig()->getArgs()->getCommand());
+        $this->printLine("重启选项: %s %s [{yellow=选项}]", $script, $this->getRunner()->getArgs()->getCommand());
         foreach (self::$options as $option) {
             $pre = isset($option['short']) ? "-{$option['short']}," : '   ';
             $opt = "{$pre}--{$option['name']}";
@@ -73,7 +73,7 @@ class ReloadAgent extends Abstracts\Agent
      */
     protected function callMasterPid()
     {
-        $pidFile = $this->getRunner()->getConfig()->getArgs()->tmpPath().'/server.pid';
+        $pidFile = $this->getRunner()->getArgs()->tmpPath().'/server.pid';
         if (file_exists($pidFile)) {
             $pid = file_get_contents($pidFile);
             if (false !== $pid) {

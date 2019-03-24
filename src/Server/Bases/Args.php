@@ -150,6 +150,7 @@ class Args
     }
 
     /**
+     * 按网卡名读IP
      * @param string $name
      * @return string|false
      */
@@ -185,6 +186,7 @@ class Args
 
     /**
      * 读取命令名
+     * @return string
      */
     public function getCommand()
     {
@@ -192,7 +194,7 @@ class Args
     }
 
     /**
-     * 读取命令类名
+     * 读取命令对应的类名
      * @return string|null
      */
     public function getCommandClass()
@@ -207,7 +209,7 @@ class Args
     }
 
     /**
-     * 读域名后缀
+     * 读当前环境域名后缀
      * @return string
      */
     public function getDomainSuffix()
@@ -219,6 +221,10 @@ class Args
         return $this->_domains['development'];
     }
 
+    /**
+     * 读取全部环境域名后缀
+     * @return array
+     */
     public function getDomainSuffixes()
     {
         return $this->_domains;
@@ -238,6 +244,10 @@ class Args
         return $this->_environment;
     }
 
+    /**
+     * 读取环境类型/短名
+     * @return string
+     */
     public function getEnvironmentType()
     {
         return strtolower(substr($this->getEnvironment(), 0, 1));
@@ -245,6 +255,7 @@ class Args
 
     /**
      * 读取选项值
+     * @param string $name
      * @return false|string
      */
     public function getOption(string $name)
@@ -265,6 +276,7 @@ class Args
     }
 
     /**
+     * 读取脚本名称
      * @return string
      */
     public function getScript()
@@ -374,7 +386,6 @@ class Args
      */
     private function _parseArgumentKey(string $key)
     {
-        $name = null;
         switch ($key) {
             case 'd' :
                 $name = 'daemon';
@@ -385,12 +396,18 @@ class Args
             case 'h' :
                 $name = 'help';
                 break;
+            default :
+                $name = $key;
+                break;
         }
         return $name;
     }
 
     /**
      * 解析IP地址
+     * 通过执行ifconfig命令, 获取全部网卡信息, 并
+     * 从中提取IPv4片段, 并存入$_ipAddresses私有
+     * 属性中
      */
     private function _parserIfconfig()
     {

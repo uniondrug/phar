@@ -41,11 +41,25 @@ class Runner
         $this->registerHandler();
     }
 
+    /**
+     * @return Args
+     */
+    public function getArgs()
+    {
+        return $this->getConfig()->getArgs();
+    }
+
+    /**
+     * @return Config
+     */
     public function getConfig()
     {
         return $this->_config;
     }
 
+    /**
+     * @return Logger
+     */
     public function getLogger()
     {
         return $this->_logger;

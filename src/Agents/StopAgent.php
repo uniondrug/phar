@@ -51,12 +51,12 @@ class StopAgent extends Abstracts\Agent
     public function runForce() : void
     {
         // 1. 进程名称
-        $name = $this->getRunner()->getConfig()->getArgs()->getOption('n');
-        $name || $name = $this->getRunner()->getConfig()->getArgs()->getOption('name');
-        $name || $name = substr($this->getRunner()->getConfig()->getArgs()->getEnvironment(), 0, 1).'.'.$this->getRunner()->getConfig()->appName;
+        $name = $this->getRunner()->getArgs()->getOption('n');
+        $name || $name = $this->getRunner()->getArgs()->getOption('name');
+        $name || $name = substr($this->getRunner()->getArgs()->getEnvironment(), 0, 1).'.'.$this->getRunner()->getConfig()->appName;
         // 2. 是否Kill进程
-        $kill = ($this->getRunner()->getConfig()->getArgs()->hasOption('k') || $this->getRunner()->getConfig()->getArgs()->hasOption('kill') || $this->getRunner()->getConfig()->getArgs()->hasOption('force-kill'));
-        $signal = $this->getRunner()->getConfig()->getArgs()->hasOption('force-kill') ? SIGKILL : SIGTERM;
+        $kill = ($this->getRunner()->getArgs()->hasOption('k') || $this->getRunner()->getArgs()->hasOption('kill') || $this->getRunner()->getArgs()->hasOption('force-kill'));
+        $signal = $this->getRunner()->getArgs()->hasOption('force-kill') ? SIGKILL : SIGTERM;
         // 3. 读取进程
         $data = $this->callProcessByName($name);
         $this->printLine("发送指定: 列出含【{yellow=".$name."}】的进程共【{yellow=".count($data)."}】个");
@@ -74,9 +74,9 @@ class StopAgent extends Abstracts\Agent
      */
     public function runHelp() : void
     {
-        $script = $this->getRunner()->getConfig()->getArgs()->getScript();
+        $script = $this->getRunner()->getArgs()->getScript();
         substr($script, 0, 2) === './' || $script = "php {$script}";
-        $this->printLine("退出脚本: %s %s [{yellow=选项}]", $script, $this->getRunner()->getConfig()->getArgs()->getCommand());
+        $this->printLine("退出脚本: %s %s [{yellow=选项}]", $script, $this->getRunner()->getArgs()->getCommand());
         foreach (self::$options as $option) {
             $pre = isset($option['short']) ? "-{$option['short']}," : '   ';
             $opt = "{$pre}--{$option['name']}";
@@ -104,7 +104,7 @@ class StopAgent extends Abstracts\Agent
                 $cmd .= " | grep '{$arg}'";
             }
         }
-        $cmd .= " | grep -v grep | grep -v '".$this->getRunner()->getConfig()->getArgs()->getCommand()."'";
+        $cmd .= " | grep -v grep | grep -v '".$this->getRunner()->getArgs()->getCommand()."'";
         $data = [];
         // 2. no args
         if ($num === 0) {

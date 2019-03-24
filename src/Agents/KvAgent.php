@@ -49,13 +49,13 @@ class KvAgent extends Abstracts\Agent
      */
     public function run()
     {
-        if ($this->getRunner()->getConfig()->getArgs()->hasOption('upload')) {
+        if ($this->getRunner()->getArgs()->hasOption('upload')) {
             $this->uploadKv();
             return;
         }
         $this->printLine("同步配置: 从ConsulKV同步项目配置");
         // 1. generate host
-        $host = (string) $this->getRunner()->getConfig()->getArgs()->getOption('consul');
+        $host = (string) $this->getRunner()->getArgs()->getOption('consul');
         if ($host === "") {
             $this->printLine("同步出错: {red=未指定Consul地址}");
             return;
@@ -64,7 +64,7 @@ class KvAgent extends Abstracts\Agent
             $host = "http://{$host}";
         }
         // 2. generate key
-        $key = (string) $this->getRunner()->getConfig()->getArgs()->getOption('consul-key');
+        $key = (string) $this->getRunner()->getArgs()->getOption('consul-key');
         $key === '' && $key = $this->getRunner()->getConfig()->appName;
         // 3. request origin
         $this->printLine("同步地址: {yellow=%s}", $host);
@@ -86,7 +86,7 @@ class KvAgent extends Abstracts\Agent
             ksort($conf);
             reset($conf);
             // 4.0 创建目录
-            $this->getRunner()->getConfig()->getArgs()->buildPath();
+            $this->getRunner()->getArgs()->buildPath();
             // 4.1 PHP配置
             $phps = "<?php\n";
             $phps .= "/**\n";
@@ -99,8 +99,8 @@ class KvAgent extends Abstracts\Agent
             // 4.2 JSON模板
             $json = json_encode($conf, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
             // 4.3 写入配置
-            file_put_contents($this->getRunner()->getConfig()->getArgs()->tmpPath().'/config.json', $json);
-            file_put_contents($this->getRunner()->getConfig()->getArgs()->tmpPath().'/config.php', $phps);
+            file_put_contents($this->getRunner()->getArgs()->tmpPath().'/config.json', $json);
+            file_put_contents($this->getRunner()->getArgs()->tmpPath().'/config.php', $phps);
         }
     }
 
@@ -109,9 +109,9 @@ class KvAgent extends Abstracts\Agent
      */
     public function runHelp()
     {
-        $script = $this->getRunner()->getConfig()->getArgs()->getScript();
+        $script = $this->getRunner()->getArgs()->getScript();
         substr($script, 0, 2) === './' || $script = "php {$script}";
-        $this->printLine("启动脚本: %s %s [{yellow=选项}]", $script, $this->getRunner()->getConfig()->getArgs()->getCommand());
+        $this->printLine("启动脚本: %s %s [{yellow=选项}]", $script, $this->getRunner()->getArgs()->getCommand());
         foreach (self::$options as $option) {
             $pre = isset($option['short']) ? "-{$option['short']}," : '   ';
             $opt = "{$pre}--{$option['name']}";
@@ -134,7 +134,7 @@ class KvAgent extends Abstracts\Agent
             $this->http = new GuzzleHttp();
         }
         // 2. Key地址
-        $key = (string) $this->getRunner()->getConfig()->getArgs()->getOption('consul-key');
+        $key = (string) $this->getRunner()->getArgs()->getOption('consul-key');
         $key === '' && $key = $this->getRunner()->getConfig()->appName;
         try {
             // 3. 扫描本地配置
@@ -146,13 +146,13 @@ class KvAgent extends Abstracts\Agent
             }
             // 4. 域名指替换
             $body = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            $suffix = $this->getRunner()->getConfig()->getArgs()->getDomainSuffix();
-            $suffixes = $this->getRunner()->getConfig()->getArgs()->getDomainSuffixes();
+            $suffix = $this->getRunner()->getArgs()->getDomainSuffix();
+            $suffixes = $this->getRunner()->getArgs()->getDomainSuffixes();
             foreach ($suffixes as $domain) {
                 $body = str_replace($domain, $suffix, $body);
             }
             // 5. 提交配置
-            $this->http->put("http://{$this->getRunner()->getConfig()->getArgs()->getOption('consul')}/v1/kv/apps/{$key}/config?cas=0", [
+            $this->http->put("http://{$this->getRunner()->getArgs()->getOption('consul')}/v1/kv/apps/{$key}/config?cas=0", [
                 'body' => $body
             ]);
             $this->printLine("          %s", "apps/{$key}/config");

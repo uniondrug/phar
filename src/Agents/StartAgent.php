@@ -125,9 +125,9 @@ class StartAgent extends Abstracts\Agent
      */
     public function runHelp() : void
     {
-        $script = $this->getRunner()->getConfig()->getArgs()->getScript();
+        $script = $this->getRunner()->getArgs()->getScript();
         substr($script, 0, 2) === './' || $script = "php {$script}";
-        $this->printLine("启动脚本: %s %s [{yellow=选项}]", $script, $this->getRunner()->getConfig()->getArgs()->getCommand());
+        $this->printLine("启动脚本: %s %s [{yellow=选项}]", $script, $this->getRunner()->getArgs()->getCommand());
         foreach (self::$options as $option) {
             $pre = isset($option['short']) ? "-{$option['short']}," : '   ';
             $opt = "{$pre}--{$option['name']}";

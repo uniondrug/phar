@@ -29,7 +29,7 @@ class HelpAgent extends Abstracts\Agent
     public function runHelp()
     {
         // 1. guard
-        $script = $this->getRunner()->getConfig()->getArgs()->getScript();
+        $script = $this->getRunner()->getArgs()->getScript();
         substr($script, 0, 2) === './' || $script = "php {$script}";
         $this->printLine("接受命令: %s [{yellow=命令}]", $script);
         /**
