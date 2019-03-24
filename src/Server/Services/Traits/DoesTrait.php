@@ -21,6 +21,7 @@ trait DoesTrait
      */
     public function doAssetsRequest($server, HttpDispatcher $dispatcher)
     {
+        $server->getLogger()->ignoreProfile(true);
         $dispatcher->setStatus(304);
         $dispatcher->setContentType("text/plain");
     }
@@ -32,6 +33,7 @@ trait DoesTrait
      */
     public function doHealthRequest($server, HttpDispatcher $dispatcher)
     {
+        $server->getLogger()->ignoreProfile(true);
         $dispatcher->setContentType("application/json;charset=utf-8");
         $data = [];
         $name = $dispatcher->getHealthName();

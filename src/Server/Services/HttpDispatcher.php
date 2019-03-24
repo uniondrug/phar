@@ -133,7 +133,8 @@ class HttpDispatcher
         return $this->_requestId;
     }
 
-    public function getUrl(){
+    public function getUrl()
+    {
         return $this->_requestUrl;
     }
 
@@ -272,13 +273,13 @@ class HttpDispatcher
     {
         $debugOn = $this->server->getLogger()->debugOn();
         if ($debugOn) {
-            if (isset($this->swooleRequest->header) && is_array($this->swooleRequest->header)) {
-                $this->server->getLogger()->debug("Header: %s", http_build_query($this->swooleRequest->header));
+            if (isset($this->swooleRequest->header) && is_array($this->swooleRequest->header) && count($this->swooleRequest->header) > 0) {
+                $this->server->getLogger()->debug("Headers: %s", http_build_query($this->swooleRequest->header));
             }
-            if (isset($this->swooleRequest->get) && is_array($this->swooleRequest->get)) {
-                $this->server->getLogger()->debug("Url入参: %s", http_build_query($this->swooleRequest->get));
+            if (isset($this->swooleRequest->get) && is_array($this->swooleRequest->get) && count($this->swooleRequest->get) > 0) {
+                $this->server->getLogger()->debug("QString: %s", http_build_query($this->swooleRequest->get));
             }
-            $this->server->getLogger()->debug("Raw入参: %s", preg_replace("/\n\s*/", "", $this->swooleRequest->rawContent()));
+            $this->server->getLogger()->debug("RawBody: %s", preg_replace("/\n\s*/", "", $this->swooleRequest->rawContent()));
         }
     }
 }

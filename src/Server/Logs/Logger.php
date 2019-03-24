@@ -71,6 +71,7 @@ class Logger extends Abstracts\Base
 
     /**
      * 忽略日志打包
+     * 当指定`--log-stdout`选项时, 本项设置无效
      * @param bool $ignored
      * @return $this
      */
