@@ -36,6 +36,16 @@ abstract class XProcess extends SwooleProcess implements IProcess
     }
 
     /**
+     * 读取容器实例
+     * @param $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        return $this->_server->getContainer()->getShared($name);
+    }
+
+    /**
      * 前置操作
      * 是否继续执行run()方法
      * @return bool
