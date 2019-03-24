@@ -6,7 +6,7 @@
 namespace Uniondrug\Phar\Server\Processes;
 
 use Swoole\Process;
-use Uniondrug\Phar\Server\Crons\ICron;
+use Uniondrug\Phar\Server\Tasks\ICron;
 use Uniondrug\Phar\Server\Tasks\ITask;
 
 /**

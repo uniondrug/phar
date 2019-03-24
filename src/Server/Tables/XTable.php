@@ -61,6 +61,19 @@ class XTable extends \Swoole\Table implements ITable
     }
 
     /**
+     * Key列表
+     * @return array
+     */
+    public function keys()
+    {
+        $keys = [];
+        foreach ($this as $key => $temp) {
+            $keys[] = $key;
+        }
+        return $keys;
+    }
+
+    /**
      * 内存表数据转数组
      * @return array
      */
