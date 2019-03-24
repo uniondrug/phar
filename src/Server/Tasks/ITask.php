@@ -11,6 +11,8 @@ namespace Uniondrug\Phar\Server\Tasks;
  */
 interface ITask
 {
+    public function afterRun(& $data);
+    public function beforeRun();
     /**
      * 异步处理
      * 本方法为异步处理入口, 严禁在代码中直接调用, 需使用
