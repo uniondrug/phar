@@ -8,10 +8,13 @@ namespace Uniondrug\Phar\Server;
 use App\Errors\Error;
 use Phalcon\Db\Adapter\Pdo\Mysql;
 use Phalcon\Di;
+use Phalcon\Events\Manager;
 use Phalcon\Http\Response;
 use Uniondrug\Framework\Application;
 use Uniondrug\Framework\Container;
 use Uniondrug\Framework\Request;
+use Uniondrug\Phar\Server\Listeners\MysqlListener;
+use Uniondrug\Phar\Server\Listeners\RedisListener;
 use Uniondrug\Phar\Server\Logs\Logger;
 use Uniondrug\Phar\Server\Services\HttpDispatcher;
 use Uniondrug\Service\Server as ServiceServer;
@@ -57,6 +60,13 @@ class XHttp extends Services\Http
     protected $connectionRedises = [
         'redis'
     ];
+    private $listenerMysql;
+    private $listenerRedis;
+    private $listenerHistories = [];
+    /**
+     * @var Manager
+     */
+    private $listenerManager;
 
     /**
      * 连接检查
@@ -95,6 +105,18 @@ class XHttp extends Services\Http
         // 5. set globals
         $this->_application = $application;
         $this->_container = $container;
+        // 6. listener
+        $this->listenerManager = $container->getEventsManager();
+        if ($server->getConfig()->mysqlListenerOn()) {
+            // 6.1
+            $listener = $server->getConfig()->mysqlListenerClass();
+            $this->listenerMysql = new $listener($server);
+        }
+        if ($server->getConfig()->redisListenerOn()) {
+            // 6.2
+            $listener = $server->getConfig()->redisListenerClass();
+            $this->listenerRedis = new $listener($server);
+        }
     }
 
     /**
@@ -179,6 +201,41 @@ class XHttp extends Services\Http
     }
 
     /**
+     * 绑定Listener
+     * @param string      $type
+     * @param string      $name
+     * @param object|null $listener
+     */
+    public function attachListener($type, $name, $listener)
+    {
+        // 1. not object or disabled
+        if ($listener === null) {
+            return;
+        }
+        // 2. category
+        if (!isset($this->listenerHistories[$type]) || !is_array($this->listenerHistories[$type])) {
+            $this->listenerHistories[$type] = [];
+        }
+        // 3. append
+        if (!isset($this->listenerHistories[$type][$name]) || $this->listenerHistories[$type][$name] !== true) {
+            $this->listenerManager->attach($name, $listener);
+            $this->listenerHistories[$type][$name] = true;
+        }
+    }
+
+    /**
+     * 取消Listener
+     * @param string $type
+     * @param string $name
+     */
+    public function detachListener($type, $name)
+    {
+        if (isset($this->listenerHistories[$type], $this->listenerHistories[$type][$name]) && $this->listenerHistories[$type][$name] === true) {
+            $this->listenerHistories[$type][$name] = false;
+        }
+    }
+
+    /**
      * 检查MySQL连接
      * @param XHttp|XSocket|XOld $server
      */
@@ -195,8 +252,10 @@ class XHttp extends Services\Http
              */
             $mysql = $this->_container->getShared($name);
             try {
+                $server->attachListener('mysql', $name, $this->listenerMysql);
                 $mysql->query("SELECT 1");
             } catch(\Throwable $e) {
+                $server->detachListener('mysql', $name);
                 $this->_container->removeSharedInstance($name);
                 $server->getLogger()->log(Logger::LEVEL_WARNING, "移除共享的MySQL-{%s}实例 - %s", $name, $e->getMessage());
             }
@@ -220,8 +279,10 @@ class XHttp extends Services\Http
              */
             $redis = $this->_container->getShared($name);
             try {
+                //$server->attachListener('redis', $name, $this->listenerRedis);
                 $redis->ping();
             } catch(\Throwable $e) {
+                //$server->detachListener('redis', $name);
                 $this->_container->removeSharedInstance($name);
                 $server->getLogger()->log(Logger::LEVEL_WARNING, "移除共享的Redis-{%s}实例 - %s", $name, $e->getMessage());
             }

@@ -14,7 +14,9 @@ use Uniondrug\Phar\Server\XSocket;
 
 abstract class Base
 {
-    const LEVEL_DEBUG = 5;
+    const LEVEL_DEBUG = 7;
+    const LEVEL_MYSQL = 6;
+    const LEVEL_REDIS = 5;
     const LEVEL_INFO = 4;
     const LEVEL_WARNING = 3;
     const LEVEL_ERROR = 2;
@@ -67,6 +69,12 @@ abstract class Base
         switch ($level) {
             case self::LEVEL_DEBUG :
                 $label = 'DEBUG';
+                break;
+            case self::LEVEL_REDIS :
+                $label = 'REDIS';
+                break;
+            case self::LEVEL_MYSQL :
+                $label = 'MYSQL';
                 break;
             case self::LEVEL_INFO :
                 $label = 'INFO';

@@ -6,6 +6,8 @@
 namespace Uniondrug\Phar\Server\Bases;
 
 use Uniondrug\Phar\Exceptions\ConfigException;
+use Uniondrug\Phar\Server\Listeners\MysqlListener;
+use Uniondrug\Phar\Server\Listeners\RedisListener;
 use Uniondrug\Phar\Server\Logs\Logger;
 use Uniondrug\Phar\Server\XHttp;
 
@@ -42,6 +44,22 @@ class Config
      * @var array
      */
     private $_configurations = [];
+    /**
+     * Listener
+     * @var array
+     */
+    private $_pharListener = [
+        'mysql' => [
+            'on' => true,
+            'class' => MysqlListener::class,
+            'alerm' => 1.0
+        ],
+        'redis' => [
+            'on' => true,
+            'class' => RedisListener::class,
+            'alerm' => 1.0
+        ]
+    ];
     /**
      * 全局Phar配置
      * @var array
@@ -340,6 +358,36 @@ class Config
         return $this->_logRedis;
     }
 
+    public function mysqlListenerAlerm()
+    {
+        return $this->_pharListener['mysql']['alerm'];
+    }
+
+    public function mysqlListenerClass()
+    {
+        return $this->_pharListener['mysql']['class'];
+    }
+
+    public function mysqlListenerOn()
+    {
+        return $this->_pharListener['mysql']['on'];
+    }
+
+    public function redisListenerAlerm()
+    {
+        return $this->_pharListener['redis']['alerm'];
+    }
+
+    public function redisListenerClass()
+    {
+        return $this->_pharListener['redis']['class'];
+    }
+
+    public function redisListenerOn()
+    {
+        return $this->_pharListener['redis']['on'];
+    }
+
     /**
      * 加载文件
      * 当配置变量时, 通过向Master进程发送SIGUSR1信号, Master
@@ -473,6 +521,13 @@ class Config
                     $this->_swooleSettings['document_root'] = $this->_args->assetsPath();
                 }
             }
+        }
+        // 9. Listener
+        if (isset($serv['mysqlListener']) && is_array($serv['mysqlListener'])) {
+            $this->_pharListener['mysql'] = array_replace_recursive($this->_pharListener['mysql'], $serv['mysqlListener']);
+        }
+        if (isset($serv['redisListener']) && is_array($serv['redisListener'])) {
+            $this->_pharListener['redis'] = array_replace_recursive($this->_pharListener['redis'], $serv['redisListener']);
         }
         // n. 内存极限
         if ($this->_configPhpArchive['memoryLimit'] === 0) {
