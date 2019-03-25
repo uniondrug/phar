@@ -476,38 +476,41 @@ class Config
         $this->_swooleSettings['request_slowlog_file'] = $this->_args->logPath().'/slow.log';
         $this->_swooleSettings['task_tmpdir'] = $this->_args->tmpPath().'/tasks';
         $this->_swooleSettings['upload_tmp_dir'] = $this->_args->tmpPath().'/uploads';
-        // 6. Logger/Kafka
-        if (isset($serv['logKafkaOn']) && isset($serv['logKafkaUrl']) && $serv['logKafkaUrl'] !== '') {
-            if (is_bool($serv['logKafkaOn'])) {
-                $this->_logKafka = $serv['logKafkaOn'];
-            } else if (is_string($serv['logKafkaOn'])) {
-                $this->_logKafka = strtolower($serv['logKafkaOn']) === 'true';
+        // 6. Logger
+        //    a): Redis
+        //    b): Kafka
+        //    c): File/Local
+        $servLogger = isset($serv['logger']) && is_array($serv['logger']) ? $serv['logger'] : [];
+        if (isset($servLogger['kafkaOn'], $servLogger['kafkaUrl']) && $servLogger['kafkaUrl'] !== '') {
+            if (is_bool($servLogger['kafkaOn'])) {
+                $this->_logKafka = $servLogger['kafkaOn'];
+            } else if (is_string($servLogger['kafkaOn'])) {
+                $this->_logKafka = strtolower($servLogger['kafkaOn']) === 'true';
             }
             if ($this->_logKafka) {
-                $this->_logKafkaUrl = $serv['logKafkaUrl'];
-                if (isset($serv['logKafkaTimeout']) && is_numeric($serv['logKafkaTimeout']) && $serv['logKafkaTimeout'] > 0) {
-                    $this->_logKafkaTimeout = (int) $serv['logKafkaTimeout'];
+                $this->_logKafkaUrl = $servLogger['kafkaUrl'];
+                if (isset($servLogger['kafkaTimeout']) && is_numeric($servLogger['kafkaTimeout']) && $servLogger['kafkaTimeout'] > 0) {
+                    $this->_logKafkaTimeout = (int) $servLogger['kafkaTimeout'];
                 }
             }
         }
-        // 7. Logger/Redis
-        if (isset($serv['logRedisOn']) && isset($serv['logRedisCfg']) && is_array($serv['logRedisCfg'])) {
-            if (is_bool($serv['logRedisOn'])) {
-                $this->_logRedis = $serv['logRedisOn'];
-            } else if (is_string($serv['logRedisOn'])) {
-                $this->_logRedis = strtolower($serv['logRedisOn']) === 'true';
+        if (isset($servLogger['redisOn'], $servLogger['redisCfg']) && is_array($servLogger['redisCfg'])) {
+            if (is_bool($servLogger['redisOn'])) {
+                $this->_logRedis = $servLogger['redisOn'];
+            } else if (is_string($servLogger['redisOn'])) {
+                $this->_logRedis = strtolower($servLogger['redisOn']) === 'true';
             }
             if ($this->_logRedis) {
-                $this->_logRedisCfg = $serv['logRedisCfg'];
-                if (isset($serv['logRedisKey']) && is_string($serv['logRedisKey']) && $serv['logRedisKey'] !== '') {
-                    $this->_logRedisKey = $serv['logRedisKey'];
+                $this->_logRedisCfg = $servLogger['redisCfg'];
+                if (isset($servLogger['redisKey']) && is_string($servLogger['redisKey']) && $servLogger['redisKey'] !== '') {
+                    $this->_logRedisKey = $servLogger['redisKey'];
                 }
-                if (isset($serv['logRedisDeadline']) && is_numeric($serv['logRedisDeadline']) && $serv['logRedisDeadline'] > 0) {
-                    $this->_logRedisDeadline = (int) $serv['logRedisDeadline'];
+                if (isset($servLogger['redisDeadline']) && is_numeric($servLogger['redisDeadline']) && $servLogger['redisDeadline'] > 0) {
+                    $this->_logRedisDeadline = (int) $servLogger['redisDeadline'];
                 }
             }
         }
-        // 8. static support
+        // 7. static support
         if (isset($serv['enable_static_handler'])) {
             if (is_bool($serv['enable_static_handler'])) {
                 $this->_swooleSettings['enable_static_handler'] = $serv['enable_static_handler'];
@@ -522,7 +525,7 @@ class Config
                 }
             }
         }
-        // 9. Listener
+        // 8. Listener
         if (isset($serv['mysqlListener']) && is_array($serv['mysqlListener'])) {
             $this->_pharListener['mysql'] = array_replace_recursive($this->_pharListener['mysql'], $serv['mysqlListener']);
         }
