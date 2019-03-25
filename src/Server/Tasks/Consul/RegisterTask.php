@@ -74,7 +74,7 @@ class RegisterTask extends XTask
             'Address' => $this->getServer()->getConfig()->appName.'.'.$this->getServer()->getArgs()->getDomainSuffix(),
             'Tags' => [
                 "xphar/".XVersion::get(),
-                'framework/'.Container::VERSION,
+                //'framework/'.Container::VERSION,
             ],
             'Check' => []
         ];
@@ -129,11 +129,11 @@ class RegisterTask extends XTask
             "Interval" => "{$heartbeat}s"
         ];
         // 5. tags
-        $data['Tags'][] = 'deploy/'.$this->getServer()->getConfig()->deployIp.':'.$this->getServer()->getConfig()->port;
+        $data['Tags'][] = 'deploy/'.$this->getServer()->getConfig()->deployIp;
         if ($this->getServer()->getConfig()->deployIp !== $this->getServer()->getConfig()->host) {
             $data['Tags'][] = 'listen/'.$this->getServer()->getConfig()->host.':'.$this->getServer()->getConfig()->port;
         } else {
-            $data['Tags'][] = 'listen/deploy';
+            $data['Tags'][] = 'listen/'.$this->getServer()->getConfig()->port;
         }
         return $data;
     }
