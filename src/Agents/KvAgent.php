@@ -139,9 +139,12 @@ class KvAgent extends Abstracts\Agent
         try {
             // 3. 扫描本地配置
             $data = $this->getRunner()->getConfig()->getScanned();
-            foreach ($data as & $section) {
+            foreach ($data as $category => & $section) {
                 if (is_array($section) && isset($section['key'])) {
                     unset($section['key']);
+                }
+                if ($category === 'server') {
+                    $section['value']['logger'] = "kv://globals/log/default";
                 }
             }
             // 4. 域名指替换
@@ -235,6 +238,6 @@ class KvAgent extends Abstracts\Agent
         }
         // 5. base64 decode
         $this->printLine("          [{green=%s}] 发现配置", $key);
-        return base64_decode($json[0]['Value']);
+        return trim(base64_decode($json[0]['Value']));
     }
 }

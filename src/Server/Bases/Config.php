@@ -592,7 +592,16 @@ class Config
         // 7. logger level
         $level = Logger::LEVEL_DEBUG;
         $swooleLevel = 5;
+        // 7.1 优先使用命令行启动选项
         $logLevel = $this->_args->getOption('log-level');
+        // 7.2 次选配置文件选项
+        if ($logLevel === false) {
+            $serv = $this->getSection('server');
+            if (isset($serv['logger'], $serv['logger']['level']) && is_string($serv['logger']['level'])) {
+                $logLevel = $serv['logger']['level'];
+            }
+        }
+        // 7.3 选项设别转换
         if ($logLevel !== false) {
             switch (strtoupper($logLevel)) {
                 case "DEBUG" :
