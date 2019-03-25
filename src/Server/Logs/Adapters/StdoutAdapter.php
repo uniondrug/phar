@@ -26,11 +26,11 @@ class StdoutAdapter extends Adapter
     private $colors = [
         Logger::LEVEL_DEBUG => [
             37,
-            47
+            0
         ],
         Logger::LEVEL_INFO => [
             34,
-            47
+            0
         ],
         Logger::LEVEL_WARNING => [
             33,
