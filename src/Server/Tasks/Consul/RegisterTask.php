@@ -74,7 +74,9 @@ class RegisterTask extends XTask
             'Address' => $this->getServer()->getConfig()->appName.'.'.$this->getServer()->getArgs()->getDomainSuffix(),
             'Tags' => [
                 "xphar/".XVersion::get(),
-                'framework/'.Container::VERSION
+                'framework/'.Container::VERSION,
+                $this->getServer()->getConfig()->deployIp.':'.$this->getServer()->getConfig()->port,
+                $this->getServer()->getConfig()->host.':'.$this->getServer()->getConfig()->port,
             ],
             'Check' => []
         ];
