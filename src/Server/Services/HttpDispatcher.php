@@ -84,7 +84,7 @@ class HttpDispatcher
         $duration = microtime(true) - $this->_begin;
         // 6. debug logger
         if ($this->server->getLogger()->debugOn()) {
-            $this->server->getLogger()->debug("请求HTTP结果 - %s", $this->_content);
+            $this->server->getLogger()->debug("请求HTTP结果 - %s", preg_replace("/\n\s*/", "", $this->_content));
             if ($duration > $this->server->getConfig()->slowRequestDuration) {
                 $this->server->getLogger()->warning("HTTP慢请求 - 共用时{%.06f}秒", $duration);
             }
