@@ -26,11 +26,11 @@ class StdoutAdapter extends Adapter
     private $colors = [
         Logger::LEVEL_DEBUG => [
             37,
-            0
+            49
         ],
         Logger::LEVEL_INFO => [
             34,
-            0
+            48
         ],
         Logger::LEVEL_WARNING => [
             33,
@@ -69,6 +69,7 @@ class StdoutAdapter extends Adapter
             0,
             0
         ];
-        file_put_contents("php://stdout", sprintf("\033[%d;%dm%s\033[0m\n", $c[0], $c[1], sprintf("[%s][%s][%s][%s]%s", $data['time'], $data['deploy'], $data['app'], $level, $data['message'])));
+        file_put_contents("php://stdout", sprintf("\033[%dm%s\033[0m\n", $c[0], sprintf("[%s][%s][%s][%s]%s", $data['time'], $data['deploy'], $data['app'], $level, $data['message'])));
+        //file_put_contents("php://stdout", sprintf("\033[%d;%dm%s\033[0m\n", $c[0], $c[1], sprintf("[%s][%s][%s][%s]%s", $data['time'], $data['deploy'], $data['app'], $level, $data['message'])));
     }
 }
