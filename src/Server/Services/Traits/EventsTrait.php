@@ -206,6 +206,8 @@ trait EventsTrait
              * 2.4 执行任务
              * @var ITask $tasker
              */
+            $_SERVER['X-REQUESTED-ID'] = $requestId;
+            $_SERVER['HTTP_X_REQUESTED_ID'] = $requestId;
             $tasker = new $data['class']($server, $taskId, $data['params']);
             if ($tasker->beforeRun() === true) {
                 $result = $tasker->run();
