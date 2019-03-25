@@ -471,8 +471,8 @@ class Config
         isset($serv['settings']) && is_array($serv['settings']) && $this->_swooleSettings = array_replace_recursive($this->_swooleSettings, $serv['settings']);
         isset($serv['crontabs']) && is_array($serv['crontabs']) && $this->_swooleCrontabs = $serv['crontabs'];
         // 5. Swoole参数
-        $this->_swooleSettings['pid_file'] = $this->_args->tmpPath().'/server.pid';
-        $this->_swooleSettings['log_file'] = $this->_args->tmpPath().'/server.log';
+        $this->_swooleSettings['log_file'] = $this->_args->logPath().'/server.log';
+        $this->_swooleSettings['pid_file'] = $this->_args->logPath().'/server.pid';
         $this->_swooleSettings['request_slowlog_file'] = $this->_args->logPath().'/slow.log';
         $this->_swooleSettings['task_tmpdir'] = $this->_args->tmpPath().'/tasks';
         $this->_swooleSettings['upload_tmp_dir'] = $this->_args->tmpPath().'/uploads';
