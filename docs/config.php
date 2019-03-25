@@ -47,6 +47,18 @@ return [
             'logKafkaOn' => false,
             'logKafkaUrl' => 'http://java.logger.uniondrug.cn/log/saveall',
             'logKafkaTimeout' => 30,
+            // 执行时长鉴听器
+            // 当执行时长(SQL)大于alerm值时, 加入报警
+            'listeners' => [
+                'mysql' => [
+                    'on' => false,
+                    'alerm' => 1.0
+                ],
+                'redis' => [
+                    'on' => false,
+                    'alerm' => 1.0
+                ]
+            ]
         ]
     ],
     'development' => [

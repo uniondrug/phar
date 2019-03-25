@@ -7,6 +7,7 @@ namespace Uniondrug\Phar\Server\Tasks\Consul;
 
 use GuzzleHttp\Client as GuzzleClient;
 use Uniondrug\Framework\Container;
+use Uniondrug\Phar\Server\Logs\Logger;
 use Uniondrug\Phar\Server\Tasks\XTask;
 use Uniondrug\Phar\Server\XVersion;
 
@@ -53,6 +54,7 @@ class RegisterTask extends XTask
             $done = true;
         } catch(\Throwable $e) {
             $this->getServer()->getLogger()->error("服务{%s}注册到{%s}节点失败 - %s", $service['Name'], $this->data['url'], $e->getMessage());
+            $this->getServer()->getLogger()->log(Logger::LEVEL_DEBUG, json_encode($service, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
         } finally {
             unset($http);
         }
@@ -122,7 +124,7 @@ class RegisterTask extends XTask
             }
         }
         // 4.3 配置健康片段
-        $data['Check'][] = [
+        $data['Check'] = [
             "HTTP" => "http://{$address}/consul.health",
             "Interval" => "{$heartbeat}s"
         ];

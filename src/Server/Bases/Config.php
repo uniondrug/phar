@@ -50,12 +50,12 @@ class Config
      */
     private $_pharListener = [
         'mysql' => [
-            'on' => true,
+            'on' => false,
             'class' => MysqlListener::class,
             'alerm' => 1.0
         ],
         'redis' => [
-            'on' => true,
+            'on' => false,
             'class' => RedisListener::class,
             'alerm' => 1.0
         ]
@@ -510,7 +510,21 @@ class Config
                 }
             }
         }
-        // 7. static support
+        // 7. Listener
+        $servListner = isset($servLogger['listeners']) && is_array($servLogger['listeners']) ? $servLogger['listeners'] : [];
+        if (isset($servListner['mysql']) && is_array($servListner['mysql'])) {
+            if (isset($servListner['mysql']['on'])) {
+                $servListner['mysql']['on'] = is_bool($servListner['mysql']['on']) ? $servListner['mysql']['on'] : (is_string($servListner['mysql']['on']) && strtolower($servListner['mysql']['on']) === 'true');
+            }
+            $this->_pharListener['mysql'] = array_replace_recursive($this->_pharListener['mysql'], $servListner['mysql']);
+        }
+        if (isset($servListner['redis']) && is_array($servListner['redis'])) {
+            if (isset($servListner['redis']['on'])) {
+                $servListner['redis']['on'] = is_bool($servListner['redis']['on']) ? $servListner['redis']['on'] : (is_string($servListner['redis']['on']) && strtolower($servListner['redis']['on']) === 'true');
+            }
+            $this->_pharListener['redis'] = array_replace_recursive($this->_pharListener['redis'], $servListner['redis']);
+        }
+        // 8. static support
         if (isset($serv['enable_static_handler'])) {
             if (is_bool($serv['enable_static_handler'])) {
                 $this->_swooleSettings['enable_static_handler'] = $serv['enable_static_handler'];
@@ -524,13 +538,6 @@ class Config
                     $this->_swooleSettings['document_root'] = $this->_args->assetsPath();
                 }
             }
-        }
-        // 8. Listener
-        if (isset($serv['mysqlListener']) && is_array($serv['mysqlListener'])) {
-            $this->_pharListener['mysql'] = array_replace_recursive($this->_pharListener['mysql'], $serv['mysqlListener']);
-        }
-        if (isset($serv['redisListener']) && is_array($serv['redisListener'])) {
-            $this->_pharListener['redis'] = array_replace_recursive($this->_pharListener['redis'], $serv['redisListener']);
         }
         // n. 内存极限
         if ($this->_configPhpArchive['memoryLimit'] === 0) {
