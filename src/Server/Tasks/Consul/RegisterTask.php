@@ -54,7 +54,7 @@ class RegisterTask extends XTask
             $done = true;
         } catch(\Throwable $e) {
             $this->getServer()->getLogger()->error("服务{%s}注册到{%s}节点失败 - %s", $service['Name'], $this->data['url'], $e->getMessage());
-            $this->getServer()->getLogger()->log(Logger::LEVEL_DEBUG, json_encode($service, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+            $this->getServer()->getLogger()->log(Logger::LEVEL_DEBUG, json_encode($service, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         } finally {
             unset($http);
         }
@@ -75,8 +75,6 @@ class RegisterTask extends XTask
             'Tags' => [
                 "xphar/".XVersion::get(),
                 'framework/'.Container::VERSION,
-                $this->getServer()->getConfig()->deployIp.':'.$this->getServer()->getConfig()->port,
-                $this->getServer()->getConfig()->host.':'.$this->getServer()->getConfig()->port,
             ],
             'Check' => []
         ];
@@ -130,6 +128,13 @@ class RegisterTask extends XTask
             "HTTP" => "http://{$address}/consul.health",
             "Interval" => "{$heartbeat}s"
         ];
+        // 5. tags
+        $data['Tags'][] = 'deploy/'.$this->getServer()->getConfig()->deployIp.':'.$this->getServer()->getConfig()->port;
+        if ($this->getServer()->getConfig()->deployIp !== $this->getServer()->getConfig()->host) {
+            $data['Tags'][] = 'listen/'.$this->getServer()->getConfig()->host.':'.$this->getServer()->getConfig()->port;
+        } else {
+            $data['Tags'][] = 'listen/deploy';
+        }
         return $data;
     }
 }
