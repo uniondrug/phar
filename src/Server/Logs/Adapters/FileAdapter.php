@@ -16,16 +16,6 @@ class FileAdapter extends Adapter
     private $handle;
 
     /**
-     * 关闭文件
-     */
-    public function __destruct()
-    {
-        if ($this->handle) {
-            fclose($this->handle);
-        }
-    }
-
-    /**
      * @param array $datas
      * @return bool
      */

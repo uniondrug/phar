@@ -60,7 +60,8 @@ class LogTask extends XTask
             $this->getServer()->getLogger()->senderAdapter(FileAdapter::class, $this->data);
             return "local";
         } catch(\Throwable $e) {
-            $this->data[] = $this->getServer()->getLogger()->formatData(Logger::LEVEL_ERROR, $this->getServer()->getLogger()->getPrefix(true), "Logger写入文件失败 - ".$e->getMessage());
+            $reason = sprintf("写入Logger{%s}失败 - %s", $this->getServer()->getArgs()->logPath().'/'.date('Y-m').'/'.date('Y-m-d').'.log', $e->getMessage());
+            $this->data[] = $this->getServer()->getLogger()->formatData(Logger::LEVEL_ERROR, $this->getServer()->getLogger()->getPrefix(true), $reason);
         }
         // 4. 写入字符流
         //    log/server.log
