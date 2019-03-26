@@ -246,11 +246,19 @@ class HttpDispatcher
         $_FILES = isset($this->swooleRequest->files) && is_array($this->swooleRequest->files) ? $this->swooleRequest->files : [];
         // 2. COOKIE/SERVER
         $_COOKIE = isset($this->swooleRequest->cookie) && is_array($this->swooleRequest->cookie) ? $this->swooleRequest->cookie : [];
-        $_SERVER = isset($this->swooleRequest->header) && is_array($this->swooleRequest->header) ? $this->swooleRequest->header : [];
-        if (isset($this->swooleRequest->server) && is_array($this->swooleRequest->server)) {
-            foreach ($this->swooleRequest->server as $key => $value) {
-                $name = strtoupper($key);
-                $_SERVER[$name] = $value;
+        // 3. SERVER
+        $_SERVER = [
+            'X-Requested-Id' => $this->_requestId,
+            'HTTP_X_REQUESTED_ID' => $this->_requestId
+        ];
+        foreach ([
+            'server',
+            'header'
+        ] as $name) {
+            if (isset($this->swooleRequest->$name) && is_array($this->swooleRequest->$name)) {
+                foreach ($this->swooleRequest->$name as $key => $value) {
+                    $_SERVER[strtoupper($key)] = $value;
+                }
             }
         }
     }

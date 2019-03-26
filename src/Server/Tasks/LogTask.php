@@ -65,6 +65,7 @@ class LogTask extends XTask
             $this->getServer()->getLogger()->senderAdapter(FileAdapter::class, $this->data);
             return "local";
         } catch(\Throwable $e) {
+            $this->data[] = $this->getServer()->getLogger()->formatData(Logger::LEVEL_ERROR, $this->getServer()->getLogger()->getPrefix(true), $e->getMessage());
             $this->getServer()->getLogger()->senderAdapter(StdoutAdapter::class, $this->data);
             return "failure";
         }
