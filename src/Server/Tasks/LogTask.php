@@ -34,7 +34,6 @@ class LogTask extends XTask
      */
     public function run()
     {
-        $failure = null;
         // 1. 写入Redis
         //    将日志写入到Redis, Java端从Redis中提取发布到Kafka
         //    然后通过eshead查询
@@ -43,7 +42,7 @@ class LogTask extends XTask
                 $this->getServer()->getLogger()->senderAdapter(RedisAdapter::class, $this->data);
                 return "redis";
             } catch(\Throwable $e) {
-                $failure = $this->getServer()->getLogger()->formatData(Logger::LEVEL_ERROR, $this->getServer()->getLogger()->getPrefix(true), $e->getMessage());
+                $this->data[] = $this->getServer()->getLogger()->formatData(Logger::LEVEL_ERROR, $this->getServer()->getLogger()->getPrefix(true), "向Redis发送Logger出错 - ".$e->getMessage());
             }
         }
         // 2. 直对LoggerAPI
@@ -53,21 +52,19 @@ class LogTask extends XTask
                 $this->getServer()->getLogger()->senderAdapter(KafkaAdapter::class, $this->data);
                 return "kafka";
             } catch(\Throwable $e) {
-                $failure = $this->getServer()->getLogger()->formatData(Logger::LEVEL_ERROR, $this->getServer()->getLogger()->getPrefix(true), "post to logger/kafker failure for ".$e->getMessage());
+                $this->data[] = $this->getServer()->getLogger()->formatData(Logger::LEVEL_ERROR, $this->getServer()->getLogger()->getPrefix(true), "向Kafka发送Logger失败 - ".$e->getMessage());
             }
         }
         // 3. 本地落盘
-        //    未开启Redis/Kafka时, 日志落盘, 存储到log目录下
-        if (is_array($failure)) {
-            $this->data[] = $failure;
-        }
         try {
             $this->getServer()->getLogger()->senderAdapter(FileAdapter::class, $this->data);
             return "local";
         } catch(\Throwable $e) {
-            $this->data[] = $this->getServer()->getLogger()->formatData(Logger::LEVEL_ERROR, $this->getServer()->getLogger()->getPrefix(true), $e->getMessage());
-            $this->getServer()->getLogger()->senderAdapter(StdoutAdapter::class, $this->data);
-            return "failure";
+            $this->data[] = $this->getServer()->getLogger()->formatData(Logger::LEVEL_ERROR, $this->getServer()->getLogger()->getPrefix(true), "Logger写入文件失败 - ".$e->getMessage());
         }
+        // 4. 写入字符流
+        //    log/server.log
+        $this->getServer()->getLogger()->senderAdapter(StdoutAdapter::class, $this->data);
+        return "failure";
     }
 }
