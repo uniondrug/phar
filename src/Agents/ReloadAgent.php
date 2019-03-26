@@ -37,7 +37,7 @@ class ReloadAgent extends Abstracts\Agent
             return;
         }
         // 2. 发送指令
-        $this->printLine("发送指定: 向Master进程[id={%d}]发送SIGUSR1信号", $pid);
+        $this->printLine("发送指定: 向Master进程[id={%d}]发送SIGPIPE信号", $pid);
         $sendStatus = Process::kill($pid);
         if ($sendStatus === false) {
             $this->printLine("指令错误: {red=服务未启动或已退出}");
@@ -45,7 +45,7 @@ class ReloadAgent extends Abstracts\Agent
         }
         // 3. 发起请求
         //shell_exec("kill -s SIGUSR1 {$pid}");
-        Process::kill($pid, SIGUSR1);
+        Process::kill($pid, SIGPIPE);
     }
 
     /**

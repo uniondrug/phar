@@ -25,6 +25,9 @@ use Uniondrug\Phar\Server\XSocket;
  */
 trait EventsTrait
 {
+    private $signalVersion = "2.0.12";
+    private $signalOperate = "=";
+
     /**
      * 异步任务完成
      * @link https://wiki.swoole.com/wiki/page/136.html
@@ -51,29 +54,32 @@ trait EventsTrait
         $options = $server->getArgs()->getOptions();
         $optionsFile = $server->getArgs()->tmpPath().'/server.opt';
         file_put_contents($optionsFile, json_encode($options, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-        // 1. 注册SIGINT信号量
+        // 1. 注册SIGPIPE信号
         //    当Manager进程收到该信号时, 主动退出Process/Worker/Tasker
         //    三类进程; 退出后, Manager进程会重新Fork新的进程
-        Process::signal(SIGPIPE, function($signal) use ($server){
-            $server->getLogger()->info("第{%d}号进程{%s}收到{%d}信号量(SIGPIPE)", $server->getPid(), $server->getPidName(), $signal);
-            // 2. 加载配置文件
-            //    由于Process/Worker/Task进程都是由Manager进程Fork出来
-            //    的, 只有配置更新后新Fork出来的进程才会延用, 反之新的配置
-            //    将无法生效
-            $server->getLogger()->debug("加载配置参数", $signal);
-            $server->getConfig()->reload();
-            // 3. 退出指定进程
-            $procs = $server->getPidTable()->toArray();
-            foreach ($procs as $proc) {
-                // 4. 退出Prccess进程
-                if ($server->getPidTable()->isProcess($proc) || $server->getPidTable()->isWorker($proc)) {
-                    $server->getPidTable()->del($proc['pid']);
-                    $server->getLogger()->debug("发送{SIGTERM}信号给{%d}号{%s}进程", $proc['pid'], $proc['name']);
-                    Process::kill($proc['pid'], SIGTERM);
-                    continue;
+        $signalPipe = version_compare(SWOOLE_VERSION, $this->signalVersion, $this->signalOperate);
+        if ($signalPipe) {
+            Process::signal(SIGPIPE, function($signal) use ($server){
+                $server->getLogger()->info("第{%d}号进程{%s}收到{%d}信号量(SIGPIPE)", $server->getPid(), $server->getPidName(), $signal);
+                // 2. 加载配置文件
+                //    由于Process/Worker/Task进程都是由Manager进程Fork出来
+                //    的, 只有配置更新后新Fork出来的进程才会延用, 反之新的配置
+                //    将无法生效
+                $server->getLogger()->debug("重载加载配置参数");
+                $server->getConfig()->reload();
+                // 3. 退出指定进程
+                $procs = $server->getPidTable()->toArray();
+                foreach ($procs as $proc) {
+                    // 4. 退出Prccess进程
+                    if ($server->getPidTable()->isProcess($proc) || $server->getPidTable()->isWorker($proc)) {
+                        $server->getPidTable()->del($proc['pid']);
+                        $server->getLogger()->debug("发送{SIGTERM}信号给{%d}号{%s}进程", $proc['pid'], $proc['name']);
+                        Process::kill($proc['pid'], SIGTERM);
+                        continue;
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     /**
@@ -144,13 +150,16 @@ trait EventsTrait
         $server->getPidTable()->addMaster($server->getPid(), $server->getPidName());
         $server->getLogger()->info("进程号{%d}启动为{%s}.", $server->getPid(), $server->getPidName());
         $server->getLogger()->setServer($server);
-        // 1. 信号量覆盖
-        //    覆盖默认Master进程的SIGUSR1信号量, 当收到此信号时
+        // 1. 注册SIGPIPE信号
+        //    覆盖默认Master进程的SIGPIPE信号量, 当收到此信号时
         //    转发SIGPIPE信号量给Manager进程, 由Manager进程退
         //    处理重启
-        foreach ([SIGUSR1] as $signal) {
-            Process::signal($signal, function($sig) use ($server){
-                $server->getLogger()->info("第{%d}号进程{%s}收到{%d}信号量(SIGUSR1)", $server->getPid(), $server->getPidName(), $sig);
+        $signalPipe = version_compare(SWOOLE_VERSION, $this->signalVersion, $this->signalOperate);
+        if ($signalPipe) {
+            Process::signal(SIGPIPE, function($signal) use ($server){
+                $server->getLogger()->info("第{%d}号进程{%s}收到{%d}号{SIGPIPE}信号", $server->getPid(), $server->getPidName(), $signal);
+                $server->getLogger()->debug("重载加载配置参数");
+                $server->getConfig()->reload();
                 Process::kill($server->getManagerPid(), SIGPIPE);
             });
         }
