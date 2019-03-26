@@ -135,7 +135,7 @@ class PharProcess extends XProcess
         $timestamp = time();
         try {
             // 2. 提取时级
-            $hour = date('Y:m:d', $timestamp);
+            $hour = date('H:i:s', $timestamp);
             if (isset($this->_crontabHours[$hour])) {
                 foreach ($this->_crontabHours[$hour] as & $crontab) {
                     $tasks[] = $crontab['class'];
