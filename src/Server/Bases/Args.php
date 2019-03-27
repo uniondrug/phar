@@ -146,6 +146,9 @@ class Args
      */
     public function workingPath()
     {
+        if (defined("PHAR_WORKING_DIR")){
+            return PHAR_WORKING_DIR;
+        }
         return getcwd();
     }
 

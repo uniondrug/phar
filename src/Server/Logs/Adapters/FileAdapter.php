@@ -13,8 +13,6 @@ use Uniondrug\Phar\Server\Logs\Abstracts\Adapter;
  */
 class FileAdapter extends Adapter
 {
-    private $handle;
-
     /**
      * @param array $datas
      * @return bool

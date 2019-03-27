@@ -20,6 +20,7 @@ trait RunTaskTrait
 
     /**
      * 投递异步Task
+     * 消息投递内容已经过压缩处理
      * @param string     $class
      * @param array|null $data
      * @return bool
@@ -27,18 +28,18 @@ trait RunTaskTrait
     public function runTask(string $class, array $data = null)
     {
         /**
-         * 1. 消息内容
+         * 1. 数量统计
          * @var Http|Socket $server
          */
         $server = $this;
         $server->getStatsTable()->incrTaskRun();
-        if ($server->getLogger()->isStdout()) {
-            $server->getLogger()->debug("投递{%s}任务", $class);
-        }
+        // 2. 消息内容
         $message = json_encode([
             'class' => $class,
             'params' => is_array($data) ? $data : []
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        // 3. 内容压缩
+        $message = gzdeflate($message, 9);
         if ($server->isWorker() && !$server->isTasker()) {
             return $server->task($message, -1) !== false;
         }
