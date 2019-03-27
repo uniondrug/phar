@@ -42,7 +42,7 @@ trait DoesTrait
         } else {
             $data = $server->stats();
             $data['start_time'] = date('Y-m-d H:i:s', $data['start_time']);
-            $data['procs'] = $server->getPidTable()->toArray();
+            //$data['procs'] = $server->getPidTable()->toArray();
             $data['stats'] = $server->getStatsTable()->toArray();
         }
         $dispatcher->setContent(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
