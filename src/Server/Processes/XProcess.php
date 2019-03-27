@@ -76,7 +76,6 @@ abstract class XProcess extends SwooleProcess implements IProcess
      */
     final public function runProcess()
     {
-        $this->_server->getConfig()->reload();
         $this->_server->setPid($this->pid, 'process', get_class($this), $this->processName);
         $this->_server->getPidTable()->addProcess($this->_server->getPid(), $this->_server->getPidName());
         $this->_server->getLogger()->info("进程号{%d}启动为{%s}.", $this->_server->getPid(), $this->_server->getPidName());

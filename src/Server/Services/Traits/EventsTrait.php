@@ -204,7 +204,6 @@ trait EventsTrait
      */
     public function onWorkerStart($server, $workerId)
     {
-        $server->getConfig()->reload();
         $server->setPid($server->getWorkerPid(), $server->isTasker() ? 'tasker' : 'worker', $workerId);
         $server->isTasker() ? $server->getPidTable()->addTasker($workerId, $server->getPid(), $server->getPidName()) : $server->getPidTable()->addWorker($workerId, $server->getPid(), $server->getPidName());
         $server->getLogger()->info("进程号{%d}启动为{%s}.", $server->getPid(), $server->getPidName());
