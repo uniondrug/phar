@@ -17,6 +17,8 @@ class HttpDispatcher
     private $_isAssets;
     private $_isHealth;
     private $_isHealthName = '';
+    private $_isTable;
+    private $_isTableName = '';
     private $_begin = 0.0;
     private $_content = '';
     private $_memoryBegin = 0;
@@ -105,6 +107,14 @@ class HttpDispatcher
     }
 
     /**
+     * @return string
+     */
+    public function getTableName()
+    {
+        return $this->_isTableName;
+    }
+
+    /**
      * RawBody
      * @return string
      */
@@ -165,6 +175,23 @@ class HttpDispatcher
             }
         }
         return $this->_isHealth;
+    }
+
+    /**
+     * 是否为内存数据请求
+     * @return bool
+     */
+    public function isTable()
+    {
+        if ($this->_isTable === null) {
+            if ($this->isAssets()) {
+                $this->_isTable = preg_match("/([\w]+)\.table$/i", $this->_requestUrl, $m) > 0;
+                $this->_isTable && $this->_isTableName = $m[1];
+            } else {
+                $this->_isTable = false;
+            }
+        }
+        return $this->_isTable;
     }
 
     /**

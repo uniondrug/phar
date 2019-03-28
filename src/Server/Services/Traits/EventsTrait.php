@@ -94,18 +94,26 @@ trait EventsTrait
             // 2. 静态资源
             if ($dispatch->isHealth()) {
                 // 2.1 健康检查
-                $server->doHealthRequest($server, $dispatch);
+                $server->safeManager() ? $server->doHealthRequest($server, $dispatch) : $server->doForbidRequest($server, $dispatch);
+            } else if ($dispatch->isTable()) {
+                // 2.2 内存表资源
+                $server->safeManager() ? $server->doTableRequest($server, $dispatch) : $server->doForbidRequest($server, $dispatch);
             } else {
-                // 2.2 静态资源
+                // 2.3 静态资源
                 //     忽略了rewrite
-                $server->doAssetsRequest($server, $dispatch);
+                $server->safeManager() ? $server->doAssetsRequest($server, $dispatch) : $server->doForbidRequest($server, $dispatch);
             }
         } else {
+            // 3. 框架资源
+            //    phalcon
             $server->frameworkRequest($server, $dispatch);
         }
+        // 4. 内存状态
         $memoryLimit = $dispatch->end();
         unset($dispatch);
-        // 内存极限处理
+        // 5. 退出Worker进程
+        //    当worker进程占用的内存资源达到临界值时
+        //    主动发起退出进程请求
         $memoryLimit && $server->stop($server->getWorkerId());
     }
 
