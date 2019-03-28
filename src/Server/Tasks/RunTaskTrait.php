@@ -39,7 +39,7 @@ trait RunTaskTrait
             'params' => is_array($data) ? $data : []
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         // 3. 内容压缩
-        //$message = gzdeflate($message, 9);
+        $message = gzdeflate($message, 9);
         if ($server->isWorker() && !$server->isTasker()) {
             return $server->task($message, -1) !== false;
         }
