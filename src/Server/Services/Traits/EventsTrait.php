@@ -177,7 +177,7 @@ trait EventsTrait
             }
             // 2.3 开始执行
             $server->getLogger()->setPrefix("[r=%s][z=%d][y=%s]", $requestId, $taskId, $data['class'])->startProfile();
-            $server->getLogger()->info("开始Task任务");
+            $server->getLogger()->debug("开始Task任务");
             /**
              * 2.4 执行任务
              * @var ITask $tasker
@@ -198,7 +198,7 @@ trait EventsTrait
         } finally {
             // 4. 完成任务
             $duration = microtime(true) - $begin;
-            $server->getLogger()->info("[d=%.06f]完成Task任务", $duration);
+            $server->getLogger()->debug("[d=%.06f]完成Task任务", $duration);
             $server->getLogger()->endProfile();
         }
         return $result;
