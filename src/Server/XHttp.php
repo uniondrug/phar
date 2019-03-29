@@ -93,27 +93,26 @@ class XHttp extends Services\Http
     {
         // 1. container
         $container = new Container($server->getArgs()->basePath());
+        Di::setDefault($container);
+        // 2. override shared instances
         $container->setShared('server', $server);
         $container->setShared('logger', $server->getLogger());
         $container->setShared('request', new Request());
-        // 2. application
+        // 3. application
         $application = new Application($container);
         $application->boot();
-        // 3. reset shared
-        // 4. override DI
-        Di::setDefault($container);
-        // 5. set globals
+        // 4. set globals
         $this->_application = $application;
         $this->_container = $container;
-        // 6. listener
+        // 5. listener
         $this->listenerManager = $container->getEventsManager();
         if ($server->getConfig()->mysqlListenerOn()) {
-            // 6.1
+            // 5.1
             $listener = $server->getConfig()->mysqlListenerClass();
             $this->listenerMysql = new $listener($server);
         }
         if ($server->getConfig()->redisListenerOn()) {
-            // 6.2
+            // 5.2
             $listener = $server->getConfig()->redisListenerClass();
             $this->listenerRedis = new $listener($server);
         }
