@@ -17,6 +17,11 @@ abstract class XProcess extends SwooleProcess implements IProcess
      */
     private $_server;
     /**
+     * 进程入参
+     * @var array
+     */
+    protected $data;
+    /**
      * 进程名称
      * @var string
      */
@@ -26,13 +31,14 @@ abstract class XProcess extends SwooleProcess implements IProcess
      * XProcess constructor.
      * @param XHttp|XSocket|XOld $server
      */
-    final public function __construct($server)
+    final public function __construct($server, array $data = [])
     {
         parent::__construct([
             $this,
             'runProcess'
         ], $server->getConfig()->processStdInOut, $server->getConfig()->processCreatePipe);
         $this->_server = $server;
+        $this->data = $data;
     }
 
     /**
