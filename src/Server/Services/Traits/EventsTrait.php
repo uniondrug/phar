@@ -167,13 +167,13 @@ trait EventsTrait
             // 2.1 invalid json string
             $data = json_decode($message, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new ServiceException("解析Task入参失败 - %s", json_last_error_msg());
+                throw new ServiceException("解析Task入参失败 - ".json_last_error_msg());
             }
             // 2.2 params validator
             $data['class'] = isset($data['class']) && is_string($data['class']) ? $data['class'] : null;
             $data['params'] = isset($data['params']) && is_array($data['params']) ? $data['params'] : [];
             if (!is_a($data['class'], ITask::class, true)) {
-                throw new ServiceException("Task{%s}未实现{%s}类", $data['class'], ITask::class);
+                throw new ServiceException("Task{".$data['class']."}未实现{".ITask::class."}类");
             }
             // 2.3 开始执行
             $server->getLogger()->setPrefix("[r=%s][z=%d][y=%s]", $requestId, $taskId, $data['class'])->startProfile();
