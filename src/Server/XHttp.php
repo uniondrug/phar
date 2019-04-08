@@ -249,8 +249,9 @@ class XHttp extends Services\Http
              * 2. check
              * @var Mysql $mysql
              */
-            $mysql = $this->_container->getShared($name);
             try {
+                $server->getLogger()->log(Logger::LEVEL_DEBUG, "检查共享{%s}实例状态", $name);
+                $mysql = $this->_container->getShared($name);
                 $server->attachListener('mysql', $name, $this->listenerMysql);
                 $mysql->query("SELECT 1");
             } catch(\Throwable $e) {
