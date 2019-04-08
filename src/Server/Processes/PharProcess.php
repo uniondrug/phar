@@ -116,7 +116,7 @@ class PharProcess extends XProcess
                     $this->getServer()->getLogger()->info("退出{%d}号{%s}进程", $proc['pid'], $proc['name']);
                     Process::kill($proc['pid'], SIGTERM);
                 } catch(\Throwable $e) {
-                    $this->getServer()->getLogger()->error("退出{%d}号{%s}进程失败 - %s", $proc['pid'], $proc['name'], $e->getMessage());
+                    $this->getServer()->getLogger()->warning("退出{%d}号{%s}进程失败 - %s", $proc['pid'], $proc['name'], $e->getMessage());
                 }
             }
         }
