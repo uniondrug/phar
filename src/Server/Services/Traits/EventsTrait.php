@@ -167,7 +167,7 @@ trait EventsTrait
             // 2.1 invalid json string
             $data = json_decode($message, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new ServiceException("解析Task入参失败 - ".json_last_error_msg());
+                throw new ServiceException("解析Task入参为JSON失败 - ".$message);
             }
             // 2.2 params validator
             $data['class'] = isset($data['class']) && is_string($data['class']) ? $data['class'] : null;
@@ -182,8 +182,8 @@ trait EventsTrait
              * 2.4 执行任务
              * @var ITask $tasker
              */
-            $_SERVER['X-REQUESTED-ID'] = $requestId;
-            $_SERVER['HTTP_X_REQUESTED_ID'] = $requestId;
+            $_SERVER['request-id'] = $requestId;
+            $_SERVER['HTTP_REQUEST_ID'] = $requestId;
             $tasker = new $data['class']($server, $taskId, $data['params']);
             if ($tasker->beforeRun() === true) {
                 $result = $tasker->run();

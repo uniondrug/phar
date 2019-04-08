@@ -41,6 +41,7 @@ class Args
      */
     private $_environment;
     private $_ipAddresses = [];
+    private $_workingPath;
     /**
      * 是否为DEV环境
      * @var bool
@@ -146,10 +147,13 @@ class Args
      */
     public function workingPath()
     {
-        if (defined("PHAR_WORKING_DIR")){
+        if (defined("PHAR_WORKING_DIR")) {
             return PHAR_WORKING_DIR;
         }
-        return getcwd();
+        if ($this->_workingPath === null) {
+            $this->_workingPath = getcwd();
+        }
+        return $this->_workingPath;
     }
 
     /**

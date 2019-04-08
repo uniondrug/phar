@@ -130,8 +130,8 @@ class HttpDispatcher
     public function getRequestId()
     {
         if ($this->_requestId === null) {
-            if (isset($this->swooleRequest->header['x-requested-id']) && $this->swooleRequest->header['x-requested-id'] !== '') {
-                $this->_requestId = $this->swooleRequest->header['x-requested-id'];
+            if (isset($this->swooleRequest->header['request-id']) && is_string($this->swooleRequest->header['request-id']) && $this->swooleRequest->header['request-id'] !== '') {
+                $this->_requestId = $this->swooleRequest->header['request-id'];
             } else {
                 $requestId = 'r';
                 $requestId .= (int) (microtime(true) * 1000000);
@@ -275,8 +275,8 @@ class HttpDispatcher
         $_COOKIE = isset($this->swooleRequest->cookie) && is_array($this->swooleRequest->cookie) ? $this->swooleRequest->cookie : [];
         // 3. SERVER
         $_SERVER = [
-            'X-Requested-Id' => $this->_requestId,
-            'HTTP_X_REQUESTED_ID' => $this->_requestId
+            'REQUEST-ID' => $this->_requestId,
+            'HTTP_REQUEST_ID' => $this->_requestId
         ];
         foreach ([
             'server',
@@ -298,7 +298,7 @@ class HttpDispatcher
         $this->setStatus($this->server->getConfig()->statusCode);
         $this->setContentType($this->server->getConfig()->contentType);
         $this->setHeader("server", $this->server->getConfig()->appName."/".$this->server->getConfig()->appVersion);
-        $this->setHeader("x-requested-id", $this->getRequestId());
+        $this->setHeader("request-id", $this->getRequestId());
     }
 
     /**
