@@ -217,8 +217,11 @@ class HttpDispatcher
      * @param string $content
      * @return $this
      */
-    public function setContent(string $content)
+    public function setContent(string $content = null)
     {
+        if ($content === null) {
+            $content = '';
+        }
         $this->_content = $content;
         return $this;
     }

@@ -45,22 +45,6 @@ class Config
      */
     private $_configurations = [];
     /**
-     * Listener
-     * @var array
-     */
-    private $_pharListener = [
-        'mysql' => [
-            'on' => false,
-            'class' => MysqlListener::class,
-            'alerm' => 1.0
-        ],
-        'redis' => [
-            'on' => false,
-            'class' => RedisListener::class,
-            'alerm' => 1.0
-        ]
-    ];
-    /**
      * 全局Phar配置
      * @var array
      */
@@ -358,36 +342,6 @@ class Config
         return $this->_logRedis;
     }
 
-    public function mysqlListenerAlerm()
-    {
-        return $this->_pharListener['mysql']['alerm'];
-    }
-
-    public function mysqlListenerClass()
-    {
-        return $this->_pharListener['mysql']['class'];
-    }
-
-    public function mysqlListenerOn()
-    {
-        return $this->_pharListener['mysql']['on'];
-    }
-
-    public function redisListenerAlerm()
-    {
-        return $this->_pharListener['redis']['alerm'];
-    }
-
-    public function redisListenerClass()
-    {
-        return $this->_pharListener['redis']['class'];
-    }
-
-    public function redisListenerOn()
-    {
-        return $this->_pharListener['redis']['on'];
-    }
-
     /**
      * 加载文件
      * 当配置变量时, 通过向Master进程发送SIGUSR1信号, Master
@@ -511,19 +465,6 @@ class Config
             }
         }
         // 7. Listener
-        $servListner = isset($servLogger['listeners']) && is_array($servLogger['listeners']) ? $servLogger['listeners'] : [];
-        if (isset($servListner['mysql']) && is_array($servListner['mysql'])) {
-            if (isset($servListner['mysql']['on'])) {
-                $servListner['mysql']['on'] = is_bool($servListner['mysql']['on']) ? $servListner['mysql']['on'] : (is_string($servListner['mysql']['on']) && strtolower($servListner['mysql']['on']) === 'true');
-            }
-            $this->_pharListener['mysql'] = array_replace_recursive($this->_pharListener['mysql'], $servListner['mysql']);
-        }
-        if (isset($servListner['redis']) && is_array($servListner['redis'])) {
-            if (isset($servListner['redis']['on'])) {
-                $servListner['redis']['on'] = is_bool($servListner['redis']['on']) ? $servListner['redis']['on'] : (is_string($servListner['redis']['on']) && strtolower($servListner['redis']['on']) === 'true');
-            }
-            $this->_pharListener['redis'] = array_replace_recursive($this->_pharListener['redis'], $servListner['redis']);
-        }
         // 8. static support
         if (isset($serv['enable_static_handler'])) {
             if (is_bool($serv['enable_static_handler'])) {
