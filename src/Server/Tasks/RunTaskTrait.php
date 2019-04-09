@@ -34,12 +34,12 @@ trait RunTaskTrait
         $server = $this;
         $server->getStatsTable()->incrTaskRun();
         // 2. 消息内容
-        $message = json_encode([
+        $json = json_encode([
             'class' => $class,
             'params' => is_array($data) ? $data : []
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         // 3. 内容压缩
-        $message = gzdeflate($message, 9);
+        $message = zlib_encode($json, ZLIB_ENCODING_DEFLATE);
         if ($server->isWorker() && !$server->isTasker()) {
             return $server->task($message, -1) !== false;
         }

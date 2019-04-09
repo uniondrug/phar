@@ -158,18 +158,21 @@ trait EventsTrait
         $requestId .= (int) (microtime(true) * 1000000);
         $requestId .= mt_rand(1000000, 9999999);
         $requestId .= mt_rand(10000000, 99999999);
-        // 1. logger
+        // 1. stats
         $server->getStatsTable()->incrTaskOn();
         // 2. parser
         try {
-            // 2.0 de compress
-            $message = gzinflate($message);
-            // 2.1 invalid json string
-            $data = json_decode($message, true);
+            // 2.1 uncompress
+            $text = zlib_decode($message);
+            if ($text === false){
+                $text = $message;
+            }
+            // 2.2 parser message to json
+            $data = json_decode($text, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new ServiceException("解析Task入参为JSON失败 - ".$message);
             }
-            // 2.2 params validator
+            // 2.3 params validator
             $data['class'] = isset($data['class']) && is_string($data['class']) ? $data['class'] : null;
             $data['params'] = isset($data['params']) && is_array($data['params']) ? $data['params'] : [];
             if (!is_a($data['class'], ITask::class, true)) {
