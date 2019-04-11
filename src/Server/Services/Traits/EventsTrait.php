@@ -159,8 +159,9 @@ trait EventsTrait
         $requestId .= mt_rand(1000000, 9999999);
         $requestId .= mt_rand(10000000, 99999999);
         // 1. stats
+        $prefix = sprintf("[r=%s][z=%d]", $requestId, $taskId);
         $server->getStatsTable()->incrTaskOn();
-        $server->getLogger()->setPrefix();
+        $server->getLogger()->startProfile()->setPrefix($prefix);
         // 2. parser
         try {
             // 2.2 parser message to json
@@ -179,7 +180,7 @@ trait EventsTrait
                 throw new ServiceException("Task{".$data['class']."}未实现{".ITask::class."}类");
             }
             // 2.3 开始执行
-            $server->getLogger()->setPrefix("[r=%s][z=%d][y=%s]", $requestId, $taskId, $data['class'])->startProfile();
+            $server->getLogger()->setPrefix("%s[y=%s]", $prefix, $data['class']);
             $server->getLogger()->debug("开始Task任务");
             /**
              * 2.4 执行任务
