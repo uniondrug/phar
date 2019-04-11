@@ -114,9 +114,9 @@ class Logger extends Abstracts\Base
      * @param array  ...$args
      * @return $this
      */
-    public function setPrefix(string $format, ... $args)
+    public function setPrefix(string $format = null, ... $args)
     {
-        $this->_prefix = sprintf($format, ... $args);
+        $this->_prefix = $format === null ? "" : sprintf($format, ... $args);
         return $this;
     }
 

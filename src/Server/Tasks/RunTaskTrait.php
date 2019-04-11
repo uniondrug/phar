@@ -39,10 +39,10 @@ trait RunTaskTrait
             'params' => is_array($data) ? $data : []
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         // 3. 内容压缩
-        $message = zlib_encode($json, ZLIB_ENCODING_DEFLATE);
         if ($server->isWorker() && !$server->isTasker()) {
-            return $server->task($message, -1) !== false;
+            return $server->task($json, -1) !== false;
         }
-        return $this->sendMessage($message, 0);
+        // 4. 管道消息
+        return $this->sendMessage($json, 0);
     }
 }

@@ -183,14 +183,20 @@ class XHttp extends Services\Http
      */
     private function _connectionCheckMysql($server)
     {
-        foreach ($this->connectionMysqls as $name) {
-            // 1. not shared
+        // 1. read shared db
+        $shares = $this->connectionMysqls;
+        if (method_exists($this->_container, 'getSharedDatabaseKeys')) {
+            $shares = $this->_container->getSharedDatabaseKeys();
+        }
+        // 2. check shared db
+        foreach ($shares as $name) {
+            // 3. not shared
             if (!$this->_container->hasSharedInstance($name)) {
                 $server->getLogger()->debugOn() && $server->getLogger()->debug("实例{%s}未创建", $name);
                 continue;
             }
             /**
-             * 2. check
+             * 4. check status
              * @var Mysql $mysql
              */
             try {

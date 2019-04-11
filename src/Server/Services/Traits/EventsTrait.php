@@ -160,16 +160,16 @@ trait EventsTrait
         $requestId .= mt_rand(10000000, 99999999);
         // 1. stats
         $server->getStatsTable()->incrTaskOn();
+        $server->getLogger()->setPrefix();
         // 2. parser
         try {
-            // 2.1 uncompress
-            $text = zlib_decode($message);
-            if ($text === false){
-                $text = $message;
-            }
             // 2.2 parser message to json
-            $data = json_decode($text, true);
+            $data = json_decode($message, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
+                // note: 当解析JSON失败时不写入Logger
+                //       a): 无效的JSON数据
+                //       b): 解压JSON数据失败
+                $server->getLogger()->ignoreProfile(true);
                 throw new ServiceException("解析Task入参为JSON失败 - ".$message);
             }
             // 2.3 params validator
