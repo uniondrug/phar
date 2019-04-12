@@ -124,7 +124,8 @@ class Config
         'log_level' => 4,
         'request_slowlog_file' => '',
         'request_slowlog_timeout' => 5,
-        'daemonize' => 0
+        'daemonize' => 0,
+        'reload_async' => true
     ];
     /**
      * 内存表

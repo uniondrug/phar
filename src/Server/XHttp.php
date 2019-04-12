@@ -149,13 +149,8 @@ class XHttp extends Services\Http
         //    a). 内容
         //    b). Status
         $statusCode = (int) $response->getStatusCode();
-        $content = $response->getContent();
-        if (preg_match("/^\s*\<[a-z]+ml/i", $content) > 0) {
-            $dispatcher->setContentType('text/html');
-        } else if (preg_match("/^\s*\{/", $content) === 0) {
-            $dispatcher->setContentType('text/plain');
-        }
         $dispatcher->setStatus($statusCode);
+        $content = $response->getContent();
         $dispatcher->setContent($content);
     }
 
@@ -190,13 +185,13 @@ class XHttp extends Services\Http
         }
         // 2. check shared db
         foreach ($shares as $name) {
-            // 3. not shared
+            // 1. not shared
             if (!$this->_container->hasSharedInstance($name)) {
                 $server->getLogger()->debugOn() && $server->getLogger()->debug("实例{%s}未创建", $name);
                 continue;
             }
             /**
-             * 4. check status
+             * 2. check
              * @var Mysql $mysql
              */
             try {
