@@ -281,15 +281,15 @@ class HttpDispatcher
             'REQUEST-ID' => $this->_requestId,
             'HTTP_REQUEST_ID' => $this->_requestId
         ];
-        foreach ([
-            'server',
-            'header'
-        ] as $name) {
-            if (isset($this->swooleRequest->$name) && is_array($this->swooleRequest->$name)) {
-                foreach ($this->swooleRequest->$name as $key => $value) {
-                    $_SERVER[strtoupper($key)] = $value;
-                }
+        foreach ($this->swooleRequest->server as $key => $value) {
+            $_SERVER[strtoupper($key)] = $value;
+        }
+        foreach ($this->swooleRequest->header as $key => $value) {
+            $key = strtoupper($key);
+            if (preg_match("/^HTTP_/", $key) === 0) {
+                $key = "HTTP_{$key}";
             }
+            $_SERVER[$key] = $value;
         }
     }
 
