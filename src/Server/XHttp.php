@@ -187,7 +187,7 @@ class XHttp extends Services\Http
         foreach ($shares as $name) {
             // 1. not shared
             if (!$this->_container->hasSharedInstance($name)) {
-                $server->getLogger()->debugOn() && $server->getLogger()->debug("实例{%s}未创建", $name);
+                $server->getLogger()->debugOn() && $server->getLogger()->debug("MySQL实例{%s}未创建", $name);
                 continue;
             }
             /**
@@ -195,12 +195,12 @@ class XHttp extends Services\Http
              * @var Mysql $mysql
              */
             try {
-                $server->getLogger()->debugOn() && $server->getLogger()->debug("实例{%s}状态检查", $name);
+                $server->getLogger()->debugOn() && $server->getLogger()->debug("MySQL实例{%s}状态检查", $name);
                 $mysql = $this->_container->getShared($name);
                 $mysql->query("SELECT 1");
             } catch(\Throwable $e) {
                 $this->_container->removeSharedInstance($name);
-                $server->getLogger()->warning("实例{%s}断开 - %s", $name, $e->getMessage());
+                $server->getLogger()->warning("MySQL实例{%s}断开 - %s", $name, $e->getMessage());
             }
         }
     }
@@ -211,9 +211,15 @@ class XHttp extends Services\Http
      */
     private function _connectionCheckRedis($server)
     {
-        foreach ($this->connectionRedises as $name) {
+        // 1. read shared db
+        $shares = $this->connectionRedises;
+        if (method_exists($this->_container, 'getSharedRedisKeys')) {
+            $shares = $this->_container->getSharedRedisKeys();
+        }
+        foreach ($shares as $name) {
             // 1. not shared
             if (!$this->_container->hasSharedInstance($name)) {
+                $server->getLogger()->debugOn() && $server->getLogger()->debug("Redis实例{%s}未创建", $name);
                 continue;
             }
             /**
@@ -225,7 +231,7 @@ class XHttp extends Services\Http
                 $redis->ping();
             } catch(\Throwable $e) {
                 $this->_container->removeSharedInstance($name);
-                $server->getLogger()->log(Logger::LEVEL_WARNING, "移除共享的Redis-{%s}实例 - %s", $name, $e->getMessage());
+                $server->getLogger()->warning("Redis实例{%s}断开 - %s", $name, $e->getMessage());
             }
         }
     }
