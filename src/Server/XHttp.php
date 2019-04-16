@@ -194,12 +194,12 @@ class XHttp extends Services\Http
              * 2. check
              * @var Mysql $mysql
              */
+            $mysql = $this->_container->getShared($name);
             try {
                 $server->getLogger()->debugOn() && $server->getLogger()->debug("MySQL实例{%s}状态检查", $name);
-                $mysql = $this->_container->getShared($name);
                 $mysql->query("SELECT 1");
             } catch(\Throwable $e) {
-                $this->_container->removeSharedInstance($name);
+                $mysql->connect();
                 $server->getLogger()->warning("MySQL实例{%s}断开 - %s", $name, $e->getMessage());
             }
         }
