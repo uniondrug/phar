@@ -199,8 +199,8 @@ class XHttp extends Services\Http
                 $server->getLogger()->debugOn() && $server->getLogger()->debug("MySQL实例{%s}状态检查", $name);
                 $mysql->query("SELECT 1");
             } catch(\Throwable $e) {
-                $mysql->connect();
                 $server->getLogger()->warning("MySQL实例{%s}断开 - %s", $name, $e->getMessage());
+                $mysql->connect();
             }
         }
     }
