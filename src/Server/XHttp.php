@@ -16,6 +16,7 @@ use Uniondrug\Phar\Server\Logs\Logger;
 use Uniondrug\Phar\Server\Services\HttpDispatcher;
 use Uniondrug\Service\Server as ServiceServer;
 use Uniondrug\Structs\Exception;
+use Uniondrug\Validation\Exceptions\ParamException;
 
 /**
  * HTTP服务
@@ -121,12 +122,12 @@ class XHttp extends Services\Http
                 throw new Error(0, "unknown framework response");
             }
         } catch(\Throwable $e) {
-            if (($e instanceof Error) || ($e instanceof Exception)) {
-                $server->getLogger()->warning($e->getMessage());
+            if (($e instanceof Error) || ($e instanceof Exception) || ($e instanceof ParamException)) {
+                $server->getLogger()->debug($e->getMessage());
             } else {
                 $server->getLogger()->error($e->getMessage());
+                $server->getLogger()->log(Logger::LEVEL_DEBUG, "%s at %s(%d)", get_class($e), $e->getFile(), $e->getLine());
             }
-            $server->getLogger()->log(Logger::LEVEL_DEBUG, "%s at %s(%d)", get_class($e), $e->getFile(), $e->getLine());
             $service = $this->_container->getShared('serviceServer');
             $response = $service->withError($e->getMessage(), $e->getCode());
         }
