@@ -218,7 +218,7 @@ class KvAgent extends Abstracts\Agent
         try {
             $text = (string) $this->http->get($url, [
                 'headers' => [],
-                'timeout' => 3
+                'timeout' => 10
             ])->getBody()->getContents();
             if ($text === '') {
                 throw new ServiceException("KV空值");
@@ -232,12 +232,16 @@ class KvAgent extends Abstracts\Agent
         }
         // 4. json decode
         $json = json_decode($text, true);
-        if (!is_array($json) || count($json) !== 1 || !isset($json[0]['Value'])) {
+        if (!is_array($json) || count($json) !== 1) {
             $this->printLine("          [{red=%s}] 无效的JSON返回结果", $key);
             return false;
         }
         // 5. base64 decode
         $this->printLine("          [{green=%s}] 发现配置", $key);
+        $json[0]['Value'] = isset($json[0]['Value']) && $json[0]['Value'] !== '' ? $json[0]['Value'] : '';
+        if ($json[0]['Value'] === '') {
+            return $json[0]['Value'];
+        }
         return trim(base64_decode($json[0]['Value']));
     }
 }
