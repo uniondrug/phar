@@ -125,9 +125,21 @@ class RegisterTask extends XTask
         }
         // 4.3 配置健康片段
         $data['Check'] = [
-            "HTTP" => "http://{$address}/consul.health",
-            "Interval" => "{$heartbeat}s"
+            "args" => [
+                "/bin/bash",
+                "/data/scripts/consul.check.sh",
+                "{$this->getServer()->getArgs()->workingPath()}",
+                "{$this->getServer()->getConfig()->port}",
+                "{$this->getServer()->getConfig()->deployIp}",
+                "{$this->getServer()->getConfig()->host}",
+            ],
+            "interval" => "{$heartbeat}s",
+            "timeout" => "{$heartbeat}s"
         ];
+        //$data['Check'] = [
+        //    "HTTP" => "http://{$address}/consul.health",
+        //    "interval" => "{$heartbeat}s"
+        //];
         // 5. tags
         $data['Tags'][] = 'deploy/'.$this->getServer()->getConfig()->deployIp;
         if ($this->getServer()->getConfig()->deployIp !== $this->getServer()->getConfig()->host) {
