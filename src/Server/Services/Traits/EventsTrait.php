@@ -5,6 +5,7 @@
  */
 namespace Uniondrug\Phar\Server\Services\Traits;
 
+use App\Errors\Error;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Uniondrug\Phar\Exceptions\ServiceException;
@@ -17,6 +18,7 @@ use Uniondrug\Phar\Server\Tasks\ITask;
 use Uniondrug\Phar\Server\XHttp;
 use Uniondrug\Phar\Server\XOld;
 use Uniondrug\Phar\Server\XSocket;
+use Uniondrug\Validation\Exceptions\ParamException;
 
 /**
  * 事件定义
@@ -195,10 +197,14 @@ trait EventsTrait
                 $tasker->afterRun($result);
             }
         } catch(\Throwable $e) {
-            // 3. 执行任务出错
-            $server->getLogger()->error("执行任务出错 - %s", $e->getMessage());
-            $server->getLogger()->log(Logger::LEVEL_DEBUG, "{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
             $server->getStatsTable()->incrTaskFailure();
+            // 3. 执行任务出错
+            if (($e instanceof Error) || ($e instanceof ParamException)) {
+                $server->getLogger()->warning("执行任务出错 - %s", $e->getMessage());
+            } else {
+                $server->getLogger()->error("执行任务出错 - %s", $e->getMessage());
+            }
+            $server->getLogger()->log(Logger::LEVEL_DEBUG, "{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
         } finally {
             // 4. 完成任务
             $duration = microtime(true) - $begin;
