@@ -97,52 +97,52 @@ abstract class Adapter
     }
 
     /**
-     * @param $fields
+     * @param array $fields
+     * @param array $data
      */
     protected function parserLoggerContent(& $fields, & $data)
     {
-        $message = $data['message'];
-        $prepends = [];
-        if (preg_match_all($this->loggerFieldsRexp, $message, $m) > 0) {
-            $message = preg_replace($this->loggerFieldsRexp, "", $message);
-            foreach ($m[1] as $i => $v) {
-                $vs = explode('=', $v);
-                $vl = count($vs);
-                if ($vl === 0) {
-                    $prepends[] = $m[0][$i];
-                } else {
-                    switch (strtolower($vs[0])) {
-                        case 'a' :
-                            $fields['action'] = $vs[1];
-                            break;
-                        case 'd' :
-                            $fields['duration'] = (double) $vs[1];
-                            break;
-                        case 'm' :
-                            $fields['requestMethod'] = $vs[1];
-                            break;
-                        case 'r' :
-                            $fields['requestId'] = $vs[1];
-                            break;
-                        case 'u' :
-                            $fields['requestUrl'] = $vs[1];
-                            break;
-                        case 'x' :
-                            $fields['pid'] = (int) $vs[1];
-                            break;
-                        case 'y' :
-                            $fields['taskName'] = $vs[1];
-                            break;
-                        case 'z' :
-                            $fields['taskId'] = (int) $vs[1];
-                            break;
-                        default :
-                            $prepends[] = $m[0][$i];
-                            break;
-                    }
-                }
+        $fields['content'] = preg_replace_callback($this->loggerFieldsRexp, function($m){
+            $s = explode('=', $m[1]);
+            $c = count($s);
+            // 1. 保持原样
+            if ($c < 2) {
+                return $m[0];
             }
-        }
-        $fields['content'] = implode('', $prepends).$message;
+            // 2. 结构计算
+            $r = true;
+            $s[0] = strtolower($s[0]);
+            switch ($s[0]) {
+                case 'a' :
+                    $fields['action'] = $s[1];
+                    break;
+                case 'd' :
+                    $fields['duration'] = (double) $s[1];
+                    break;
+                case 'm' :
+                    $fields['requestMethod'] = $s[1];
+                    break;
+                case 'r' :
+                    $fields['requestId'] = $s[1];
+                    break;
+                case 'u' :
+                    $fields['requestUrl'] = $s[1];
+                    break;
+                case 'x' :
+                    $fields['pid'] = (int) $s[1];
+                    break;
+                case 'y' :
+                    $fields['taskName'] = $s[1];
+                    break;
+                case 'z' :
+                    $fields['taskId'] = (int) $s[1];
+                    break;
+                default :
+                    $r = false;
+                    break;
+            }
+            // 3. 数据转换
+            return $r ? "" : $m[0];
+        }, $data['message']);
     }
 }
