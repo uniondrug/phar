@@ -182,7 +182,7 @@ trait EventsTrait
                 throw new ServiceException("Task{".$data['class']."}未实现{".ITask::class."}类");
             }
             // 2.3 开始执行
-            $server->getLogger()->setPrefix("%s[y=%s]", $prefix, $taskId, $data['class']);
+            $server->getLogger()->setPrefix("%s[y=%s]", $prefix, $data['class']);
             $server->getLogger()->debug("开始Task任务");
             /**
              * 2.4 执行任务
