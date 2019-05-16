@@ -102,7 +102,7 @@ abstract class Adapter
      */
     protected function parserLoggerContent(& $fields, & $data)
     {
-        $fields['content'] = preg_replace_callback($this->loggerFieldsRexp, function($m){
+        $fields['content'] = preg_replace_callback($this->loggerFieldsRexp, function($m) use (&$fields){
             $s = explode('=', $m[1]);
             $c = count($s);
             // 1. 保持原样
