@@ -83,8 +83,7 @@ class KvAgent extends Abstracts\Agent
         }
         // 4. 重定向配置
         if ($redirect) {
-            ksort($conf);
-            reset($conf);
+            $this->resort($conf);
             // 4.0 创建目录
             $this->getRunner()->getArgs()->buildPath();
             // 4.1 PHP配置
@@ -140,13 +139,33 @@ class KvAgent extends Abstracts\Agent
             // 3. 扫描本地配置
             $data = $this->getRunner()->getConfig()->getScanned();
             foreach ($data as $category => & $section) {
+                if (in_array($category, [
+                    'app',
+                    'logger',
+                    'middleware',
+                    'routes'
+                ])) {
+                    unset($data[$category]);
+                    continue;
+                }
                 if (is_array($section) && isset($section['key'])) {
                     unset($section['key']);
                 }
                 if ($category === 'server') {
-                    $section['value']['logger'] = "kv://globals/log/default";
+                    if (!isset($section['value']['logger'])) {
+                        $section['value']['logger'] = "kv://globals/log/default";
+                    }
+                    if (!isset($section['value']['settings'])) {
+                        $section['value']['settings'] = "kv://globals/swoole/worker";
+                    }
                 }
             }
+            if (!isset($data['sdk'])) {
+                $data['sdk'] = [
+                    'value' => 'kv://globals/sdk/v2'
+                ];
+            }
+            $this->resort($data);
             // 4. 域名指替换
             $body = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             $suffix = $this->getRunner()->getArgs()->getDomainSuffix();
@@ -243,5 +262,22 @@ class KvAgent extends Abstracts\Agent
             return $json[0]['Value'];
         }
         return trim(base64_decode($json[0]['Value']));
+    }
+
+    /**
+     * @param array $data
+     */
+    private function resort(& $data)
+    {
+        if (!is_array($data)) {
+            return;
+        }
+        ksort($data);
+        reset($data);
+        foreach ($data as & $temp) {
+            if (is_array($temp)) {
+                $this->resort($temp);
+            }
+        }
     }
 }
