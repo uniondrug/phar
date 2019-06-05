@@ -163,6 +163,12 @@ class Args
      */
     public function getIpAddr(string $name)
     {
+        if ($name === 'eth0') {
+            $eth0 = $this->getOption('eth0');
+            if (is_string($eth0) && $eth0 !== '') {
+                $name = $eth0;
+            }
+        }
         if (isset($this->_ipAddresses[$name])) {
             return $this->_ipAddresses[$name];
         }

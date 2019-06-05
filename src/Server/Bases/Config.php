@@ -6,8 +6,6 @@
 namespace Uniondrug\Phar\Server\Bases;
 
 use Uniondrug\Phar\Exceptions\ConfigException;
-use Uniondrug\Phar\Server\Listeners\MysqlListener;
-use Uniondrug\Phar\Server\Listeners\RedisListener;
 use Uniondrug\Phar\Server\Logs\Logger;
 use Uniondrug\Phar\Server\XHttp;
 

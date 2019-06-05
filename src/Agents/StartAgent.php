@@ -35,6 +35,11 @@ class StartAgent extends Abstracts\Agent
             'desc' => '指定环境名, 可选: {yellow=development}、{yellow=testing}、{yellow=release}、{yellow=production}, 默认: {yellow=development}'
         ],
         [
+            'name' => 'eth0',
+            'value' => 'eth0',
+            'desc' => '自定义内网网卡名称, 默认: {red=eth0}'
+        ],
+        [
             'name' => 'host',
             'value' => 'ip|eth',
             'desc' => '指定IP地址, 默认: 从配置文件{yellow=config/server.php}中读取'
