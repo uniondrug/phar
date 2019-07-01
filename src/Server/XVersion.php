@@ -12,7 +12,7 @@ class XVersion
 {
     const VERSION_MAJOR = 1;
     const VERSION_MINOR = 4;
-    const VERSION_RELEASE = 22;
+    const VERSION_RELEASE = 23;
 
     /**
      * 读取版本号

@@ -317,7 +317,14 @@ class HttpDispatcher
             if (isset($this->swooleRequest->get) && is_array($this->swooleRequest->get) && count($this->swooleRequest->get) > 0) {
                 $this->server->getLogger()->debug("QString: %s", http_build_query($this->swooleRequest->get));
             }
-            $this->server->getLogger()->debug("RawBody: %s", preg_replace("/\n\s*/", "", $this->swooleRequest->rawContent()));
+            /**
+             * 请求入参/去除boundary
+             */
+            if (isset($this->swooleRequest->files) && is_array($this->swooleRequest->files) && count($this->swooleRequest->files) > 0) {
+                $this->server->getLogger()->debug("Upload: %s", json_encode($this->swooleRequest->files, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            } else {
+                $this->server->getLogger()->debug("RawBody: %s", preg_replace("/\n\s*/", "", $this->swooleRequest->rawContent()));
+            }
         }
     }
 }
