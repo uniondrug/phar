@@ -285,7 +285,7 @@ class HttpDispatcher
             $_SERVER[strtoupper($key)] = $value;
         }
         foreach ($this->swooleRequest->header as $key => $value) {
-            $key = strtoupper($key);
+            $key = strtoupper(str_replace("-", "_", $key));
             if (preg_match("/^HTTP_/", $key) === 0) {
                 $key = "HTTP_{$key}";
             }
