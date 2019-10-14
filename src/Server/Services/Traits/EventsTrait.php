@@ -111,7 +111,7 @@ trait EventsTrait
             $server->frameworkRequest($server, $dispatch);
         }
         // 4. 内存状态
-        $memoryLimit = $dispatch->end();
+        $dispatch->end();
         unset($dispatch);
         // 5. 退出Worker进程
         //    当worker进程占用的内存资源达到临界值时
@@ -164,8 +164,10 @@ trait EventsTrait
         $requestId .= mt_rand(10000000, 99999999);
         // 1. stats
         $prefix = sprintf("[r=%s][z=%d]", $requestId, $taskId);
+        $logger = $server->getLogger();
         $server->getStatsTable()->incrTaskOn();
-        $server->getLogger()->startProfile()->setPrefix($prefix);
+        $logger->startProfile()->setPrefix($prefix);
+        $debugOn = $logger->debugOn();
         // 2. parser
         try {
             // 2.2 parser message to json
@@ -174,7 +176,7 @@ trait EventsTrait
                 // note: 当解析JSON失败时不写入Logger
                 //       a): 无效的JSON数据
                 //       b): 解压JSON数据失败
-                $server->getLogger()->ignoreProfile(true);
+                $logger->ignoreProfile(true);
                 throw new ServiceException("解析Task入参为JSON失败 - ".$message);
             }
             // 2.3 params validator
@@ -184,8 +186,8 @@ trait EventsTrait
                 throw new ServiceException("Task{".$data['class']."}未实现{".ITask::class."}类");
             }
             // 2.3 开始执行
-            $server->getLogger()->setPrefix("%s[y=%s]", $prefix, $data['class']);
-            $server->getLogger()->debug("开始Task任务");
+            $logger->setPrefix("%s[y=%s]", $prefix, $data['class']);
+            $debugOn && $logger->debug("开始Task任务");
             /**
              * 2.4 执行任务
              * @var ITask $tasker
@@ -202,16 +204,16 @@ trait EventsTrait
             $server->getStatsTable()->incrTaskFailure();
             // 3. 执行任务出错
             if (($e instanceof Error) || ($e instanceof ParamException)) {
-                $server->getLogger()->warning("执行任务出错 - %s", $e->getMessage());
+                $logger->warning("执行任务出错 - %s", $e->getMessage());
             } else {
-                $server->getLogger()->error("执行任务出错 - %s", $e->getMessage());
+                $logger->error("执行任务出错 - %s", $e->getMessage());
             }
-            $server->getLogger()->log(Logger::LEVEL_DEBUG, "{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
+            $logger->info(Logger::LEVEL_DEBUG, "{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
         } finally {
             // 4. 完成任务
             $duration = microtime(true) - $begin;
-            $server->getLogger()->debug("[d=%.06f]完成Task任务", $duration);
-            $server->getLogger()->endProfile();
+            $debugOn && $logger->debug("[d=%.06f]完成Task任务", $duration);
+            $debugOn && $logger->endProfile();
         }
         return $result;
     }

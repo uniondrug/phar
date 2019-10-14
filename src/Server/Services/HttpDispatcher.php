@@ -323,7 +323,7 @@ class HttpDispatcher
                 $this->server->getLogger()->info("Upload: %s", json_encode($this->swooleRequest->files, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             }
             // 4. Rawbody入参
-            $rawbody = $this->swooleRequest->rawContent();
+            $rawbody = preg_replace("/[\n|\r|\t]\s*/", "", $this->swooleRequest->rawContent());
             if (is_string($rawbody) && $rawbody !== '') {
                 if (strlen($rawbody) > 1000) {
                     $rawbody = substr($rawbody, 0, 500).' ... '.substr($rawbody, -500);
