@@ -50,7 +50,7 @@ class HttpDispatcher
         $this->_requestMethod = strtoupper($request->server['request_method']);
         $this->server = $server;
         $this->server->getLogger()->setPrefix("[r=%s][m=%s][u=%s]", $this->getRequestId(), $this->_requestMethod, $this->_requestUrl)->startProfile();
-        $this->server->getLogger()->infoOn() && $this->server->getLogger()->info("开始HTTP请求, 初始{%.01f}M内存", ($this->_memoryBegin / 1024 / 1024));
+        $this->server->getLogger()->debugOn() && $this->server->getLogger()->debug("开始HTTP请求, 初始{%.01f}M内存", ($this->_memoryBegin / 1024 / 1024));
         // 3. super variables
         $this->mergeSuperVariables();
         $this->prepareInput();
@@ -85,8 +85,8 @@ class HttpDispatcher
         // 5. completed
         $duration = microtime(true) - $this->_begin;
         // 6. debug logger
-        if ($this->server->getLogger()->infoOn()) {
-            $this->server->getLogger()->info("[d=%f]请求HTTP结果 - %s", $duration, preg_replace("/\n\s*/", "", $this->_content));
+        if ($this->server->getLogger()->debugOn()) {
+            $this->server->getLogger()->debug("[d=%f]请求HTTP结果 - %s", $duration, preg_replace("/[\r|\n]\s*/", "", $this->_content));
         }
         if ($duration > $this->server->getConfig()->slowRequestDuration) {
             $this->server->getLogger()->warning("HTTP慢请求 - 共用时{%.06f}秒", $duration);
