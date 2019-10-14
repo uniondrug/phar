@@ -50,7 +50,7 @@ class HttpDispatcher
         $this->_requestMethod = strtoupper($request->server['request_method']);
         $this->server = $server;
         $this->server->getLogger()->setPrefix("[r=%s][m=%s][u=%s]", $this->getRequestId(), $this->_requestMethod, $this->_requestUrl)->startProfile();
-        $this->server->getLogger()->debugOn() && $this->server->getLogger()->debug("开始HTTP请求, 初始{%.01f}M内存", ($this->_memoryBegin / 1024 / 1024));
+        $this->server->getLogger()->infoOn() && $this->server->getLogger()->info("开始HTTP请求, 初始{%.01f}M内存", ($this->_memoryBegin / 1024 / 1024));
         // 3. super variables
         $this->mergeSuperVariables();
         $this->prepareInput();
@@ -85,14 +85,13 @@ class HttpDispatcher
         // 5. completed
         $duration = microtime(true) - $this->_begin;
         // 6. debug logger
-        if ($this->server->getLogger()->debugOn()) {
-            $this->server->getLogger()->debug("请求HTTP结果 - %s", preg_replace("/\n\s*/", "", $this->_content));
+        if ($this->server->getLogger()->infoOn()) {
+            $this->server->getLogger()->info("[d=%f]请求HTTP结果 - %s", $duration, preg_replace("/\n\s*/", "", $this->_content));
         }
         if ($duration > $this->server->getConfig()->slowRequestDuration) {
             $this->server->getLogger()->warning("HTTP慢请求 - 共用时{%.06f}秒", $duration);
         }
         $memory = memory_get_usage(true);
-        $this->server->getLogger()->debugOn() && $this->server->getLogger()->debug("[d=%.06f]完成HTTP请求, 占用{%.01f}M内存", $duration, $memory / 1024 / 1024);
         $this->server->getLogger()->endProfile();
         // 7. mark memory
         return $memory >= $this->server->getConfig()->memoryLimit;
@@ -309,21 +308,27 @@ class HttpDispatcher
      */
     private function prepareInput()
     {
-        $debugOn = $this->server->getLogger()->debugOn();
-        if ($debugOn) {
+        $logger = $this->server->getLogger();
+        if ($logger->infoOn()) {
+            // 1. Header入参
             if (isset($this->swooleRequest->header) && is_array($this->swooleRequest->header) && count($this->swooleRequest->header) > 0) {
-                $this->server->getLogger()->debug("Headers: %s", http_build_query($this->swooleRequest->header));
+                $this->server->getLogger()->info("Headers: %s", http_build_query($this->swooleRequest->header));
             }
+            // 2. Query入参
             if (isset($this->swooleRequest->get) && is_array($this->swooleRequest->get) && count($this->swooleRequest->get) > 0) {
-                $this->server->getLogger()->debug("QString: %s", http_build_query($this->swooleRequest->get));
+                $this->server->getLogger()->info("QString: %s", http_build_query($this->swooleRequest->get));
             }
-            /**
-             * 请求入参/去除boundary
-             */
+            // 3. Files上传
             if (isset($this->swooleRequest->files) && is_array($this->swooleRequest->files) && count($this->swooleRequest->files) > 0) {
-                $this->server->getLogger()->debug("Upload: %s", json_encode($this->swooleRequest->files, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-            } else {
-                $this->server->getLogger()->debug("RawBody: %s", preg_replace("/\n\s*/", "", $this->swooleRequest->rawContent()));
+                $this->server->getLogger()->info("Upload: %s", json_encode($this->swooleRequest->files, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            }
+            // 4. Rawbody入参
+            $rawbody = $this->swooleRequest->rawContent();
+            if (is_string($rawbody) && $rawbody !== '') {
+                if (strlen($rawbody) > 1000) {
+                    $rawbody = substr($rawbody, 0, 500).' ... '.substr($rawbody, -500);
+                }
+                $this->server->getLogger()->info("RawBody: %s", $rawbody);
             }
         }
     }
