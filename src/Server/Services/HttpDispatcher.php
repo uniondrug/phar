@@ -26,6 +26,7 @@ class HttpDispatcher
     private $_requestTop = false;
     private $_requestUrl = '';
     private $_requestMethod = '';
+    private static $_requestServer;
     private $_responseCookies = [];
     private $_responseHeaders = [];
     private $_status;
@@ -99,7 +100,7 @@ class HttpDispatcher
         }
         // 7. slow request
         if ($duration > $this->server->getConfig()->slowRequestDuration) {
-            $this->server->getLogger()->warning("HTTP慢请求 - 共用时{%.06f}秒", $duration);
+            $this->server->getLogger()->warning("HTTP慢请求 - 共用时{%s}秒", $duration);
         }
         // 8. mark memory limit
         $memory = memory_get_usage(true);
@@ -151,6 +152,14 @@ class HttpDispatcher
             }
         }
         return $this->_requestId;
+    }
+
+    public function getRequestServer()
+    {
+        if (self::$_requestServer === null) {
+            self::$_requestServer = $this->server->getConfig()->appName."/".$this->server->getConfig()->appVersion;
+        }
+        return self::$_requestServer;
     }
 
     public function getUrl()
@@ -310,7 +319,7 @@ class HttpDispatcher
     {
         $this->setStatus($this->server->getConfig()->statusCode);
         $this->setContentType($this->server->getConfig()->contentType);
-        $this->setHeader("server", $this->server->getConfig()->appName."/".$this->server->getConfig()->appVersion);
+        $this->setHeader("server", $this->getRequestServer());
         $this->setHeader("request-id", $this->getRequestId());
     }
 

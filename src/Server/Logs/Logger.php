@@ -140,7 +140,6 @@ class Logger extends Abstracts\Base
      * 加入DebugLog
      * @param string $format
      * @param array  ...$args
-     * @return bool
      */
     public function debug(string $format, ... $args)
     {
@@ -151,7 +150,6 @@ class Logger extends Abstracts\Base
      * 加入ErrorLog
      * @param string $format
      * @param array  ...$args
-     * @return bool
      */
     public function error(string $format, ... $args)
     {
@@ -162,7 +160,6 @@ class Logger extends Abstracts\Base
      * 加入FatalLog
      * @param string $format
      * @param array  ...$args
-     * @return bool
      */
     public function fatal(string $format, ... $args)
     {
@@ -173,7 +170,6 @@ class Logger extends Abstracts\Base
      * 加入InfoLog
      * @param string $format
      * @param array  ...$args
-     * @return bool
      */
     public function info(string $format, ... $args)
     {
@@ -184,7 +180,6 @@ class Logger extends Abstracts\Base
      * 加入WarningLog
      * @param string $format
      * @param array  ...$args
-     * @return bool
      */
     public function warning(string $format, ... $args)
     {

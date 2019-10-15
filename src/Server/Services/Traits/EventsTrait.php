@@ -177,7 +177,7 @@ trait EventsTrait
                 //       a): 无效的JSON数据
                 //       b): 解压JSON数据失败
                 $logger->ignoreProfile(true);
-                throw new ServiceException("解析Task入参为JSON失败 - ".$message);
+                throw new ServiceException("解析Task入参失败 - ".$message);
             }
             // 2.3 params validator
             $data['class'] = isset($data['class']) && is_string($data['class']) ? $data['class'] : null;
@@ -204,11 +204,11 @@ trait EventsTrait
             $server->getStatsTable()->incrTaskFailure();
             // 3. 执行任务出错
             if (($e instanceof Error) || ($e instanceof ParamException)) {
-                $logger->warning("执行任务出错 - %s", $e->getMessage());
+                $logger->warning("执行Task出错 - %s", $e->getMessage());
             } else {
-                $logger->error("执行任务出错 - %s", $e->getMessage());
+                $logger->error("执行Task出错 - %s", $e->getMessage());
             }
-            $logger->info(Logger::LEVEL_DEBUG, "{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
+            $logger->debugOn() && $logger->debug(Logger::LEVEL_DEBUG, "{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
         } finally {
             // 4. 完成任务
             $duration = microtime(true) - $begin;

@@ -126,8 +126,8 @@ class XHttp extends Services\Http
                 $server->getLogger()->debug($e->getMessage());
             } else {
                 $server->getLogger()->error($e->getMessage());
-                $server->getLogger()->log(Logger::LEVEL_DEBUG, "%s at %s(%d)", get_class($e), $e->getFile(), $e->getLine());
             }
+            $server->getLogger()->debugOn() && $server->getLogger()->debug("{%s}: %s(%d)", get_class($e), $e->getFile(), $e->getLine());
             $service = $this->_container->getShared('serviceServer');
             $response = $service->withError($e->getMessage(), $e->getCode());
         }
