@@ -23,6 +23,7 @@ class HttpDispatcher
     private $_content = '';
     private $_memoryBegin = 0;
     private $_requestId = null;
+    private $_requestTop = false;
     private $_requestUrl = '';
     private $_requestMethod = '';
     private $_responseCookies = [];
@@ -83,17 +84,26 @@ class HttpDispatcher
         // 4. assign contents
         $this->swooleResponse->end($this->_content);
         // 5. completed
-        $duration = microtime(true) - $this->_begin;
+        $duration = (double) (microtime(true) - $this->_begin);
         // 6. debug logger
-        if ($this->server->getLogger()->debugOn()) {
-            $this->server->getLogger()->debug("[d=%f]请求HTTP结果 - %s", $duration, preg_replace("/[\r|\n]\s*/", "", $this->_content));
+        if ($this->_requestTop) {
+            // 6.1 top request log as INFO
+            if ($this->server->getLogger()->infoOn()) {
+                $this->server->getLogger()->info("[d=%.06f]请求HTTP结果 - %s", $duration, preg_replace("/[\r|\n]\s*/", "", $this->_content));
+            }
+        } else {
+            // 6.2 nest request log as DEBUG
+            if ($this->server->getLogger()->debugOn()) {
+                $this->server->getLogger()->debug("[d=%.06f]请求HTTP结果 - %s", $duration, preg_replace("/[\r|\n]\s*/", "", $this->_content));
+            }
         }
+        // 7. slow request
         if ($duration > $this->server->getConfig()->slowRequestDuration) {
             $this->server->getLogger()->warning("HTTP慢请求 - 共用时{%.06f}秒", $duration);
         }
+        // 8. mark memory limit
         $memory = memory_get_usage(true);
         $this->server->getLogger()->endProfile();
-        // 7. mark memory
         return $memory >= $this->server->getConfig()->memoryLimit;
     }
 
@@ -137,6 +147,7 @@ class HttpDispatcher
                 $requestId .= mt_rand(1000000, 9999999);
                 $requestId .= mt_rand(10000000, 99999999);
                 $this->_requestId = $requestId;
+                $this->_requestTop = true;
             }
         }
         return $this->_requestId;
