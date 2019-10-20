@@ -104,9 +104,13 @@ class PharProcess extends XProcess
             } catch(\Throwable $e) {
             }
             // 3. parent
-            if ($killer === false && isset($proc['ppid'])) {
-                if (Process::kill($proc['ppid'], 0) !== true) {
-                    $killer = true;
+            if ($killer === false && isset($proc['ppid']) && $proc['ppid'] > 0) {
+                try {
+                    if (Process::kill($proc['ppid'], 0) !== true) {
+                        $killer = true;
+                    }
+                } catch(\Throwable $e) {
+                    $this->getServer()->getLogger()->warning("检查{%d}号{%s}进程的父进程失败 - %s", $proc['pid'], $proc['name'], $e->getMessage());
                 }
             }
             // 4. killer
