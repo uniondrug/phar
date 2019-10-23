@@ -6,6 +6,7 @@
 namespace Uniondrug\Phar\Agents;
 
 use Uniondrug\Console\Console;
+use Uniondrug\Framework\Application;
 use Uniondrug\Framework\Container;
 
 /**
@@ -21,6 +22,8 @@ class ConsoleAgent extends Abstracts\Agent
     {
         array_shift($_SERVER['argv']);
         $container = new Container($this->getRunner()->getArgs()->basePath());
+        $application = new Application($container);
+        $application->boot();
         $console = new Console($container);
         $console->run();
     }
