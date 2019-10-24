@@ -1,7 +1,16 @@
 #
 # ignore
 #
-
-
-
-
+# Created by .ignore support plugin (hsz.mobi)
+/.idea
+/log/*
+/tmp/*
+!/tmp/pid
+/composer.lock
+/vendor
+!**/.gitkeep
+php_errors.log
+/server
+/console
+/.env
+/tmp/pid/server.pid

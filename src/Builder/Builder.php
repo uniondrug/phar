@@ -38,6 +38,12 @@ class Builder
         'vendor'
     ];
     /**
+     * 需要追加的白名单地址
+     * @var array
+     */
+    private $_white_list = [
+    ];
+    /**
      * 忽略规则
      * @var array
      */
@@ -106,6 +112,22 @@ class Builder
             $this->runScan($folder);
             $this->_scanAllFiles += $this->_scanFiles;
             $this->println("      add %4d files, found {%4d} files in {%3d} directories under {%s} folder.", $this->_scanFiles, $this->_scanTotalFiles, $this->_scanFolders, $folder);
+        }
+        // 扫描白名单目录
+        if($this->_white_list){
+            foreach ($this->_white_list as $i => $folder) {
+                $this->println("      开始扫描白名单目录, {%s}", $folder);
+                if (!is_dir($this->_basePath.'/'.$folder)) {
+                    $this->println("      ignore not exists folder, {%s}", $folder);
+                    continue;
+                }
+                $this->_scanFiles = 0;
+                $this->_scanFolders = 0;
+                $this->_scanTotalFiles = 0;
+                $this->runScanWhiteList($folder);
+                $this->_scanAllFiles += $this->_scanFiles;
+                $this->println("      add %4d files, found {%4d} files in {%3d} directories under {%s} folder.", $this->_scanFiles, $this->_scanTotalFiles, $this->_scanFolders, $folder);
+            }
         }
         $this->runBootstrap();
         $this->runEnded();
@@ -195,7 +217,49 @@ STUB;
         // 写入Phar
         $this->phar->addFromString('info.json', json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
-
+    /**
+     * 扫描白名单目录
+     * @param string $folder
+     * @param string $sub
+     */
+    private function runScanWhiteList(string $folder, string $sub = ''){
+        $this->_scanFolders++;
+        $p = $folder.($sub === '' ? '' : '/'.$sub);
+        $d = dir($this->_basePath.'/'.$p);
+        while (false !== ($e = $d->read())) {
+            // 1. ignore system, first char with '.'
+            if (preg_match("/^\./", $e)) {
+                continue;
+            }
+            // 2. found file
+            $f = $p.'/'.$e;
+            if (is_file($this->_basePath.'/'.$f)) {
+                $this->_scanTotalFiles++;
+                // 2.1
+                $this->runAdd($f);
+                continue;
+            }
+            // 3. sub directory
+            if (is_dir($this->_basePath.'/'.$f)) {
+                // 3.1 ignored or not
+                $folderIgnored = false;
+                foreach ($this->_folderIgnores as $rexp) {
+                    if (preg_match($rexp, $e) > 0 || preg_match($rexp, $f) > 0) {
+                        $folderIgnored = true;
+                        break;
+                    }
+                }
+                if ($folderIgnored) {
+                    continue;
+                }
+                // 3.2 subdirectory
+                $se = ($sub === '' ? '' : $sub.'/').$e;
+                $this->runScan($folder, $se);
+                continue;
+            }
+        }
+        $d->close();
+    }
     /**
      * 扫描目录
      * @param string $folder
@@ -281,7 +345,10 @@ STUB;
         in_array($regexp, $this->_folderIgnores) || $this->_folderIgnores[] = $regexp;
         return $this;
     }
-
+    public function addWhiteListFolder(string $folder){
+        in_array($folder, $this->_white_list) || $this->_white_list[] = $folder;
+        return $this;
+    }
     /**
      * 指定环境
      * @param string $environment
