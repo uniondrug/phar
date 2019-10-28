@@ -9,6 +9,7 @@ use Uniondrug\Phar\Exceptions\ServiceException;
 use Uniondrug\Phar\Server\Bases\Args;
 use Uniondrug\Phar\Server\Bases\Config;
 use Uniondrug\Phar\Server\Bases\Runner;
+use Uniondrug\Phar\Server\Bases\Trace;
 use Uniondrug\Phar\Server\Logs\Logger;
 use Uniondrug\Phar\Server\Processes\PharProcess;
 use Uniondrug\Phar\Server\Services\Http;
@@ -37,6 +38,10 @@ trait ConstractTrait
      * @var array
      */
     private $_tables;
+    /**
+     * @var Trace
+     */
+    private $_trace;
 
     /**
      * 构造Server实例
@@ -48,6 +53,7 @@ trait ConstractTrait
     {
         $this->_runner = $runner;
         $this->_runner->registerHandler();
+        $this->_trace = new Trace();
         $this->getArgs()->buildPath();
         parent::__construct($this->getConfig()->host, $this->getConfig()->port, $this->getConfig()->serverMode, $this->getConfig()->serverSockType);
         $this->getLogger()->info("服务名{%s/%s}准备启动", $this->getConfig()->appName, $this->getConfig()->appVersion);
@@ -155,6 +161,14 @@ trait ConstractTrait
     public function getTables()
     {
         return $this->_tables;
+    }
+
+    /**
+     * @return Trace
+     */
+    public function getTrace()
+    {
+        return $this->_trace;
     }
 
     /**
