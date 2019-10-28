@@ -48,10 +48,11 @@ class HttpDispatcher
         $this->swooleRequest = $request;
         $this->swooleResponse = $response;
         // 2. logger profile
+        $this->_requestId = $server->getTrace()->getRequestId();
         $this->_requestUrl = $request->server['request_uri'];
         $this->_requestMethod = strtoupper($request->server['request_method']);
         $this->server = $server;
-        $this->server->getLogger()->setPrefix("[r=%s][m=%s][u=%s]", $this->getRequestId(), $this->_requestMethod, $this->_requestUrl)->startProfile();
+        $this->server->getLogger()->setPrefix("%s[r=%s][m=%s][u=%s]", $server->getTrace()->getLoggerPrefix(), $this->getRequestId(), $this->_requestMethod, $this->_requestUrl)->startProfile();
         $this->server->getLogger()->debugOn() && $this->server->getLogger()->debug("开始HTTP请求, 初始{%.01f}M内存", ($this->_memoryBegin / 1024 / 1024));
         // 3. super variables
         $this->mergeSuperVariables();
@@ -139,18 +140,6 @@ class HttpDispatcher
      */
     public function getRequestId()
     {
-        if ($this->_requestId === null) {
-            if (isset($this->swooleRequest->header['request-id']) && is_string($this->swooleRequest->header['request-id']) && $this->swooleRequest->header['request-id'] !== '') {
-                $this->_requestId = $this->swooleRequest->header['request-id'];
-            } else {
-                $requestId = 'r';
-                $requestId .= (int) (microtime(true) * 1000000);
-                $requestId .= mt_rand(1000000, 9999999);
-                $requestId .= mt_rand(10000000, 99999999);
-                $this->_requestId = $requestId;
-                $this->_requestTop = true;
-            }
-        }
         return $this->_requestId;
     }
 
