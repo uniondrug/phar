@@ -36,7 +36,8 @@ trait RunTaskTrait
         // 2. 消息内容
         $json = json_encode([
             'class' => $class,
-            'params' => is_array($data) ? $data : []
+            'params' => is_array($data) ? $data : [],
+            'headers' => $server->getTrace()->getAppendTrace(true)
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         // 3. 内容压缩
         if ($server->isWorker() && !$server->isTasker()) {

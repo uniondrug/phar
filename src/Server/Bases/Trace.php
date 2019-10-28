@@ -12,7 +12,7 @@ namespace Uniondrug\Phar\Server\Bases;
 class Trace
 {
     const TRACE_ID = 'X-B3-Traceid';                // 主链名称
-    const SPAN_ID = 'X-B3-spanid';                  // 本请求ID
+    const SPAN_ID = 'X-B3-Spanid';                  // 本请求ID
     const PARENT_SPAN_ID = 'X-B3-Parentspanid';     // 上级请求ID
     const SAMPLED = 'X-B3-Sampled';                 // 抽样标识
     /**
@@ -33,10 +33,19 @@ class Trace
 
     /**
      * 读取追加Headers
+     * @param bool $lower
      * @return array
      */
-    public function getAppendTrace()
+    public function getAppendTrace(bool $lower = false)
     {
+        if ($lower) {
+            return [
+                strtolower(self::TRACE_ID) => $this->traceId,
+                strtolower(self::PARENT_SPAN_ID) => $this->spanId,
+                strtolower(self::SPAN_ID) => $this->makeRequestId(),
+                strtolower(self::SAMPLED) => $this->sampled
+            ];
+        }
         return [
             self::TRACE_ID => $this->traceId,
             self::PARENT_SPAN_ID => $this->spanId,
@@ -68,7 +77,7 @@ class Trace
     public function makeRequestId()
     {
         $tm = explode(' ', microtime(false));
-        return sprintf("%s%d-%d-%d-%d", $this->inTask ? 't' : 'r', $tm[1], $tm[0] * 1000000, mt_rand(100000, 999999), mt_rand(100000, 999999));
+        return sprintf("%s%d0%d0%d0%d", $this->inTask ? 'b' : 'a', $tm[1], $tm[0] * 1000000, mt_rand(100000, 999999), mt_rand(100000, 999999));
     }
 
     /**

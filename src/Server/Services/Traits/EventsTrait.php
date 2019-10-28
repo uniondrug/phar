@@ -91,6 +91,7 @@ trait EventsTrait
          * @var XHttp|XOld $server
          */
         $server = $this;
+        $server->getTrace()->reset($request->header);
         $dispatch = new HttpDispatcher($server, $request, $response);
         if ($dispatch->isAssets()) {
             // 2. 静态资源
@@ -156,44 +157,45 @@ trait EventsTrait
      */
     public function onTask($server, $taskId, $srcWorkerId, $message)
     {
+        // 1. 开始计时
         $begin = microtime(true);
         $result = false;
-        $requestId = 't';
-        $requestId .= (int) (microtime(true) * 1000000);
-        $requestId .= mt_rand(1000000, 9999999);
-        $requestId .= mt_rand(10000000, 99999999);
-        // 1. stats
-        $prefix = sprintf("[r=%s][z=%d]", $requestId, $taskId);
+        // 2. 解析入参
+        //    $data = [
+        //        "class" => "ExampleTask",
+        //        "params" => [],
+        //        "headers" => []
+        //    ]
+        $data = json_decode($message, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $server->getLogger()->error(sprintf("runTask入参不是有效的数组 - %s", $message));
+            return $result;
+        }
+        $data['class'] = isset($data['class']) && is_string($data['class']) ? $data['class'] : '';
+        $data['params'] = isset($data['params']) && is_array($data['params']) ? $data['params'] : [];
+        $data['headers'] = isset($data['headers']) && is_array($data['headers']) ? $data['headers'] : [];
+        // 3. 验证入参
+        if ($data['class'] === '' || !is_a($data['class'], ITask::class, true)) {
+            $server->getLogger()->error("Task{".$data['class']."}未实现{".ITask::class."}类");
+            return $result;
+        }
+        // 4. 初始化Task
+        $server->getTrace()->reset($data['headers'], true);
+        $requestId = $server->getTrace()->getRequestId();
+        // 5. stats
+        $prefix = sprintf("%s[r=%s][z=%d]", $server->getTrace()->getLoggerPrefix(), $requestId, $taskId);
         $logger = $server->getLogger();
         $server->getStatsTable()->incrTaskOn();
         $logger->startProfile()->setPrefix($prefix);
         $debugOn = $logger->debugOn();
-        // 2. parser
+        // 6. parser
         try {
-            // 2.2 parser message to json
-            $data = json_decode($message, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                // note: 当解析JSON失败时不写入Logger
-                //       a): 无效的JSON数据
-                //       b): 解压JSON数据失败
-                $logger->ignoreProfile(true);
-                throw new ServiceException("解析Task入参失败 - ".$message);
-            }
-            // 2.3 params validator
-            $data['class'] = isset($data['class']) && is_string($data['class']) ? $data['class'] : null;
-            $data['params'] = isset($data['params']) && is_array($data['params']) ? $data['params'] : [];
-            if (!is_a($data['class'], ITask::class, true)) {
-                throw new ServiceException("Task{".$data['class']."}未实现{".ITask::class."}类");
-            }
-            // 2.3 开始执行
-            $logger->setPrefix("%s[y=%s]", $prefix, $data['class']);
-            $debugOn && $logger->debug("开始Task任务");
+            // 6.1 开始执行
+            $debugOn && $logger->debug("开始{".$data['class']."}任务");
             /**
-             * 2.4 执行任务
+             * 6.2 执行任务
              * @var ITask $tasker
              */
-            $_SERVER['request-id'] = $requestId;
-            $_SERVER['HTTP_REQUEST_ID'] = $requestId;
             $tasker = new $data['class']($server, $taskId, $data['params']);
             if ($tasker->beforeRun() === true) {
                 $result = $tasker->run();
@@ -202,7 +204,7 @@ trait EventsTrait
             }
         } catch(\Throwable $e) {
             $server->getStatsTable()->incrTaskFailure();
-            // 3. 执行任务出错
+            // 7. 执行任务出错
             if (($e instanceof Error) || ($e instanceof ParamException)) {
                 $logger->warning("执行Task出错 - %s", $e->getMessage());
             } else {
@@ -210,10 +212,10 @@ trait EventsTrait
             }
             $logger->debugOn() && $logger->debug(Logger::LEVEL_DEBUG, "{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
         } finally {
-            // 4. 完成任务
+            // 8. 完成任务
             $duration = microtime(true) - $begin;
             $debugOn && $logger->debug("[d=%.06f]完成Task任务", $duration);
-            $debugOn && $logger->endProfile();
+            $logger->endProfile();
         }
         return $result;
     }
