@@ -23,6 +23,9 @@ abstract class Adapter
      * <li>module: 模块名称, 由哪个模块提交的日志</li>
      * <li>duration: 执行时长, 记录哪些脚本/接口跑的比较慢</li>
      * <li>pid: 进程ID</li>
+     * <li>traceId: 主链ID</li>
+     * <li>spanId: 当前请求ID</li>
+     * <li>parentSpanId: 来源请求ID</li>
      * <li>requestId: 请求标识, 同个一请求产生的Log, 都会带此参数</li>
      * <li>requestMethod: 请求方式, Restful的GET/POST等</li>
      * <li>requestUrl: 请求URL地址</li>
@@ -43,6 +46,9 @@ abstract class Adapter
         'requestId' => '',
         'requestMethod' => '',
         'requestUrl' => '',
+        'traceId' => '',
+        'spanId' => '',
+        'parentSpanId' => '',
         'serverAddr' => '',
         'taskId' => 0,
         'taskName' => '',
@@ -122,8 +128,17 @@ abstract class Adapter
                 case 'm' :
                     $fields['requestMethod'] = $s[1];
                     break;
+                case 'p' :
+                    $fields['parentSpanId'] = $s[1];
+                    break;
                 case 'r' :
                     $fields['requestId'] = $s[1];
+                    break;
+                case 's' :
+                    $fields['spanId'] = $s[1];
+                    break;
+                case 't' :
+                    $fields['traceId'] = $s[1];
                     break;
                 case 'u' :
                     $fields['requestUrl'] = $s[1];
