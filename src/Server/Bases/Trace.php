@@ -30,6 +30,9 @@ class Trace
      * @var array
      */
     private static $lowerKeys;
+    private static $traceIdLength = 8;
+    private static $spanIdLength = 8;
+    private static $traceUseStrong = null;
 
     /**
      * 读取追加Headers
@@ -42,14 +45,14 @@ class Trace
             return [
                 strtolower(self::TRACE_ID) => $this->traceId,
                 strtolower(self::PARENT_SPAN_ID) => $this->spanId,
-                strtolower(self::SPAN_ID) => $this->makeRequestId(),
+                strtolower(self::SPAN_ID) => $this->makeSpanId(),
                 strtolower(self::SAMPLED) => $this->sampled
             ];
         }
         return [
             self::TRACE_ID => $this->traceId,
             self::PARENT_SPAN_ID => $this->spanId,
-            self::SPAN_ID => $this->makeRequestId(),
+            self::SPAN_ID => $this->makeSpanId(),
             self::SAMPLED => $this->sampled
         ];
     }
@@ -74,10 +77,18 @@ class Trace
      * 生成链ID
      * @return string
      */
-    public function makeRequestId()
+    public function makeTraceId()
     {
-        $tm = explode(' ', microtime(false));
-        return sprintf("%s%d0%d0%d0%d", $this->inTask ? 'b' : 'a', $tm[1], $tm[0] * 1000000, mt_rand(100000, 999999), mt_rand(100000, 999999));
+        return bin2hex(openssl_random_pseudo_bytes(self::$traceIdLength));
+    }
+
+    /**
+     * 生成请求ID
+     * @return string
+     */
+    public function makeSpanId()
+    {
+        return bin2hex(openssl_random_pseudo_bytes(self::$spanIdLength));
     }
 
     /**
@@ -108,10 +119,12 @@ class Trace
                 $this->sampled = $headers[self::$lowerKeys['sampled']];
             }
         }
-        // 2. build trace
-        $this->traceId === null && $this->traceId = $this->makeRequestId();
         // 3. build span
-        $this->spanId === null && $this->spanId = $this->traceId;
+        $this->spanId === null && $this->spanId = $this->makeSpanId();
+        // 2. build trace
+        if ($this->traceId === null) {
+            $this->traceId = self::$spanIdLength == self::$traceIdLength ? $this->spanId : $this->makeTraceId();
+        }
         // 3. build parent span
         $this->parentSpanId === null && $this->parentSpanId = '';
         // 4. build sampled
