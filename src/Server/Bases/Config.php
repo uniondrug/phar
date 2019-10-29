@@ -69,6 +69,7 @@ class Config
     private $_logRedisKey = 'logger';
     private $_logRedisDeadline = 86400;
     private $_logKafka = false;
+    private $_logFile = false;
     private $_logKafkaUrl = '';
     private $_logKafkaTimeout = 30;
     /**
@@ -327,6 +328,15 @@ class Config
      * KafkaLooger状态
      * @return bool
      */
+    public function isFileLogger()
+    {
+        return $this->_logFile;
+    }
+
+    /**
+     * KafkaLooger状态
+     * @return bool
+     */
     public function isKafkaLogger()
     {
         return $this->_logKafka;
@@ -434,6 +444,7 @@ class Config
         //    b): Kafka
         //    c): File/Local
         $servLogger = isset($serv['logger']) && is_array($serv['logger']) ? $serv['logger'] : [];
+        // 6.1 Kafka: 发送到Kafka
         if (isset($servLogger['kafkaOn'], $servLogger['kafkaUrl']) && $servLogger['kafkaUrl'] !== '') {
             if (is_bool($servLogger['kafkaOn'])) {
                 $this->_logKafka = $servLogger['kafkaOn'];
@@ -447,6 +458,7 @@ class Config
                 }
             }
         }
+        // 6.2 Redis: 发送到Redis
         if (isset($servLogger['redisOn'], $servLogger['redisCfg']) && is_array($servLogger['redisCfg'])) {
             if (is_bool($servLogger['redisOn'])) {
                 $this->_logRedis = $servLogger['redisOn'];
@@ -461,6 +473,19 @@ class Config
                 if (isset($servLogger['redisDeadline']) && is_numeric($servLogger['redisDeadline']) && $servLogger['redisDeadline'] > 0) {
                     $this->_logRedisDeadline = (int) $servLogger['redisDeadline'];
                 }
+            }
+        }
+        // 6.3 File: 日志落盘
+        if (isset($servLogger['fileOn'])) {
+            if (is_bool($servLogger['fileOn'])) {
+                $this->_logFile = $servLogger['fileOn'];
+            } else if (is_string($servLogger['fileOn'])) {
+                $this->_logFile = strtolower($servLogger['fileOn']) === 'true';
+            }
+        }
+        if ($this->_logFile === false) {
+            if (!$this->_logKafka && !$this->_logRedis) {
+                $this->_logFile = true;
             }
         }
         // 7. Listener

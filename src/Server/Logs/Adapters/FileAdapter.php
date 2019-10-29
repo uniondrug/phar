@@ -13,6 +13,27 @@ use Uniondrug\Phar\Server\Logs\Abstracts\Adapter;
  */
 class FileAdapter extends Adapter
 {
+    private static $logDate;
+    private static $logFile;
+
+    /**
+     * 计算日志文件
+     * @return string
+     */
+    public function getLogFile()
+    {
+        $date = (string) date('Y-m-d');
+        if ($date !== self::$logDate) {
+            self::$logDate = $date;
+            $path = $this->logger->getConfig()->getArgs()->logPath().'/'.date('Y-m');
+            if (!is_dir($path)) {
+                mkdir($path, 0777);
+            }
+            self::$logFile = $path.'/'.$date.'.log';
+        }
+        return self::$logFile;
+    }
+
     /**
      * @param array $datas
      * @return bool
@@ -36,21 +57,15 @@ class FileAdapter extends Adapter
      */
     public function writeLogger(string $text)
     {
-        // 1. 计算路径与名称
-        $name = date('Y-m-d').'.log';
-        $path = $this->logger->getConfig()->getArgs()->logPath().'/'.date('Y-m');
-        $file = $path.'/'.$name;
-        // 2. 创建目录
-        if (!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
-        // 3. 打开文件
-        $mode = file_exists($file) ? 'a+' : 'wb+';
-        if (false !== ($this->handle = @fopen($file, $mode))) {
-            fwrite($this->handle, $text);
-            fclose($this->handle);
-            unset($this->handle);
-            return true;
+        try {
+            $file = self::getLogFile();
+            $mode = file_exists($file) ? 'a+' : 'wb+';
+            if (false !== ($handle = @fopen($file, $mode))) {
+                fwrite($handle, $text);
+                fclose($handle);
+                return true;
+            }
+        } catch(\Throwable $e) {
         }
         return false;
     }
