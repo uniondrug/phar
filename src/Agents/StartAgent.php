@@ -97,6 +97,11 @@ class StartAgent extends Abstracts\Agent
             'desc' => '服务地址, 例如: rule.module.uniondrug.cn'
         ],
         [
+            'name' => 'consul-domain',
+            'value' => 'str',
+            'desc' => '服务域名后缀, 例如: uniondrug.cn'
+        ],
+        [
             'name' => 'consul-health',
             'value' => 'str',
             'desc' => '健康检查地址, 例如: 172.16.0.100:8095'

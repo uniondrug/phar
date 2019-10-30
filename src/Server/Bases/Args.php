@@ -30,11 +30,12 @@ class Args
      * @var array
      */
     private $_domains = [
-        'development' => 'dev.dovecot.cn',
+        'development' => 'dev.uniondrug.info',
         'testing' => 'turboradio.cn',
         'release' => 'uniondrug.net',
         'production' => 'uniondrug.cn'
     ];
+    private $_domainSuffix;
     /**
      * 环境名
      * @var string
@@ -227,11 +228,14 @@ class Args
      */
     public function getDomainSuffix()
     {
-        $env = $this->getEnvironment();
-        if (isset($this->_domains[$env])) {
-            return $this->_domains[$env];
+        if ($this->_domainSuffix === null) {
+            $env = $this->getEnvironment();
+            if (isset($this->_domains[$env])) {
+                $this->_domainSuffix = $this->_domains[$env];
+            }
+            $this->_domainSuffix = $this->_domains['development'];
         }
-        return $this->_domains['development'];
+        return $this->_domainSuffix;
     }
 
     /**
@@ -389,6 +393,9 @@ class Args
                 $this->_parseArgument($key, $arg);
                 $key = null;
             }
+        }
+        if (isset($this->_options['consul-domain']) && is_string($this->_options['consul-domain']) && $this->_options['consul-domain'] !== '') {
+            $this->_domainSuffix = $this->_options['consul-domain'];
         }
     }
 
