@@ -38,6 +38,11 @@ class Builder
         'vendor'
     ];
     /**
+     * 白名单目录
+     * @var array
+     */
+    private $_whiteListFolders = [];
+    /**
      * 忽略规则
      * @var array
      */
@@ -224,31 +229,39 @@ STUB;
             $f = $p.'/'.$e;
             if (is_file($this->_basePath.'/'.$f)) {
                 $this->_scanTotalFiles++;
-                // 2.1
-                $fx = explode('.', $e);
-                $fi = count($fx);
-                if ($fi > 0) {
-                    $ext = $fx[$fi - 1];
-                    if (in_array($ext, $this->_exts)) {
-                        $this->runAdd($f);
+                if ($this->isWhiteListFolder($p)) {
+                    // 2.1
+                    $this->runAdd($f);
+                } else {
+                    // 2.2
+                    $fx = explode('.', $e);
+                    $fi = count($fx);
+                    if ($fi > 0) {
+                        $ext = $fx[$fi - 1];
+                        if (in_array($ext, $this->_exts)) {
+                            $this->runAdd($f);
+                        }
                     }
                 }
                 continue;
             }
             // 3. sub directory
             if (is_dir($this->_basePath.'/'.$f)) {
-                // 3.1 ignored or not
-                $folderIgnored = false;
-                foreach ($this->_folderIgnores as $rexp) {
-                    if (preg_match($rexp, $e) > 0 || preg_match($rexp, $f) > 0) {
-                        $folderIgnored = true;
-                        break;
+                // ignored or not
+                // for not whitelist
+                if (!$this->isWhiteListFolder($f)) {
+                    $folderIgnored = false;
+                    foreach ($this->_folderIgnores as $rexp) {
+                        if (preg_match($rexp, $e) > 0 || preg_match($rexp, $f) > 0) {
+                            $folderIgnored = true;
+                            break;
+                        }
+                    }
+                    if ($folderIgnored) {
+                        continue;
                     }
                 }
-                if ($folderIgnored) {
-                    continue;
-                }
-                // 3.2 subdirectory
+                // append subdirectory
                 $se = ($sub === '' ? '' : $sub.'/').$e;
                 $this->runScan($folder, $se);
                 continue;
@@ -289,6 +302,24 @@ STUB;
     {
         in_array($regexp, $this->_folderIgnores) || $this->_folderIgnores[] = $regexp;
         return $this;
+    }
+
+    public function addWhiteListFolder(string $folder)
+    {
+        in_array($folder, $this->_whiteListFolders) || $this->_whiteListFolders[] = $folder;
+        return $this;
+    }
+
+    public function isWhiteListFolder(string $folder)
+    {
+        $found = false;
+        foreach ($this->_whiteListFolders as $whiteListFolder) {
+            if ($whiteListFolder === $folder) {
+                $found = true;
+                break;
+            }
+        }
+        return $found;
     }
 
     /**
