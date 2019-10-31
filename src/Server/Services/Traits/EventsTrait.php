@@ -157,6 +157,10 @@ trait EventsTrait
      */
     public function onTask($server, $taskId, $srcWorkerId, $message)
     {
+        // 0. empty params for runTask() call
+        if ($message === '') {
+            return false;
+        }
         // 1. 开始计时
         $begin = microtime(true);
         $result = false;
