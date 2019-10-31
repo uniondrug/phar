@@ -182,6 +182,8 @@ trait EventsTrait
         // 4. 初始化Task
         $server->getTrace()->reset($data['headers'], true);
         $requestId = $server->getTrace()->getRequestId();
+        $_SERVER['REQUEST-ID'] = $requestId;
+        $_SERVER['HTTP_REQUEST_ID'] = $requestId;
         // 5. stats
         $prefix = sprintf("%s[r=%s][z=%d]", $server->getTrace()->getLoggerPrefix(), $requestId, $taskId);
         $logger = $server->getLogger();

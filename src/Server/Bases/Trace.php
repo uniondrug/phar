@@ -95,8 +95,8 @@ class Trace
 
     public function makeRequestId()
     {
-        $tm = explode('.', (string) microtime(true));
-        return sprintf("%s%s%d%d", $tm[0], $tm[1] * 1000000, mt_rand(10000000, 99999999), mt_rand(10000000, 99999999));
+        $tm = explode(' ', microtime(false));
+        return sprintf("%s%s%d%d", $tm[1], (int) ($tm[0] * 1000000), mt_rand(10000000, 99999999), mt_rand(10000000, 99999999));
     }
 
     /**
