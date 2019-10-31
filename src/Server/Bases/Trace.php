@@ -79,7 +79,8 @@ class Trace
      */
     public function makeTraceId()
     {
-        return bin2hex(openssl_random_pseudo_bytes(self::$traceIdLength));
+        return $this->makeRequestId();
+        //return bin2hex(openssl_random_pseudo_bytes(self::$traceIdLength));
     }
 
     /**
@@ -88,7 +89,14 @@ class Trace
      */
     public function makeSpanId()
     {
-        return bin2hex(openssl_random_pseudo_bytes(self::$spanIdLength));
+        return $this->makeRequestId();
+        // return bin2hex(openssl_random_pseudo_bytes(self::$spanIdLength));
+    }
+
+    public function makeRequestId()
+    {
+        $tm = explode('.', (string) microtime(true));
+        return sprintf("%s%s%d%d", $tm[0], $tm[1] * 1000000, mt_rand(10000000, 99999999), mt_rand(10000000, 99999999));
     }
 
     /**
