@@ -157,10 +157,6 @@ trait EventsTrait
      */
     public function onTask($server, $taskId, $srcWorkerId, $message)
     {
-        // 0. empty params for runTask() call
-        if ($message === '') {
-            return false;
-        }
         // 1. 开始计时
         $begin = microtime(true);
         $result = false;
@@ -172,7 +168,7 @@ trait EventsTrait
         //    ]
         $data = json_decode($message, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $server->getLogger()->error(sprintf("runTask入参不是有效的数组 - %s", $message));
+            $server->getLogger()->warning(sprintf("runTask入参不是有效的数组 - %s:%s", gettype($message), $message));
             return $result;
         }
         $data['class'] = isset($data['class']) && is_string($data['class']) ? $data['class'] : '';
