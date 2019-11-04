@@ -232,8 +232,9 @@ class Args
             $env = $this->getEnvironment();
             if (isset($this->_domains[$env])) {
                 $this->_domainSuffix = $this->_domains[$env];
+            } else {
+                $this->_domainSuffix = $this->_domains['development'];
             }
-            $this->_domainSuffix = $this->_domains['development'];
         }
         return $this->_domainSuffix;
     }
