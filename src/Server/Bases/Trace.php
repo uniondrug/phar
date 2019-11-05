@@ -20,10 +20,10 @@ class Trace
      * @var bool
      */
     private $inTask = false;
-    private $traceId;
-    private $spanId;
-    private $parentSpanId;
-    private $sampled;
+    private $traceId = '';
+    private $spanId = '';
+    private $parentSpanId = '';
+    private $sampled = '';
     private $sampledDefault = '0';
     private $loggerPrefix = '';
     /**
@@ -32,7 +32,6 @@ class Trace
     private static $lowerKeys;
     private static $traceIdLength = 8;
     private static $spanIdLength = 8;
-    private static $traceUseStrong = null;
 
     /**
      * 读取追加Headers
@@ -58,6 +57,7 @@ class Trace
     }
 
     /**
+     * 读取日志前缀
      * @return string
      */
     public function getLoggerPrefix()
@@ -66,6 +66,7 @@ class Trace
     }
 
     /**
+     * 读取主链ID
      * @return string
      */
     public function getRequestId()
@@ -74,29 +75,33 @@ class Trace
     }
 
     /**
-     * 生成链ID
+     * 生成主链ID
      * @return string
      */
     public function makeTraceId()
     {
-        return $this->makeRequestId();
-        //return bin2hex(openssl_random_pseudo_bytes(self::$traceIdLength));
+        $tm = explode(' ', microtime(false));
+        return sprintf("%s%s%s%d%d", $this->inTask ? 'b' : 'a', $tm[1], (int) ($tm[0] * 1000000), mt_rand(10000000, 99999999), mt_rand(1000000, 9999999));
     }
 
     /**
-     * 生成请求ID
+     * 生成请求链ID
      * @return string
      */
     public function makeSpanId()
     {
-        return $this->makeRequestId();
-        // return bin2hex(openssl_random_pseudo_bytes(self::$spanIdLength));
+        $tm = explode(' ', microtime(false));
+        return sprintf("c%s%s%d%d", $tm[1], (int) ($tm[0] * 1000000), mt_rand(10000000, 99999999), mt_rand(1000000, 9999999));
     }
 
+    /**
+     * 生成请求链ID
+     * @return string
+     */
     public function makeRequestId()
     {
         $tm = explode(' ', microtime(false));
-        return sprintf("%s%s%d%d", $tm[1], (int) ($tm[0] * 1000000), mt_rand(10000000, 99999999), mt_rand(10000000, 99999999));
+        return sprintf("%s%s%s%d%d", $this->inTask ? 'b' : 'a', $tm[1], (int) ($tm[0] * 1000000), mt_rand(10000000, 99999999), mt_rand(1000000, 9999999));
     }
 
     /**
@@ -108,40 +113,41 @@ class Trace
     {
         $this->inTask = $inTask;
         $this->checkLower();
-        // 1. init headers
+        // 1. 初始化链参数
+        $spanId = false;
+        $traceId = false;
+        $parentSpanId = false;
+        $sampled = false;
+        // 2. 从Header读取
         if (is_array($headers)) {
-            // 1.1 read from headers
-            if (isset($headers[self::$lowerKeys['trace']]) && is_string($headers[self::$lowerKeys['trace']]) && $headers[self::$lowerKeys['trace']] !== '') {
-                $this->traceId = $headers[self::$lowerKeys['trace']];
-            }
-            // 1.2 read from headers
+            // 2.1 SpanId
             if (isset($headers[self::$lowerKeys['span']]) && is_string($headers[self::$lowerKeys['span']]) && $headers[self::$lowerKeys['span']] !== '') {
-                $this->spanId = $headers[self::$lowerKeys['span']];
+                $spanId = $headers[self::$lowerKeys['span']];
             }
-            // 1.3 read from headers
+            // 2.2 TraceId
+            if (isset($headers[self::$lowerKeys['trace']]) && is_string($headers[self::$lowerKeys['trace']]) && $headers[self::$lowerKeys['trace']] !== '') {
+                $traceId = $headers[self::$lowerKeys['trace']];
+            }
+            // 2.3 ParentSpanId
             if (isset($headers[self::$lowerKeys['parentSpan']]) && is_string($headers[self::$lowerKeys['parentSpan']]) && $headers[self::$lowerKeys['parentSpan']] !== '') {
-                $this->parentSpanId = $headers[self::$lowerKeys['parentSpan']];
+                $parentSpanId = $headers[self::$lowerKeys['parentSpan']];
             }
-            // 1.4 read from headers
+            // 2.4 Sampled
             if (isset($headers[self::$lowerKeys['sampled']]) && is_string($headers[self::$lowerKeys['sampled']]) && $headers[self::$lowerKeys['sampled']] !== '') {
-                $this->sampled = $headers[self::$lowerKeys['sampled']];
+                $sampled = $headers[self::$lowerKeys['sampled']];
             }
         }
-        // 3. build span
-        $this->spanId === null && $this->spanId = $this->makeSpanId();
-        // 2. build trace
-        if ($this->traceId === null) {
-            $this->traceId = self::$spanIdLength == self::$traceIdLength ? $this->spanId : $this->makeTraceId();
-        }
-        // 3. build parent span
-        $this->parentSpanId === null && $this->parentSpanId = '';
-        // 4. build sampled
-        $this->sampled === null && $this->sampled = $this->sampledDefault;
-        // 5. logger prefix
+        // 3. 分配变更
+        $this->spanId = $spanId === false ? $this->makeSpanId() : $spanId;
+        $this->traceId = $traceId === false ? $this->makeTraceId() : $traceId;
+        $this->parentSpanId = $parentSpanId === false ? '' : $parentSpanId;
+        $this->sampled = $sampled === false ? $this->sampledDefault : $parentSpanId;
+        // 4. 日志前缀
         $this->loggerPrefix = sprintf("[t=%s][s=%s][p=%s]", $this->traceId, $this->spanId, $this->parentSpanId);
     }
 
     /**
+     * 初始化字写值
      * @return $this
      */
     private function checkLower()
