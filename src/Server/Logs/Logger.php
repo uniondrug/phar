@@ -207,7 +207,12 @@ class Logger extends Abstracts\Base
             $message = $format;
         }
         // 2. logger payload
-        $data = $this->formatData($level, $this->getPrefix(true), $message);
+        if ($this->_server !== null) {
+            $data = $this->formatData($level, $this->getPrefix(true), "[v={$this->getServer()->getTrace()->getLoggerVersion()}]".$message);
+            $this->getServer()->getTrace()->plusPoint();
+        } else {
+            $data = $this->formatData($level, $this->getPrefix(true), $message);
+        }
         // 3. logger with stdout
         if ($this->isStdout()) {
             $this->senderStdout([$data]);

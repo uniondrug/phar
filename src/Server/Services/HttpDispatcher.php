@@ -88,16 +88,8 @@ class HttpDispatcher
         // 5. completed
         $duration = (double) (microtime(true) - $this->_begin);
         // 6. debug logger
-        if ($this->_requestTop) {
-            // 6.1 top request log as INFO
-            if ($this->server->getLogger()->infoOn()) {
-                $this->server->getLogger()->info("[d=%.06f]请求HTTP结果 - %s", $duration, preg_replace("/[\r|\n]\s*/", "", $this->_content));
-            }
-        } else {
-            // 6.2 nest request log as DEBUG
-            if ($this->server->getLogger()->debugOn()) {
-                $this->server->getLogger()->debug("[d=%.06f]请求HTTP结果 - %s", $duration, preg_replace("/[\r|\n]\s*/", "", $this->_content));
-            }
+        if ($this->server->getLogger()->infoOn()) {
+            $this->server->getLogger()->info("[d=%.06f]请求HTTP结果 - %s", $duration, preg_replace("/[\r|\n]\s*/", "", $this->_content));
         }
         // 7. slow request
         if ($duration > $this->server->getConfig()->slowRequestDuration) {

@@ -143,6 +143,9 @@ abstract class Adapter
                 case 'u' :
                     $fields['requestUrl'] = $s[1];
                     break;
+                case 'v' :
+                    $fields['version'] = $s[1];
+                    break;
                 case 'x' :
                     $fields['pid'] = (int) $s[1];
                     break;

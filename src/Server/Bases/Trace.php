@@ -15,6 +15,7 @@ class Trace
     const SPAN_ID = 'X-B3-Spanid';                  // 本请求ID
     const PARENT_SPAN_ID = 'X-B3-Parentspanid';     // 上级请求ID
     const SAMPLED = 'X-B3-Sampled';                 // 抽样标识
+    const POINT_VERSION = 'X-B3-Version';           // 链版本号
     /**
      * 是否为Task进程
      * @var bool
@@ -25,6 +26,8 @@ class Trace
     private $parentSpanId = '';
     private $sampled = '';
     private $sampledDefault = '0';
+    private $loggerPoint = 0;
+    private $loggerPointVersion = '';
     private $loggerPrefix = '';
     /**
      * @var array
@@ -45,14 +48,16 @@ class Trace
                 strtolower(self::TRACE_ID) => $this->traceId,
                 strtolower(self::PARENT_SPAN_ID) => $this->spanId,
                 strtolower(self::SPAN_ID) => $this->makeSpanId(),
-                strtolower(self::SAMPLED) => $this->sampled
+                strtolower(self::SAMPLED) => $this->sampled,
+                strtolower(self::POINT_VERSION) => $this->getLoggerVersion()
             ];
         }
         return [
             self::TRACE_ID => $this->traceId,
             self::PARENT_SPAN_ID => $this->spanId,
             self::SPAN_ID => $this->makeSpanId(),
-            self::SAMPLED => $this->sampled
+            self::SAMPLED => $this->sampled,
+            self::POINT_VERSION => $this->getLoggerVersion()
         ];
     }
 
@@ -63,6 +68,16 @@ class Trace
     public function getLoggerPrefix()
     {
         return $this->loggerPrefix;
+    }
+
+    public function getLoggerPoint()
+    {
+        return $this->loggerPoint;
+    }
+
+    public function getLoggerVersion()
+    {
+        return $this->loggerPointVersion.'.'.$this->loggerPoint;
     }
 
     /**
@@ -104,6 +119,11 @@ class Trace
         return sprintf("%s%s%s%d%d", $this->inTask ? 'b' : 'a', $tm[1], (int) ($tm[0] * 1000000), mt_rand(10000000, 99999999), mt_rand(1000000, 9999999));
     }
 
+    public function plusPoint()
+    {
+        $this->loggerPoint++;
+    }
+
     /**
      * 重置
      * @param array $headers
@@ -118,6 +138,7 @@ class Trace
         $traceId = false;
         $parentSpanId = false;
         $sampled = false;
+        $version = false;
         // 2. 从Header读取
         if (is_array($headers)) {
             // 2.1 SpanId
@@ -136,6 +157,10 @@ class Trace
             if (isset($headers[self::$lowerKeys['sampled']]) && is_string($headers[self::$lowerKeys['sampled']]) && $headers[self::$lowerKeys['sampled']] !== '') {
                 $sampled = $headers[self::$lowerKeys['sampled']];
             }
+            // 2.5 Version
+            if (isset($headers[self::$lowerKeys['version']]) && is_string($headers[self::$lowerKeys['version']]) && $headers[self::$lowerKeys['version']] !== '') {
+                $version = $headers[self::$lowerKeys['version']];
+            }
         }
         // 3. 分配变更
         $this->spanId = $spanId === false ? $this->makeSpanId() : $spanId;
@@ -143,6 +168,8 @@ class Trace
         $this->parentSpanId = $parentSpanId === false ? '' : $parentSpanId;
         $this->sampled = $sampled === false ? $this->sampledDefault : $parentSpanId;
         // 4. 日志前缀
+        $this->loggerPoint = 0;
+        $this->loggerPointVersion = $version === false ? '0' : $version;
         $this->loggerPrefix = sprintf("[t=%s][s=%s][p=%s]", $this->traceId, $this->spanId, $this->parentSpanId);
     }
 
@@ -157,7 +184,8 @@ class Trace
                 'trace' => strtolower(self::TRACE_ID),
                 'parentSpan' => strtolower(self::PARENT_SPAN_ID),
                 'span' => strtolower(self::SPAN_ID),
-                'sampled' => strtolower(self::SAMPLED)
+                'sampled' => strtolower(self::SAMPLED),
+                'version' => strtolower(self::POINT_VERSION)
             ];
         }
         return $this;
