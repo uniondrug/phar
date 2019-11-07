@@ -52,6 +52,7 @@ abstract class Adapter
         'serverAddr' => '',
         'taskId' => 0,
         'taskName' => '',
+        'version' => '',
         'content' => ''
     ];
     private $loggerFieldsRexp = "/\[([^\]]+)\]/";
