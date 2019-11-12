@@ -153,6 +153,8 @@ class XHttp extends Services\Http
         $dispatcher->setStatus($statusCode);
         $content = $response->getContent();
         $dispatcher->setContent($content);
+        // m. unclosed transaction
+        $this->_connectionCheckUncommitTransaction($server);
     }
 
     /**
@@ -171,6 +173,45 @@ class XHttp extends Services\Http
     public function getContainer()
     {
         return $this->_container;
+    }
+
+    /**
+     * 检查事务
+     * 在Swoole启动时, 当请求结束检查是否有未提交的事务
+     * 若有, 则强制提交
+     * @param XHttp|XSocket|XOld $server
+     */
+    private function _connectionCheckUncommitTransaction($server)
+    {
+        // 1. read shared db
+        $shares = $this->connectionMysqls;
+        if (method_exists($this->_container, 'getSharedDatabaseKeys')) {
+            $shares = $this->_container->getSharedDatabaseKeys();
+        }
+        // 2. check shared db
+        foreach ($shares as $name) {
+            // 1. not shared
+            if (!$this->_container->hasSharedInstance($name)) {
+                continue;
+            }
+            /**
+             * 2. 请求结束前事务报警
+             *    a). 事务未提交, 未执行commit()方法
+             *    b). not rollback
+             * @var Mysql $mysql
+             */
+            $mysql = $this->_container->getShared($name);
+            if ($mysql->isUnderTransaction()) {
+                $server->getLogger()->error("transaction not commit/rollback");
+                try {
+                    $mysql->commit();
+                    $server->getLogger()->info("transaction force commit with uniondrug/phar");
+                } catch(\Throwable $e) {
+                    $mysql->rollback();
+                    $server->getLogger()->info("transaction force rollback with uniondrug/phar for - {$e->getMessage()}");
+                }
+            }
+        }
     }
 
     /**
