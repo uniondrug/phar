@@ -27,7 +27,7 @@ class Trace
     private $sampled = '';
     private $sampledDefault = '0';
     private $loggerPoint = 0;
-    private $loggerPointVersion = '';
+    private $loggerPointVersion = '0';
     private $loggerPrefix = '';
     /**
      * @var array
