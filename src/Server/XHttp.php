@@ -197,18 +197,17 @@ class XHttp extends Services\Http
             /**
              * 2. 请求结束前事务报警
              *    a). 事务未提交, 未执行commit()方法
-             *    b). not rollback
+             *    b). not rollback for exception
              * @var Mysql $mysql
              */
             $mysql = $this->_container->getShared($name);
             if ($mysql->isUnderTransaction()) {
                 $server->getLogger()->error("transaction not commit/rollback");
                 try {
-                    $mysql->commit();
-                    $server->getLogger()->info("transaction force commit with uniondrug/phar");
-                } catch(\Throwable $e) {
                     $mysql->rollback();
-                    $server->getLogger()->info("transaction force rollback with uniondrug/phar for - {$e->getMessage()}");
+                    $server->getLogger()->info("transaction rollback with uniondrug/phar");
+                } catch(\Throwable $e) {
+                    $server->getLogger()->info("transaction rollback failure with uniondrug/phar for - {$e->getMessage()}");
                 }
             }
         }
