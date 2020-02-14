@@ -212,7 +212,7 @@ trait EventsTrait
             } else {
                 $logger->error("执行Task出错 - %s", $e->getMessage());
             }
-            $logger->debugOn() && $logger->debug(Logger::LEVEL_DEBUG, "{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
+            $logger->debugOn() && $logger->debug("{".get_class($e)."}: {$e->getFile()}({$e->getLine()})");
         } finally {
             // 8. 完成任务
             $duration = microtime(true) - $begin;
