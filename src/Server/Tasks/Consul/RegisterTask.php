@@ -69,6 +69,7 @@ class RegisterTask extends XTask
     {
         // 1. 初始参数
         $data = [
+            'Id' => '',
             'Name' => $this->getServer()->getConfig()->appName,
             'Port' => 80,
             'Address' => $this->getServer()->getConfig()->appName.'.'.$this->getServer()->getArgs()->getDomainSuffix(),
@@ -140,6 +141,8 @@ class RegisterTask extends XTask
         //    "HTTP" => "http://{$address}/consul.health",
         //    "interval" => "{$heartbeat}s"
         //];
+        // 4.4 unique ID
+        $data['Id'] = $data['Name'].'-'.$this->getServer()->getConfig()->deployIp;
         // 5. tags
         $data['Tags'][] = 'deploy/'.$this->getServer()->getConfig()->deployIp;
         if ($this->getServer()->getConfig()->deployIp !== $this->getServer()->getConfig()->host) {
