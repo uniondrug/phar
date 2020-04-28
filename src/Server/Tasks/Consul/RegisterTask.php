@@ -57,6 +57,7 @@ class RegisterTask extends XTask
             $this->getServer()->getLogger()->log(Logger::LEVEL_DEBUG, json_encode($service, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         } finally {
             unset($http);
+            file_put_contents($this->getServer()->getArgs()->logPath().'/consul.log', $service['Id']);
         }
         return $done;
     }
