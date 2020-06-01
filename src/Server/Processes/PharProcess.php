@@ -5,6 +5,8 @@
  */
 namespace Uniondrug\Phar\Server\Processes;
 
+use GuzzleHttp\Client;
+use Phalcon\Config;
 use Swoole\Process;
 use Uniondrug\Phar\Server\Tasks\ICron;
 use Uniondrug\Phar\Server\Tasks\ITask;
@@ -54,6 +56,27 @@ class PharProcess extends XProcess
      * @var int
      */
     private $_secondPidManager = 5000;
+    /**
+     * 空闲检查频率
+     * 单位: 豪秒
+     * @var int
+     */
+    private $_idleFrequency = 1000;
+    /**
+     * 连续忙超过指定次数时报警
+     * @var int
+     */
+    private $_idleBusyTimes = 3;
+    /**
+     * 第N次忙
+     * @var int
+     */
+    private $_idleBusyOffset = 0;
+    private $_idelDingtalk = 'https://oapi.dingtalk.com/robot/send?access_token=03828d42e0a5cf15c30973079aa9288f588c9435a0ca327569fa135eda3057ab';
+    private $_idelHttpClient;
+    private $_idelHttpClientSending = false;
+    private $_idelAlertCount = 0;
+    private $_idelAlertDate = '';
 
     /**
      * @return bool
@@ -62,6 +85,18 @@ class PharProcess extends XProcess
     {
         try {
             $this->_crontabDisabled = $this->getServer()->getArgs()->hasOption('disable-cron');
+            $cfg = $this->getServer()->getContainer()->getConfig()->path('server.idle');
+            if ($cfg instanceof Config) {
+                if (isset($cfg->frequency) && is_numeric($cfg->frequency) && $cfg->frequency > 0) {
+                    $this->_idleFrequency = (int) $cfg->frequency;
+                }
+                if (isset($cfg->busyTimes) && is_numeric($cfg->busyTimes) && $cfg->busyTimes > 0) {
+                    $this->_idleBusyTimes = (int) $cfg->busyTimes;
+                }
+                if (isset($cfg->dingtalk) && is_string($cfg->dingtalk) && $cfg->dingtalk !== '') {
+                    $this->_idelDingtalk = $cfg->dingtalk;
+                }
+            }
             $this->scanCrontabs();
         } catch(\Throwable $e) {
             $this->getServer()->getLogger()->error("扫描定时器出错 - %s", $e->getMessage());
@@ -82,6 +117,92 @@ class PharProcess extends XProcess
             $this,
             'handlePid'
         ]);
+        if (version_compare(SWOOLE_VERSION, "4.5.0", ">=")) {
+            if ($this->_idelDingtalk !== 'off') {
+                $this->getServer()->tick($this->_idleFrequency, [
+                    $this,
+                    'checkIdleWorkers'
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Worker进程健康检查
+     */
+    public function checkIdleWorkers()
+    {
+        if ($this->_idelHttpClientSending) {
+            return;
+        }
+        // 1. 读取状态
+        $idle = true;
+        $stats = $this->getServer()->stats();
+        // 2. 状态检查
+        //    1). worker idle
+        //    2). tasker idle
+        if ($stats['idle_worker_num'] < 1) {
+            $idle = false;
+        } else if ($stats['task_idle_worker_num'] < 1) {
+            $idle = false;
+        }
+        // 3. 服务空闲
+        if ($idle) {
+            if ($this->_idleBusyOffset > 0) {
+                $this->_idleBusyOffset = 0;
+            }
+            return;
+        }
+        // 4. 报警频次控制
+        $this->_idleBusyOffset++;
+        if ($this->_idleBusyOffset < $this->_idleBusyTimes) {
+            return;
+        }
+        // 5. 发送报警
+        try {
+            // 5.1 status
+            $this->_idelHttpClientSending = true;
+            // 5.2 count
+            $alertDate = date('Y-m-d');
+            if ($alertDate !== $this->_idelAlertDate) {
+                $this->_idelAlertDate = $alertDate;
+                $this->_idelAlertCount = 0;
+            }
+            $this->_idelAlertCount++;
+            // 5.3 http client
+            if ($this->_idelHttpClient === null) {
+                $this->_idelHttpClient = new Client();
+            }
+            // 5.4 text format
+            $text = "# [IDLE][{$this->_idelAlertCount}] {$this->getServer()->getContainer()->getConfig()->path('app.appName')}\n\n";
+            $text .= "> 空闲: **{$stats['idle_worker_num']}/{$this->getServer()->getConfig()->getSwooleSettings()['worker_num']}** worker,  **{$stats['task_idle_worker_num']}/{$this->getServer()->getConfig()->getSwooleSettings()['task_worker_num']}** tasker.\n\n";
+            $text .= "\n";
+            $text .= "- 地址: ".$this->getServer()->getArgs()->getDeployIp()."\n";
+            $text .= "- 端口: ".$this->getServer()->getConfig()->port."\n";
+            $text .= "- 服务: ".$this->getServer()->getConfig()->appName."\n";
+            $text .= "- 时间: ".date('Y-m-d H:i:s')."\n";
+            $text .= "- 环境: ".$this->getServer()->getArgs()->getEnvironment();
+            // 5.5 send text
+            $this->_idelHttpClient->post($this->_idelDingtalk, [
+                'header' => [
+                    'content-type' => 'application/json'
+                ],
+                'json' => [
+                    'msgtype' => 'markdown',
+                    'markdown' => [
+                        'title' => 'Service Busy',
+                        'text' => $text
+                    ]
+                ],
+                'timeout' => 2,
+                'http_errors' => true
+            ]);
+        } catch(\Throwable $e) {
+            echo $e->getMessage();
+        } finally {
+            $this->_idleBusyOffset = 0;
+            $this->_idelHttpClientSending = false;
+        }
     }
 
     /**
