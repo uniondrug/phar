@@ -77,6 +77,8 @@ class PharProcess extends XProcess
     private $_idelHttpClientSending = false;
     private $_idelAlertCount = 0;
     private $_idelAlertDate = '';
+    private $_idleStartWorker;
+    private $_idleStartTasker;
 
     /**
      * @return bool
@@ -96,6 +98,8 @@ class PharProcess extends XProcess
                 if (isset($cfg->dingtalk) && is_string($cfg->dingtalk) && $cfg->dingtalk !== '') {
                     $this->_idelDingtalk = $cfg->dingtalk;
                 }
+                $this->_idleStartWorker = (int) $this->getServer()->getConfig()->getSwooleSettings()['worker_num'];
+                $this->_idleStartTasker = (int) $this->getServer()->getConfig()->getSwooleSettings()['task_worker_num'];
             }
             $this->scanCrontabs();
         } catch(\Throwable $e) {
@@ -174,9 +178,13 @@ class PharProcess extends XProcess
                 $this->_idelHttpClient = new Client();
             }
             // 5.4 text format
-            $text = "# [IDLE][{$this->_idelAlertCount}] {$this->getServer()->getContainer()->getConfig()->path('app.appName')}\n\n";
-            $text .= "> 空闲: **{$stats['idle_worker_num']}/{$this->getServer()->getConfig()->getSwooleSettings()['worker_num']}** worker,  **{$stats['task_idle_worker_num']}/{$this->getServer()->getConfig()->getSwooleSettings()['task_worker_num']}** tasker.\n\n";
-            $text .= "\n";
+            $text = "# [IDLE][{$this->_idelAlertCount}] {$this->getServer()->getContainer()->getConfig()->path('app.appName')}";
+            $text .= "\n\n";
+            $text .= "> ";
+            $text .= "同步负载 **".((int) (100 * ($this->_idleStartWorker - $stats['idle_worker_num']) / $this->_idleStartWorker))."**%, 空闲 **{$stats['idle_worker_num']}**/{$this->_idleStartWorker}; ";
+            $text .= "异步负载 **".((int) (100 * ($this->_idleStartTasker - $stats['task_idle_worker_num']) / $this->_idleStartTasker))."**%, 空闲 **{$stats['task_idle_worker_num']}**/{$this->_idleStartTasker}, 待执行 **{$stats['tasking_num']}** 个任务; ";
+            $text .= "当前服务 **{$stats['connection_num']}** 个连接, **{$stats['coroutine_num']}** 个协程。";
+            $text .= "\n\n";
             $text .= "- 地址: ".$this->getServer()->getArgs()->getDeployIp()."\n";
             $text .= "- 端口: ".$this->getServer()->getConfig()->port."\n";
             $text .= "- 服务: ".$this->getServer()->getConfig()->appName."\n";
@@ -198,7 +206,14 @@ class PharProcess extends XProcess
                 'http_errors' => true
             ]);
         } catch(\Throwable $e) {
-            echo $e->getMessage();
+            // save to file.
+            $file = $this->getServer()->getArgs()->logPath().'/idle-'.date('Y-m-d').'.log';
+            $mode = file_exists($file) ? 'a+' : 'wb+';
+            if (false !== ($fp = fopen($file, $mode))) {
+                $text = sprintf("[%s][%d][worker=%d%%][idle-worker=%d/%d][tasker=%d%%][idle-tasker=%d/%d][wait-tasker=%d][connection=%d][coroutine=%d] %s\n", date("Y-m-d H:i:s"), $this->_idelAlertCount, ((int) (100 * ($this->_idleStartWorker - $stats['idle_worker_num']) / $this->_idleStartWorker)), $stats['idle_worker_num'], $this->_idleStartWorker, ((int) (100 * ($this->_idleStartTasker - $stats['task_idle_worker_num']) / $this->_idleStartTasker)), $stats['task_idle_worker_num'], $this->_idleStartTasker, $stats['tasking_num'], $stats['connection_num'], $stats['coroutine_num'], $e->getMessage());
+                fwrite($fp, $text);
+                fclose($fp);
+            }
         } finally {
             $this->_idleBusyOffset = 0;
             $this->_idelHttpClientSending = false;
