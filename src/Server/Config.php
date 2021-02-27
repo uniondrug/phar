@@ -145,8 +145,8 @@ class Config
         'task_worker_num' => 4,
         'task_max_request' => 5000,
         'log_level' => 4,
-        'request_slowlog_file' => '',
-        'request_slowlog_timeout' => 5
+//        'request_slowlog_file' => '',
+//        'request_slowlog_timeout' => 5
     ];
     /**
      * Swoole事件
@@ -340,7 +340,7 @@ class Config
         }
         $this->_settings['pid_file'] = $this->args->getTmpDir().'/server.pid';
         $this->_settings['log_file'] = $this->args->getLogDir().'/server.log';
-        $this->_settings['request_slowlog_file'] = $this->args->getLogDir().'/slow.log';
+//        $this->_settings['request_slowlog_file'] = $this->args->getLogDir().'/slow.log';
         $this->_settings['task_tmpdir'] = $this->args->getTmpDir().'/tasks';
         // 6.3 Tables
         if (isset($srv['tables']) && is_array($srv['tables'])) {
