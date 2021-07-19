@@ -121,8 +121,8 @@ class Config
         'buffer_output_size' => 16777216,
         'enable_static_handler' => false,
         'log_level' => 4,
-//        'request_slowlog_file' => '',
-//        'request_slowlog_timeout' => 5,
+        'request_slowlog_file' => '',
+        'request_slowlog_timeout' => 5,
         'daemonize' => 0,
         'reload_async' => true
     ];
@@ -436,7 +436,7 @@ class Config
         // 5. Swoole参数
         $this->_swooleSettings['log_file'] = $this->_args->logPath().'/server.log';
         $this->_swooleSettings['pid_file'] = $this->_args->logPath().'/server.pid';
-//        $this->_swooleSettings['request_slowlog_file'] = $this->_args->logPath().'/slow.log';
+        $this->_swooleSettings['request_slowlog_file'] = $this->_args->logPath().'/slow.log';
         $this->_swooleSettings['task_tmpdir'] = $this->_args->tmpPath().'/tasks';
         $this->_swooleSettings['upload_tmp_dir'] = $this->_args->tmpPath().'/uploads';
         // 6. Logger
