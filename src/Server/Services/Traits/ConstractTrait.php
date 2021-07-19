@@ -12,6 +12,7 @@ use Uniondrug\Phar\Server\Bases\Runner;
 use Uniondrug\Phar\Server\Bases\Trace;
 use Uniondrug\Phar\Server\Logs\Logger;
 use Uniondrug\Phar\Server\Processes\PharProcess;
+use Uniondrug\Phar\Server\Processes\ServicePushProcess;
 use Uniondrug\Phar\Server\Services\Http;
 use Uniondrug\Phar\Server\Services\Socket;
 use Uniondrug\Phar\Server\Tables\ITable;
@@ -300,6 +301,17 @@ trait ConstractTrait
         if ($pharProcess) {
             $this->addProcess(new PharProcess($this));
             $countProcess++;
+        }
+        //判断服务是否可以上报
+        if(array_key_exists('servicePush',$this->getConfig()->getScanned())){
+            //wss 增加服务上报内容
+            $servicePush = $this->getConfig()->getScanned()['servicePush']['value']['servicePush'];
+
+            if($servicePush == 1)
+            {
+                $this->addProcess(new ServicePushProcess($this));
+                $countProcess++;
+            }
         }
         $this->getLogger()->info("初始化{%d}个{Process}进程.", $countProcess);
     }
