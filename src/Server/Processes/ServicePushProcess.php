@@ -74,7 +74,7 @@ class ServicePushProcess extends XProcess
                 if($json['errno'] == 0){
                     //进行拉去服务上报时间
                     $time = $json['data']['serviceReportInterval']*3600000;
-                    $this->getServer()->getLogger()->info("定时上报时间拉去:".$json['data']['serviceReportInterval']."&&".$time);
+                    $this->getServer()->getLogger()->info("定时上报时间拉去:".$time);
                 }else{
                     $this->getServer()->getLogger()->error("拉取服务时间解析错误：".$request->getBody()->getContents());
                 }
@@ -161,7 +161,7 @@ class ServicePushProcess extends XProcess
                 'headers' => ['content-type' => 'application/json;charset=utf-8'],
                 'json' => $postRpt
             ]);
-            $this->getServer()->getLogger()->info("服务上报 **".$request->getBody()->getContents());
+            $this->getServer()->getLogger()->info("服务上报完成:".$request->getBody()->getContents());
             //上报完成进行定时处理
         } catch(\Exception $exception) {
             $this->getServer()->getLogger()->error("上报服务错误：".$exception->getMessage());
