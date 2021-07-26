@@ -40,18 +40,20 @@ class ServicePushProcess extends XProcess
                 if (is_array($PushData)) {
                     $config = $this->getServer()->getConfig()->getScanned()['app'];
                     $this->getUrlPush($PushData, $config['value']);
+                    $this->getServer()->getLogger()->info("执行时间：".$this->_secondTimer);
+                    $this->setSecondTimer();
+                    //清除定时器
+                    //$server->clearTimer($this->_timeId);
+                    //再次执行定时器
+                    $this->_timeId = $this->getServer()->after($this->_secondTimer, [
+                        $this,
+                        'handlePush'
+                    ]);
+
                 } else {
                     $this->getServer()->getLogger()->info("非phar 包版本不进行服务上报");
                 }
-                $this->getServer()->getLogger()->info("执行时间：".$this->_secondTimer);
-                $this->setSecondTimer();
-                //清除定时器
-                //$server->clearTimer($this->_timeId);
-                //再次执行定时器
-                $this->_timeId = $this->getServer()->after($this->_secondTimer, [
-                    $this,
-                    'handlePush'
-                ]);
+
             }
         } catch(\Throwable $e) {
             $this->getServer()->getLogger()->error("服务运行上报出错 - %s", $e->getMessage());
