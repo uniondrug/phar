@@ -112,14 +112,14 @@ trait EventsTrait
             $server->frameworkRequest($server, $dispatch);
         }
         // 4. 内存状态
-        $dispatch->end();
+        $memoryLimit = $dispatch->end();
         unset($dispatch);
         // 5. 退出Worker进程
         //    当worker进程占用的内存资源达到临界值时
         //    主动发起退出进程请求
         // date: 2019-05-27
         // 以下代码会造成 cURL timed out, 暂时取消主动退出进程操作
-        // $memoryLimit && $server->stop($server->getWorkerId(), true);
+         $memoryLimit && $server->stop($server->getWorkerId(), true);
     }
 
     /**

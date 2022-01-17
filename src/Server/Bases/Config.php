@@ -3,6 +3,7 @@
  * @author wsfuyibing <websearch@163.com>
  * @date   2019-03-15
  */
+
 namespace Uniondrug\Phar\Server\Bases;
 
 use Uniondrug\Phar\Exceptions\ConfigException;
@@ -18,17 +19,17 @@ use Uniondrug\Phar\Server\XHttp;
  * @property string $appVersion          应用版本号
  * @property string $charset             默认编码
  * @property string $contentType         默认文档类型
- * @property int    $statusCode          默认HTTP状态码
+ * @property int $statusCode          默认HTTP状态码
  * @property double $slowRequestDuration 请求开始到结束用时, 超过此值加入慢日志
- * @property int    $memoryLimit         当Worker进程使用量达此临界值时, 退出重启
+ * @property int $memoryLimit         当Worker进程使用量达此临界值时, 退出重启
  * @property string $deployIp            部署机器的IP地址
  * @property string $class               服务类名
  * @property string $host                鉴听IP
- * @property int    $port                鉴听Port
- * @property int    $serverMode          Server模式
- * @property int    $serverSockType      Sock类型
- * @property int    $processStdInOut
- * @property int    $processCreatePipe
+ * @property int $port                鉴听Port
+ * @property int $serverMode          Server模式
+ * @property int $serverSockType      Sock类型
+ * @property int $processStdInOut
+ * @property int $processCreatePipe
  * @package Uniondrug\Phar\Server\Bases
  */
 class Config
@@ -237,7 +238,7 @@ class Config
                 continue;
             }
             // 4. 文件内容不是合法数组
-            $cfgData = include($this->_args->configPath()."/".$entry);
+            $cfgData = include($this->_args->configPath() . "/" . $entry);
             if (!is_array($cfgData)) {
                 throw new ConfigException("配置文件{$entry}不是有效的数组");
             }
@@ -263,7 +264,7 @@ class Config
     /**
      * 读取配置项
      * @param string $section
-     * @param bool   $throws
+     * @param bool $throws
      * @return array|false
      * @throws ConfigException
      */
@@ -373,7 +374,7 @@ class Config
         // 1. 从TMP文件中读取
         //    TMP文件由config目录下的文件与Consul-KV合并后
         //    的结果
-        $tmpFile = $this->_args->tmpPath().'/config.php';
+        $tmpFile = $this->_args->tmpPath() . '/config.php';
         if (file_exists($tmpFile)) {
             $tmpData = include($tmpFile);
             if (is_array($tmpData)) {
@@ -399,11 +400,11 @@ class Config
         $serv = $this->getSection('server');
         isset($serv['charset']) && $this->_configPhpArchive['charset'] = $serv['charset'];
         isset($serv['contentType']) && $this->_configPhpArchive['contentType'] = $serv['contentType'];
-        isset($serv['statusCode']) && is_numeric($serv['statusCode']) && $serv['statusCode'] > 0 && $this->_configPhpArchive['statusCode'] = (int) $serv['statusCode'];
-        isset($serv['slowRequestDuration']) && is_numeric($serv['slowRequestDuration']) && $serv['slowRequestDuration'] > 0 && $this->_configPhpArchive['slowRequestDuration'] = (double) $serv['slowRequestDuration'];
-        isset($serv['memoryLimit']) && is_numeric($serv['memoryLimit']) && $serv['memoryLimit'] > 0 && $this->_configPhpArchive['memoryLimit'] = (int) $serv['memoryLimit'];
-        isset($serv['serverMode']) && is_numeric($serv['serverMode']) && $this->_configPhpArchive['serverMode'] = (int) $serv['serverMode'];
-        isset($serv['serverSockType']) && is_numeric($serv['serverSockType']) && $this->_configPhpArchive['serverSockType'] = (int) $serv['serverSockType'];
+        isset($serv['statusCode']) && is_numeric($serv['statusCode']) && $serv['statusCode'] > 0 && $this->_configPhpArchive['statusCode'] = (int)$serv['statusCode'];
+        isset($serv['slowRequestDuration']) && is_numeric($serv['slowRequestDuration']) && $serv['slowRequestDuration'] > 0 && $this->_configPhpArchive['slowRequestDuration'] = (double)$serv['slowRequestDuration'];
+        isset($serv['memoryLimit']) && is_numeric($serv['memoryLimit']) && $serv['memoryLimit'] > 0 && $this->_configPhpArchive['memoryLimit'] = (int)$serv['memoryLimit'];
+        isset($serv['serverMode']) && is_numeric($serv['serverMode']) && $this->_configPhpArchive['serverMode'] = (int)$serv['serverMode'];
+        isset($serv['serverSockType']) && is_numeric($serv['serverSockType']) && $this->_configPhpArchive['serverSockType'] = (int)$serv['serverSockType'];
         isset($serv['processStdInOut']) && is_bool($serv['processStdInOut']) && $this->_configPhpArchive['processStdInOut'] = $serv['processStdInOut'];
         isset($serv['processCreatePipe']) && is_bool($serv['processCreatePipe']) && $this->_configPhpArchive['processCreatePipe'] = $serv['processCreatePipe'];
         // 3. SERV启动点
@@ -412,7 +413,7 @@ class Config
         $host = isset($serv['host']) && is_string($serv['host']) && $serv['host'] !== '' ? $serv['host'] : false;
         if ($host) {
             if (preg_match("/(\S+):(\d+)/", $host, $m) > 0) {
-                $this->_configPhpArchive['port'] = (int) $m[2];
+                $this->_configPhpArchive['port'] = (int)$m[2];
                 if (preg_match("/^\d+\.\d+\.\d+\.\d+$/", $m[1]) > 0) {
                     $this->_configPhpArchive['host'] = $m[1];
                 } else {
@@ -434,11 +435,11 @@ class Config
         isset($serv['settings']) && is_array($serv['settings']) && $this->_swooleSettings = array_replace_recursive($this->_swooleSettings, $serv['settings']);
         isset($serv['crontabs']) && is_array($serv['crontabs']) && $this->_swooleCrontabs = $serv['crontabs'];
         // 5. Swoole参数
-        $this->_swooleSettings['log_file'] = $this->_args->logPath().'/server.log';
-        $this->_swooleSettings['pid_file'] = $this->_args->logPath().'/server.pid';
-        $this->_swooleSettings['request_slowlog_file'] = $this->_args->logPath().'/slow.log';
-        $this->_swooleSettings['task_tmpdir'] = $this->_args->tmpPath().'/tasks';
-        $this->_swooleSettings['upload_tmp_dir'] = $this->_args->tmpPath().'/uploads';
+        $this->_swooleSettings['log_file'] = $this->_args->logPath() . '/server.log';
+        $this->_swooleSettings['pid_file'] = $this->_args->logPath() . '/server.pid';
+        $this->_swooleSettings['request_slowlog_file'] = $this->_args->logPath() . '/slow.log';
+        $this->_swooleSettings['task_tmpdir'] = $this->_args->tmpPath() . '/tasks';
+        $this->_swooleSettings['upload_tmp_dir'] = $this->_args->tmpPath() . '/uploads';
         // 6. Logger
         //    a): Redis
         //    b): Kafka
@@ -454,7 +455,7 @@ class Config
             if ($this->_logKafka) {
                 $this->_logKafkaUrl = $servLogger['kafkaUrl'];
                 if (isset($servLogger['kafkaTimeout']) && is_numeric($servLogger['kafkaTimeout']) && $servLogger['kafkaTimeout'] > 0) {
-                    $this->_logKafkaTimeout = (int) $servLogger['kafkaTimeout'];
+                    $this->_logKafkaTimeout = (int)$servLogger['kafkaTimeout'];
                 }
             }
         }
@@ -471,7 +472,7 @@ class Config
                     $this->_logRedisKey = $servLogger['redisKey'];
                 }
                 if (isset($servLogger['redisDeadline']) && is_numeric($servLogger['redisDeadline']) && $servLogger['redisDeadline'] > 0) {
-                    $this->_logRedisDeadline = (int) $servLogger['redisDeadline'];
+                    $this->_logRedisDeadline = (int)$servLogger['redisDeadline'];
                 }
             }
         }
@@ -498,7 +499,7 @@ class Config
             }
             if ($this->_swooleSettings['enable_static_handler']) {
                 if (isset($serv['document_root']) && is_string($serv['document_root']) && $serv['document_root'] !== '') {
-                    $this->_swooleSettings['document_root'] = $this->_args->workingPath().'/'.$serv['document_root'];
+                    $this->_swooleSettings['document_root'] = $this->_args->workingPath() . '/' . $serv['document_root'];
                 } else {
                     $this->_swooleSettings['document_root'] = $this->_args->assetsPath();
                 }
@@ -507,7 +508,7 @@ class Config
         // n. 内存极限
         if ($this->_configPhpArchive['memoryLimit'] === 0) {
             if (preg_match("/(\d+)(\S*)/", ini_get('memory_limit'), $m) > 0) {
-                $this->_configPhpArchive['memoryLimit'] = (int) $m[1];
+                $this->_configPhpArchive['memoryLimit'] = (int)$m[1];
                 switch (strtoupper($m[2][0])) {
                     case 'K' :
                         $this->_configPhpArchive['memoryLimit'] *= 1024;
@@ -519,6 +520,7 @@ class Config
                         $this->_configPhpArchive['memoryLimit'] *= 1024 * 1024 * 1024;
                         break;
                 }
+                $this->_configPhpArchive['memoryLimit'] -= 8 * 1024 * 1024;
             } else {
                 // 120M
                 $this->_configPhpArchive['memoryLimit'] = 125829120;
@@ -542,17 +544,17 @@ class Config
         // 4. reactor-num
         $reactorNum = $this->_args->getOption('reactor-num');
         if ($reactorNum !== false && $reactorNum > 0) {
-            $this->_swooleSettings['reactor_num'] = (int) $reactorNum;
+            $this->_swooleSettings['reactor_num'] = (int)$reactorNum;
         }
         // 5. worker-num
         $workerNum = $this->_args->getOption('worker-num');
         if ($workerNum !== false && $workerNum > 0) {
-            $this->_swooleSettings['worker_num'] = (int) $workerNum;
+            $this->_swooleSettings['worker_num'] = (int)$workerNum;
         }
         // 6. tasker-num
         $taskerNum = $this->_args->getOption('tasker-num');
         if ($taskerNum !== false && $taskerNum > 0) {
-            $this->_swooleSettings['task_worker_num'] = (int) $taskerNum;
+            $this->_swooleSettings['task_worker_num'] = (int)$taskerNum;
         }
         // 7. logger level
         $level = Logger::LEVEL_DEBUG;
