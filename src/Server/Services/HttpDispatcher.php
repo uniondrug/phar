@@ -326,8 +326,8 @@ class HttpDispatcher
             // 4. Rawbody入参
             $rawbody = preg_replace("/[\n|\r|\t]\s*/", "", $this->swooleRequest->rawContent());
             if (is_string($rawbody) && $rawbody !== '') {
-                if (strlen($rawbody) > 1000) {
-                    $rawbody = substr($rawbody, 0, 500).' ... '.substr($rawbody, -500);
+                if (strlen($rawbody) > 10000) {
+                    $rawbody = substr($rawbody, 0, 5000).' ... '.substr($rawbody, -5000);
                 }
                 $this->server->getLogger()->info("RawBody: %s", $rawbody);
             }
